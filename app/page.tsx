@@ -10,7 +10,7 @@ import { TenantDashboard } from '@/components/tenant-dashboard';
 function AppContent() {
   const { authState } = useAuth();
   const router = useRouter();
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
 
   useEffect(() => {
     // Show splash for 2 seconds

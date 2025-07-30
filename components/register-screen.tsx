@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,8 @@ import {
   Home,
   Loader2,
   Phone,
-  Mail
+  Mail,
+  CheckCircle
 } from 'lucide-react';
 import type { RegisterData } from '@/types/auth';
 
@@ -89,6 +91,7 @@ export function RegisterScreen({
   const { authState, register, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isRegistrationSuccess, setIsRegistrationSuccess] = useState(false);
 
   const schema = createRegisterSchema(selectedRole);
 
@@ -97,35 +100,70 @@ export function RegisterScreen({
     handleSubmit,
     formState: { errors, isValid, isDirty },
     watch,
-    setValue,
-    trigger
+    setValue
   } = useForm<RegisterFormData>({
     resolver: zodResolver(schema),
     mode: 'onChange',
     defaultValues: {
-      role: selectedRole,
-      acceptTerms: false
+      role: selectedRole
     }
   });
 
-  const watchedPassword = watch('password');
-  const watchedConfirmPassword = watch('confirmPassword');
+  const password = watch('password');
+  const confirmPassword = watch('confirmPassword');
+  const passwordsMatch = password === confirmPassword;
 
-  // Check if passwords match
-  const passwordsMatch =
-    watchedPassword === watchedConfirmPassword && watchedPassword !== '';
+  // Debug form state
+  console.log('Form Debug:', {
+    isValid,
+    isDirty,
+    passwordsMatch,
+    password: password ? 'filled' : 'empty',
+    confirmPassword: confirmPassword ? 'filled' : 'empty',
+    errors: Object.keys(errors)
+  });
+
+  const isFormValid = isValid && passwordsMatch && isDirty;
 
   const onSubmit = async (data: RegisterFormData) => {
     if (!passwordsMatch) {
+      toast.error('Passwords do not match');
       return;
     }
 
-    const result = await register(data as RegisterData);
+    // Show loading toast
+    const loadingToast = toast.loading('Creating your account...');
 
-    // If registration is successful, redirect to dashboard
-    if (result.success) {
-      // Use window.location to force a full page reload and redirect to dashboard
-      window.location.href = '/dashboard';
+    try {
+      const result = await register(data as RegisterData);
+
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
+      if (result.success) {
+        // Show success toast
+        toast.success('Account created successfully!', {
+          description: 'Please check your email to verify your account.',
+          duration: 5000
+        });
+
+        setIsRegistrationSuccess(true);
+      } else {
+        // Show error toast
+        toast.error('Registration failed', {
+          description: result.message,
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
+      // Show error toast
+      toast.error('Registration failed', {
+        description: 'An unexpected error occurred. Please try again.',
+        duration: 5000
+      });
     }
   };
 
@@ -147,7 +185,48 @@ export function RegisterScreen({
   const config = roleConfig[selectedRole];
   const Icon = config.icon;
 
-  const isFormValid = isValid && passwordsMatch && isDirty;
+  // Show success message after registration
+  if (isRegistrationSuccess) {
+    return (
+      <div className="min-h-screen bg-property-background flex items-center justify-center p-4 lg:p-8">
+        <Card className="w-full max-w-md bg-property-card shadow-lg border border-gray-100 lg:shadow-2xl">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-xl font-bold text-property-text-primary mb-2">
+              Registration Successful!
+            </h2>
+            <p className="text-property-text-secondary text-sm mb-6">
+              Your account has been created successfully. Please check your
+              email to verify your account before signing in.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <h4 className="text-blue-900 font-medium text-sm mb-2">
+                Next Steps:
+              </h4>
+              <ul className="text-blue-700 text-xs space-y-1 text-left">
+                <li>• Check your email for a verification link</li>
+                <li>• Click the verification link to activate your account</li>
+                <li>• Return here to sign in with your credentials</li>
+              </ul>
+            </div>
+            <Button
+              onClick={onLogin}
+              className="w-full bg-property-action hover:bg-property-action/90 text-white mb-4">
+              Go to Sign In
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsRegistrationSuccess(false)}
+              className="w-full border-gray-300 text-property-text-primary hover:bg-gray-50">
+              Register Another Account
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-property-background flex items-center justify-center p-4 lg:p-8">
@@ -176,7 +255,7 @@ export function RegisterScreen({
           </p>
         </CardHeader>
 
-        <CardContent className="space-y-6 lg:space-y-8">
+        <CardContent className="space-y-6">
           {authState.error && (
             <Alert className="border-red-200 bg-red-50">
               <AlertDescription className="text-red-700 text-sm">
@@ -185,335 +264,313 @@ export function RegisterScreen({
             </Alert>
           )}
 
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="space-y-4 lg:space-y-6">
-            {/* Personal Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-property-text-primary lg:text-xl">
-                Personal Information
-              </h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                <div>
-                  <Label
-                    htmlFor="firstName"
-                    className="text-property-text-primary font-medium text-sm lg:text-base">
-                    First Name
-                  </Label>
-                  <Input
-                    id="firstName"
-                    {...registerField('firstName')}
-                    placeholder="John"
-                    className={`mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
-                      errors.firstName
-                        ? 'border-red-300 focus:border-red-500'
-                        : ''
-                    }`}
-                    disabled={authState.isLoading}
-                  />
-                  {errors.firstName && (
-                    <p className="text-red-500 text-xs lg:text-sm mt-1">
-                      {errors.firstName.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label
-                    htmlFor="lastName"
-                    className="text-property-text-primary font-medium text-sm lg:text-base">
-                    Last Name
-                  </Label>
-                  <Input
-                    id="lastName"
-                    {...registerField('lastName')}
-                    placeholder="Doe"
-                    className={`mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
-                      errors.lastName
-                        ? 'border-red-300 focus:border-red-500'
-                        : ''
-                    }`}
-                    disabled={authState.isLoading}
-                  />
-                  {errors.lastName && (
-                    <p className="text-red-500 text-xs lg:text-sm mt-1">
-                      {errors.lastName.message}
-                    </p>
-                  )}
-                </div>
-              </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Hidden role field */}
+            <input
+              type="hidden"
+              {...registerField('role')}
+              value={selectedRole}
+            />
 
+            {/* Email Field */}
+            <div>
+              <Label
+                htmlFor="email"
+                className="text-property-text-primary font-medium">
+                Email Address
+              </Label>
+              <div className="relative mt-1">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  {...registerField('email')}
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  className="pl-10 border-gray-300 focus:border-property-action"
+                  disabled={authState.isLoading}
+                />
+              </div>
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+
+            {/* Password Fields */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
                 <Label
-                  htmlFor="email"
-                  className="text-property-text-primary font-medium lg:text-base">
-                  Email Address
+                  htmlFor="password"
+                  className="text-property-text-primary font-medium">
+                  Password
                 </Label>
                 <div className="relative mt-1">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 lg:w-5 lg:h-5 text-gray-400" />
                   <Input
-                    id="email"
-                    type="email"
-                    {...registerField('email')}
-                    placeholder="john@example.com"
-                    className={`pl-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
-                      errors.email ? 'border-red-300 focus:border-red-500' : ''
-                    }`}
+                    {...registerField('password')}
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Create a password"
+                    className="pr-10 border-gray-300 focus:border-property-action"
                     disabled={authState.isLoading}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={authState.isLoading}>
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
-                {errors.email && (
-                  <p className="text-red-500 text-xs lg:text-sm mt-1">
-                    {errors.email.message}
+                {errors.password && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.password.message}
                   </p>
                 )}
               </div>
 
               <div>
                 <Label
-                  htmlFor="phone"
-                  className="text-property-text-primary font-medium lg:text-base">
-                  Phone Number
+                  htmlFor="confirmPassword"
+                  className="text-property-text-primary font-medium">
+                  Confirm Password
                 </Label>
                 <div className="relative mt-1">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 lg:w-5 lg:h-5 text-gray-400" />
                   <Input
-                    id="phone"
-                    type="tel"
-                    {...registerField('phone')}
-                    placeholder="+63 912 345 6789"
-                    className={`pl-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
-                      errors.phone ? 'border-red-300 focus:border-red-500' : ''
-                    }`}
+                    {...registerField('confirmPassword')}
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm your password"
+                    className="pr-10 border-gray-300 focus:border-property-action"
                     disabled={authState.isLoading}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={authState.isLoading}>
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
-                {errors.phone && (
-                  <p className="text-red-500 text-xs lg:text-sm mt-1">
-                    {errors.phone.message}
+                {errors.confirmPassword && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
+                {!passwordsMatch && confirmPassword && (
+                  <p className="text-red-500 text-xs mt-1">
+                    Passwords do not match
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Role-specific fields */}
+            {/* Name Fields */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <Label
+                  htmlFor="firstName"
+                  className="text-property-text-primary font-medium">
+                  First Name
+                </Label>
+                <Input
+                  {...registerField('firstName')}
+                  id="firstName"
+                  type="text"
+                  placeholder="Enter your first name"
+                  className="border-gray-300 focus:border-property-action"
+                  disabled={authState.isLoading}
+                />
+                {errors.firstName && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.firstName.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label
+                  htmlFor="lastName"
+                  className="text-property-text-primary font-medium">
+                  Last Name
+                </Label>
+                <Input
+                  {...registerField('lastName')}
+                  id="lastName"
+                  type="text"
+                  placeholder="Enter your last name"
+                  className="border-gray-300 focus:border-property-action"
+                  disabled={authState.isLoading}
+                />
+                {errors.lastName && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.lastName.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Phone Field */}
+            <div>
+              <Label
+                htmlFor="phone"
+                className="text-property-text-primary font-medium">
+                Phone Number
+              </Label>
+              <div className="relative mt-1">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  {...registerField('phone')}
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  className="pl-10 border-gray-300 focus:border-property-action"
+                  disabled={authState.isLoading}
+                />
+              </div>
+              {errors.phone && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.phone.message}
+                </p>
+              )}
+            </div>
+
+            {/* Role-specific Fields */}
             {selectedRole === 'owner' && (
-              <div className="space-y-4 border-t border-gray-200 pt-6 lg:pt-8">
-                <h4 className="text-property-text-primary font-medium text-sm lg:text-lg">
-                  Business Information
-                </h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                  <div>
-                    <Label
-                      htmlFor="companyName"
-                      className="text-property-text-primary font-medium text-sm lg:text-base">
-                      Company Name (Optional)
-                    </Label>
-                    <Input
-                      id="companyName"
-                      {...registerField('companyName')}
-                      placeholder="Your Property Management Company"
-                      className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
-                      disabled={authState.isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label
-                      htmlFor="businessLicense"
-                      className="text-property-text-primary font-medium text-sm lg:text-base">
-                      Business License (Optional)
-                    </Label>
-                    <Input
-                      id="businessLicense"
-                      {...registerField('businessLicense')}
-                      placeholder="BL-2024-001"
-                      className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
-                      disabled={authState.isLoading}
-                    />
-                  </div>
+              <div className="space-y-4">
+                <div>
+                  <Label
+                    htmlFor="companyName"
+                    className="text-property-text-primary font-medium">
+                    Company Name (Optional)
+                  </Label>
+                  <Input
+                    {...registerField('companyName')}
+                    id="companyName"
+                    type="text"
+                    placeholder="Enter your company name"
+                    className="border-gray-300 focus:border-property-action"
+                    disabled={authState.isLoading}
+                  />
+                </div>
+
+                <div>
+                  <Label
+                    htmlFor="businessLicense"
+                    className="text-property-text-primary font-medium">
+                    Business License (Optional)
+                  </Label>
+                  <Input
+                    {...registerField('businessLicense')}
+                    id="businessLicense"
+                    type="text"
+                    placeholder="Enter your business license number"
+                    className="border-gray-300 focus:border-property-action"
+                    disabled={authState.isLoading}
+                  />
                 </div>
               </div>
             )}
 
             {selectedRole === 'tenant' && (
-              <div className="space-y-4 border-t border-gray-200 pt-6 lg:pt-8">
-                <h4 className="text-property-text-primary font-medium text-sm lg:text-lg">
-                  Emergency Contact (Optional)
-                </h4>
-                <div>
-                  <Label
-                    htmlFor="emergencyContactName"
-                    className="text-property-text-primary font-medium text-sm lg:text-base">
-                    Contact Name
-                  </Label>
-                  <Input
-                    id="emergencyContactName"
-                    {...registerField('emergencyContactName')}
-                    placeholder="Jane Doe"
-                    className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
-                    disabled={authState.isLoading}
-                  />
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <Label
+                      htmlFor="emergencyContactName"
+                      className="text-property-text-primary font-medium">
+                      Emergency Contact Name (Optional)
+                    </Label>
+                    <Input
+                      {...registerField('emergencyContactName')}
+                      id="emergencyContactName"
+                      type="text"
+                      placeholder="Enter emergency contact name"
+                      className="border-gray-300 focus:border-property-action"
+                      disabled={authState.isLoading}
+                    />
+                  </div>
+
                   <div>
                     <Label
                       htmlFor="emergencyContactPhone"
-                      className="text-property-text-primary font-medium text-sm lg:text-base">
-                      Phone
+                      className="text-property-text-primary font-medium">
+                      Emergency Contact Phone (Optional)
                     </Label>
                     <Input
+                      {...registerField('emergencyContactPhone')}
                       id="emergencyContactPhone"
                       type="tel"
-                      {...registerField('emergencyContactPhone')}
-                      placeholder="+63 912 345 6789"
-                      className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
+                      placeholder="Enter emergency contact phone"
+                      className="border-gray-300 focus:border-property-action"
                       disabled={authState.isLoading}
                     />
                   </div>
-                  <div>
-                    <Label
-                      htmlFor="emergencyContactRelationship"
-                      className="text-property-text-primary font-medium text-sm lg:text-base">
-                      Relationship
-                    </Label>
-                    <Input
-                      id="emergencyContactRelationship"
-                      {...registerField('emergencyContactRelationship')}
-                      placeholder="Sister"
-                      className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
-                      disabled={authState.isLoading}
-                    />
-                  </div>
+                </div>
+
+                <div>
+                  <Label
+                    htmlFor="emergencyContactRelationship"
+                    className="text-property-text-primary font-medium">
+                    Relationship to Emergency Contact (Optional)
+                  </Label>
+                  <Input
+                    {...registerField('emergencyContactRelationship')}
+                    id="emergencyContactRelationship"
+                    type="text"
+                    placeholder="e.g., Spouse, Parent, Friend"
+                    className="border-gray-300 focus:border-property-action"
+                    disabled={authState.isLoading}
+                  />
                 </div>
               </div>
             )}
 
-            {/* Password fields */}
-            <div className="space-y-4 border-t border-gray-200 pt-6 lg:pt-8">
-              <h3 className="text-lg font-semibold text-property-text-primary lg:text-xl">
-                Security
-              </h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                <div>
-                  <Label
-                    htmlFor="password"
-                    className="text-property-text-primary font-medium lg:text-base">
-                    Password
-                  </Label>
-                  <div className="relative mt-1">
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      {...registerField('password')}
-                      placeholder="Create a strong password"
-                      className={`pr-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
-                        errors.password
-                          ? 'border-red-300 focus:border-red-500'
-                          : ''
-                      }`}
-                      disabled={authState.isLoading}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                      disabled={authState.isLoading}>
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4 lg:w-5 lg:h-5 text-gray-500" />
-                      ) : (
-                        <Eye className="w-4 h-4 lg:w-5 lg:h-5 text-gray-500" />
-                      )}
-                    </Button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-red-500 text-xs lg:text-sm mt-1">
-                      {errors.password.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label
-                    htmlFor="confirmPassword"
-                    className="text-property-text-primary font-medium lg:text-base">
-                    Confirm Password
-                  </Label>
-                  <div className="relative mt-1">
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      {...registerField('confirmPassword')}
-                      placeholder="Confirm your password"
-                      className={`pr-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
-                        watchedConfirmPassword && !passwordsMatch
-                          ? 'border-red-300 focus:border-red-500'
-                          : ''
-                      }`}
-                      disabled={authState.isLoading}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      disabled={authState.isLoading}>
-                      {showConfirmPassword ? (
-                        <EyeOff className="w-4 h-4 lg:w-5 lg:h-5 text-gray-500" />
-                      ) : (
-                        <Eye className="w-4 h-4 lg:w-5 lg:h-5 text-gray-500" />
-                      )}
-                    </Button>
-                  </div>
-                  {watchedConfirmPassword && !passwordsMatch && (
-                    <p className="text-red-500 text-xs lg:text-sm mt-1">
-                      Passwords do not match
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* Terms and Conditions */}
-            <div className="flex items-start space-x-3 lg:space-x-4">
+            <div className="flex items-start space-x-2">
               <Checkbox
-                id="terms"
+                id="acceptTerms"
                 checked={watch('acceptTerms')}
                 onCheckedChange={checked =>
                   setValue('acceptTerms', checked as boolean)
                 }
                 disabled={authState.isLoading}
-                className="mt-1 lg:mt-2"
+                className="mt-1"
               />
-              <Label
-                htmlFor="terms"
-                className="text-sm lg:text-base text-property-text-secondary leading-relaxed cursor-pointer">
-                I agree to the{' '}
-                <span className="text-property-action hover:underline">
-                  Terms of Service
-                </span>{' '}
-                and{' '}
-                <span className="text-property-action hover:underline">
-                  Privacy Policy
-                </span>
-              </Label>
+              <div className="grid gap-1.5 leading-none">
+                <Label
+                  htmlFor="acceptTerms"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  I accept the terms and conditions
+                </Label>
+                <p className="text-xs text-property-text-secondary">
+                  By checking this box, you agree to our Terms of Service and
+                  Privacy Policy.
+                </p>
+              </div>
             </div>
             {errors.acceptTerms && (
-              <p className="text-red-500 text-xs lg:text-sm">
+              <p className="text-red-500 text-xs mt-1">
                 {errors.acceptTerms.message}
               </p>
             )}
 
+            {/* Submit Button */}
             <Button
               type="submit"
-              className={`w-full ${config.color} hover:opacity-90 text-white font-medium h-12 lg:h-14 text-base lg:text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300`}
+              className={`w-full ${config.color} hover:opacity-90 text-white font-medium`}
               disabled={authState.isLoading || !isFormValid}>
               {authState.isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Creating Account...
                 </>
               ) : (
@@ -522,17 +579,17 @@ export function RegisterScreen({
             </Button>
           </form>
 
-          <div className="border-t border-gray-200 pt-6 lg:pt-8">
-            <p className="text-center text-property-text-secondary text-sm lg:text-base mb-3">
-              Already have an account?
+          <div className="text-center">
+            <p className="text-property-text-secondary text-sm">
+              Already have an account?{' '}
+              <Button
+                variant="link"
+                onClick={onLogin}
+                className="text-property-action hover:text-property-action/80 p-0 h-auto text-sm"
+                disabled={authState.isLoading}>
+                Sign In
+              </Button>
             </p>
-            <Button
-              variant="outline"
-              onClick={onLogin}
-              className="w-full border-gray-300 text-property-text-primary hover:bg-gray-50 bg-transparent h-12 lg:h-14 text-base lg:text-lg rounded-xl"
-              disabled={authState.isLoading}>
-              Sign In
-            </Button>
           </div>
         </CardContent>
       </Card>

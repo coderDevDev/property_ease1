@@ -3,6 +3,10 @@
 import type React from 'react';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +24,23 @@ interface LoginScreenProps {
   selectedRole: 'owner' | 'tenant';
 }
 
+// Zod schema for login form validation
+const createLoginSchema = (role: 'owner' | 'tenant') => {
+  return z.object({
+    email: z
+      .string()
+      .min(1, 'Email is required')
+      .email('Please enter a valid email address'),
+    password: z
+      .string()
+      .min(1, 'Password is required')
+      .min(6, 'Password must be at least 6 characters'),
+    role: z.literal(role)
+  });
+};
+
+type LoginFormData = z.infer<ReturnType<typeof createLoginSchema>>;
+
 export function LoginScreen({
   onBack,
   onForgotPassword,
@@ -28,28 +49,63 @@ export function LoginScreen({
 }: LoginScreenProps) {
   const { authState, login, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState<LoginCredentials>({
-    email:
-      selectedRole === 'owner'
-        ? 'owner@propertyease.com'
-        : 'tenant@propertyease.com',
-    password: 'password123',
-    role: selectedRole
+
+  const schema = createLoginSchema(selectedRole);
+
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors, isValid, isDirty },
+    watch,
+    setValue
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(schema),
+    mode: 'onChange',
+    defaultValues: {
+      email:
+        selectedRole === 'owner'
+          ? 'owner@propertyease.com'
+          : 'tenant@propertyease.com',
+      password: 'password123',
+      role: selectedRole
+    }
   });
 
-  const handleInputChange = (field: keyof LoginCredentials, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (authState.error) clearError();
-  };
+  const onSubmit = async (data: LoginFormData) => {
+    // Show loading toast
+    const loadingToast = toast.loading('Signing you in...');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const result = await login(formData);
+    try {
+      const result = await login(data as LoginCredentials);
 
-    // If login is successful, redirect to dashboard
-    if (result.success) {
-      // Use window.location to force a full page reload and redirect to dashboard
-      window.location.href = '/dashboard';
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
+      if (result.success) {
+        // Show success toast
+        toast.success('Login successful!', {
+          description: 'Redirecting to dashboard...',
+          duration: 3000
+        });
+
+        // Use window.location to force a full page reload and redirect to dashboard
+        window.location.href = '/dashboard';
+      } else {
+        // Show error toast
+        toast.error('Login failed', {
+          description: result.message,
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
+      // Show error toast
+      toast.error('Login failed', {
+        description: 'An unexpected error occurred. Please try again.',
+        duration: 5000
+      });
     }
   };
 
@@ -70,6 +126,16 @@ export function LoginScreen({
 
   const config = roleConfig[selectedRole];
   const Icon = config.icon;
+
+  const isFormValid = isValid && isDirty;
+
+  // Debug form state
+  console.log('Login Form Debug:', {
+    isValid,
+    isDirty,
+    isFormValid,
+    errors: Object.keys(errors)
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col p-4 lg:p-8">
@@ -99,7 +165,7 @@ export function LoginScreen({
           </p>
         </CardHeader>
 
-        <CardContent className="space-y-6 lg:space-y-8 px-6 pb-6 lg:px-8 lg:pb-8">
+        <CardContent className="space-y-6">
           {authState.error && (
             <Alert className="border-red-200 bg-red-50">
               <AlertDescription className="text-red-700 text-sm">
@@ -108,65 +174,72 @@ export function LoginScreen({
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-8">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Hidden role field */}
+            <input
+              type="hidden"
+              {...registerField('role')}
+              value={selectedRole}
+            />
+
             <div>
-              <Label
-                htmlFor="email"
-                className="text-gray-900 font-medium text-sm lg:text-base">
+              <Label htmlFor="email" className="text-gray-700 font-medium">
                 Email Address
               </Label>
               <Input
+                {...registerField('email')}
                 id="email"
                 type="email"
-                value={formData.email}
-                onChange={e => handleInputChange('email', e.target.value)}
                 placeholder="Enter your email"
-                required
-                className="mt-1 border-gray-300 focus:border-blue-500 h-12 lg:h-14 text-base"
+                className="mt-1 border-gray-300 focus:border-blue-500"
                 disabled={authState.isLoading}
               />
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <div>
-              <Label
-                htmlFor="password"
-                className="text-gray-900 font-medium text-sm lg:text-base">
+              <Label htmlFor="password" className="text-gray-700 font-medium">
                 Password
               </Label>
               <div className="relative mt-1">
                 <Input
+                  {...registerField('password')}
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={e => handleInputChange('password', e.target.value)}
                   placeholder="Enter your password"
-                  required
-                  className="pr-12 border-gray-300 focus:border-blue-500 h-12 lg:h-14 text-base"
+                  className="pr-10 border-gray-300 focus:border-blue-500"
                   disabled={authState.isLoading}
                 />
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-12 lg:h-14 px-3 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   disabled={authState.isLoading}>
                   {showPassword ? (
-                    <EyeOff className="w-5 h-5 lg:w-6 lg:h-6 text-gray-500" />
+                    <EyeOff className="w-4 h-4" />
                   ) : (
-                    <Eye className="w-5 h-5 lg:w-6 lg:h-6 text-gray-500" />
+                    <Eye className="w-4 h-4" />
                   )}
-                </Button>
+                </button>
               </div>
+              {errors.password && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             <Button
               type="submit"
               className={`w-full ${config.color} hover:opacity-90 text-white font-medium h-12 lg:h-14 text-base lg:text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300`}
-              disabled={authState.isLoading}>
+              disabled={authState.isLoading || !isFormValid}>
               {authState.isLoading ? (
                 <>
-                  <Loader2 className="w-5 h-5 lg:w-6 lg:h-6 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 mr-2 animate-spin" />
                   Signing In...
                 </>
               ) : (
@@ -175,40 +248,25 @@ export function LoginScreen({
             </Button>
           </form>
 
-          <div className="text-center">
+          <div className="space-y-3">
             <Button
               variant="link"
               onClick={onForgotPassword}
-              className="text-blue-600 hover:text-blue-700 p-0 h-auto text-sm lg:text-base"
+              className="w-full text-gray-600 hover:text-gray-800 p-0 h-auto text-sm lg:text-base"
               disabled={authState.isLoading}>
               Forgot your password?
             </Button>
-          </div>
 
-          <div className="border-t border-gray-200 pt-6 lg:pt-8">
-            <p className="text-center text-gray-600 text-sm lg:text-base mb-3">
-              Don't have an account?
-            </p>
-            <Button
-              variant="outline"
-              onClick={onRegister}
-              className="w-full border-gray-300 text-gray-900 hover:bg-gray-50 bg-transparent h-12 lg:h-14 text-base lg:text-lg rounded-xl"
-              disabled={authState.isLoading}>
-              Create Account
-            </Button>
-          </div>
-
-          {/* Demo Credentials */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 lg:p-6">
-            <p className="text-blue-900 text-sm lg:text-base font-medium mb-2 lg:mb-3">
-              Demo Credentials:
-            </p>
-            <div className="space-y-1 text-sm lg:text-base text-blue-700">
-              <p>
-                <strong>Email:</strong> {selectedRole}@propertyease.com
-              </p>
-              <p>
-                <strong>Password:</strong> password123
+            <div className="text-center">
+              <p className="text-gray-600 text-sm lg:text-base">
+                Don't have an account?{' '}
+                <Button
+                  variant="link"
+                  onClick={onRegister}
+                  className="text-blue-600 hover:text-blue-800 p-0 h-auto text-sm lg:text-base font-medium"
+                  disabled={authState.isLoading}>
+                  Sign up
+                </Button>
               </p>
             </div>
           </div>

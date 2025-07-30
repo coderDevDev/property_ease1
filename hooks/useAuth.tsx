@@ -9,7 +9,7 @@ import type {
   RegisterData,
   ForgotPasswordData
 } from '@/types/auth';
-import { mockUsers } from '@/data/authData';
+import { AuthAPI } from '@/lib/api/auth';
 
 const AuthContext = createContext<{
   authState: AuthState;
@@ -43,24 +43,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    // Check for stored auth data
-    const storedUser = localStorage.getItem('propertyease_user');
-    if (storedUser) {
+    // Check for current user on mount
+    const checkCurrentUser = async () => {
       try {
-        const user = JSON.parse(storedUser);
-        setAuthState({
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null
-        });
+        const { user, session } = await AuthAPI.getCurrentUser();
+
+        if (user && session) {
+          setAuthState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null
+          });
+        } else {
+          setAuthState(prev => ({ ...prev, isLoading: false }));
+        }
       } catch (error) {
-        localStorage.removeItem('propertyease_user');
+        console.error('Error checking current user:', error);
         setAuthState(prev => ({ ...prev, isLoading: false }));
       }
-    } else {
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-    }
+    };
+
+    checkCurrentUser();
   }, []);
 
   const login = async (
@@ -68,34 +72,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ): Promise<{ success: boolean; message: string }> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const result = await AuthAPI.login(credentials);
 
-    const user = mockUsers.find(
-      u => u.email === credentials.email && u.role === credentials.role
-    );
+      if (result.success && result.user) {
+        setAuthState({
+          user: result.user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null
+        });
+      } else {
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: result.message
+        }));
+      }
 
-    if (!user) {
+      return result;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Login failed';
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: 'Invalid email or role. Please check your credentials.'
+        error: errorMessage
       }));
-      return { success: false, message: 'Invalid email or role' };
+      return { success: false, message: errorMessage };
     }
-
-    // In real app, verify password here
-    const updatedUser = { ...user, lastLogin: new Date().toISOString() };
-
-    localStorage.setItem('propertyease_user', JSON.stringify(updatedUser));
-    setAuthState({
-      user: updatedUser,
-      isAuthenticated: true,
-      isLoading: false,
-      error: null
-    });
-
-    return { success: true, message: 'Login successful' };
   };
 
   const register = async (
@@ -103,54 +108,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ): Promise<{ success: boolean; message: string }> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const result = await AuthAPI.register(data);
 
-    // Check if user already exists
-    const existingUser = mockUsers.find(u => u.email === data.email);
-    if (existingUser) {
+      if (result.success && result.user) {
+        // For registration, we don't automatically log the user in
+        // They need to verify their email first
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: null
+        }));
+      } else {
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: result.message
+        }));
+      }
+
+      return result;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Registration failed';
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: 'An account with this email already exists.'
+        error: errorMessage
       }));
-      return { success: false, message: 'Email already exists' };
+      return { success: false, message: errorMessage };
     }
-
-    // Create new user
-    const newUser: User = {
-      id: Date.now().toString(),
-      email: data.email,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      phone: data.phone,
-      role: data.role,
-      isVerified: false,
-      createdAt: new Date().toISOString(),
-      ...(data.role === 'owner' && {
-        companyName: data.companyName,
-        businessLicense: data.businessLicense
-      }),
-      ...(data.role === 'tenant' && {
-        emergencyContact: {
-          name: data.emergencyContactName || '',
-          phone: data.emergencyContactPhone || '',
-          relationship: data.emergencyContactRelationship || ''
-        }
-      })
-    };
-
-    mockUsers.push(newUser);
-    localStorage.setItem('propertyease_user', JSON.stringify(newUser));
-
-    setAuthState({
-      user: newUser,
-      isAuthenticated: true,
-      isLoading: false,
-      error: null
-    });
-
-    return { success: true, message: 'Registration successful' };
   };
 
   const forgotPassword = async (
@@ -158,30 +145,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ): Promise<{ success: boolean; message: string }> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const result = await AuthAPI.resetPassword(data.email);
 
-    const user = mockUsers.find(
-      u => u.email === data.email && u.role === data.role
-    );
-
-    setAuthState(prev => ({ ...prev, isLoading: false }));
-
-    if (!user) {
-      return {
-        success: false,
-        message: 'No account found with this email and role'
-      };
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      return result;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Password reset failed';
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: errorMessage
+      }));
+      return { success: false, message: errorMessage };
     }
-
-    return {
-      success: true,
-      message: 'Password reset instructions sent to your email'
-    };
   };
 
-  const logout = () => {
-    localStorage.removeItem('propertyease_user');
+  const logout = async () => {
+    try {
+      await AuthAPI.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+
     setAuthState({
       user: null,
       isAuthenticated: false,
