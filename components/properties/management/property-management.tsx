@@ -25,7 +25,10 @@ import {
   TrendingUp,
   DollarSign,
   Calendar,
-  Star
+  Star,
+  Briefcase,
+  LucideBuilding,
+  Link
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -33,6 +36,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface PropertyManagementProps {
   onBack: () => void;
@@ -119,25 +123,18 @@ export function PropertyManagement({ onBack }: PropertyManagementProps) {
   const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
 
   if (loading) {
+    // Animated loading skeletons
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        {/* Desktop decorations */}
         <div className="hidden lg:block absolute top-20 right-20 w-64 h-64 bg-purple-200/20 rounded-full blur-3xl" />
         <div className="hidden lg:block absolute bottom-20 left-20 w-48 h-48 bg-blue-200/20 rounded-full blur-3xl" />
-
         <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
-          <div className="w-full max-w-md">
-            <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-              <CardContent className="p-8 lg:p-12 text-center">
-                <div className="animate-spin rounded-full h-16 w-16 lg:h-20 lg:w-20 border-4 border-blue-200 border-t-blue-600 mx-auto mb-6 lg:mb-8"></div>
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 mb-2">
-                  Loading Properties
-                </h2>
-                <p className="text-gray-600 text-base lg:text-lg">
-                  Please wait while we load your property data...
-                </p>
-              </CardContent>
-            </Card>
+          <div className="w-full max-w-5xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-64 rounded-2xl" />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -181,254 +178,359 @@ export function PropertyManagement({ onBack }: PropertyManagementProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Desktop decorations */}
-      <div className="hidden lg:block absolute top-20 right-20 w-64 h-64 bg-purple-200/20 rounded-full blur-3xl" />
-      <div className="hidden lg:block absolute bottom-20 left-20 w-48 h-48 bg-blue-200/20 rounded-full blur-3xl" />
+    <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Decorative background blobs for desktop */}
+      <div className="hidden lg:block absolute top-20 right-20 w-64 h-64 bg-purple-200/20 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="hidden lg:block absolute bottom-20 left-20 w-48 h-48 bg-blue-200/20 rounded-full blur-3xl pointer-events-none z-0" />
 
-      {/* Mobile Header */}
-      <div className="lg:hidden bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-xl">
-        <div className="flex items-center justify-between p-4 pt-12">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBack}
-              className="text-white hover:bg-white/10 p-2">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-white text-lg font-semibold">
-              Property Management
-            </h1>
-          </div>
-          <Button
-            onClick={() => setViewMode('add')}
-            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-            size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Property
-          </Button>
-        </div>
+      {/* Sticky Add Property Button (Desktop) */}
+      <div className="hidden lg:block fixed right-8 bottom-8 z-40">
+        <Button
+          onClick={() => setViewMode('add')}
+          aria-label="Add Property"
+          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold px-8 py-4 rounded-full shadow-2xl text-lg">
+          <Plus className="w-5 h-5 mr-2" />
+          Add Property
+        </Button>
       </div>
 
-      {/* Desktop Header */}
-      <div className="hidden lg:block bg-white shadow-sm border-b border-gray-200">
-        <div className="px-8 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onBack}
-                className="p-2 rounded-xl hover:bg-gray-100">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Property Management
-                </h1>
-                <p className="text-gray-600">
-                  Manage your properties and view analytics
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setViewMode('add')}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-2">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Property
-            </Button>
-          </div>
-
-          {/* Desktop Stats Grid */}
-          <div className="grid grid-cols-4 gap-6">
-            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm mb-1">
-                      Total Properties
-                    </p>
-                    <p className="text-3xl font-bold">{totalProperties}</p>
-                  </div>
-                  <Building className="w-8 h-8 opacity-80" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-100 text-sm mb-1">
-                      Active Properties
-                    </p>
-                    <p className="text-3xl font-bold">{activeProperties}</p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 opacity-80" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100 text-sm mb-1">
-                      Occupancy Rate
-                    </p>
-                    <p className="text-3xl font-bold">
-                      {occupancyRate.toFixed(1)}%
-                    </p>
-                  </div>
-                  <Users className="w-8 h-8 opacity-80" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-orange-100 text-sm mb-1">
-                      Monthly Revenue
-                    </p>
-                    <p className="text-3xl font-bold">
-                      ₱{totalRent.toLocaleString()}
-                    </p>
-                  </div>
-                  <DollarSign className="w-8 h-8 opacity-80" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      {/* Modern Hero/Header Section */}
+      {/* <div className="relative z-10 px-4 pt-8 pb-4 lg:px-0 lg:pt-16 lg:pb-8 flex flex-col items-center">
+        <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg mb-4">
+          <Building className="w-8 h-8 text-white" />
         </div>
+        <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 text-center">
+          Property Management
+        </h1>
+        <p className="text-gray-600 text-base lg:text-lg max-w-2xl text-center mb-4">
+          Effortlessly manage your properties, tenants, and finances. Get
+          insights, track occupancy, and grow your portfolio—all in one place.
+        </p>
+        <Button
+          onClick={() => setViewMode('add')}
+          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold px-8 py-3 rounded-xl shadow-lg text-lg mt-2">
+          <Plus className="w-5 h-5 mr-2" />
+          Add New Property
+        </Button>
+      </div> */}
+
+      {/* Desktop Header (keep stats grid) */}
+      <div className="hidden lg:block bg-white shadow-sm border-b border-gray-200">
+        <header className="bg-white border-b border-gray-200 shadow-sm">
+          <div className="container flex h-20 items-center justify-between px-6">
+            <div className="flex items-center gap-3">
+              <LucideBuilding className="h-8 w-8 text-brand-blue" />
+              <h1 className="text-3xl font-bold text-gray-900">
+                Property Management
+              </h1>
+            </div>
+            {/* <Button asChild>
+              <Link href="/dashboard/admin/jobs/create">
+                <Plus className="mr-2 h-4 w-4" /> Create Job Posting
+              </Link>
+            </Button> */}
+          </div>
+        </header>
       </div>
 
       {/* Content */}
-      <div className="p-4 lg:p-8">
-        {/* Search and Filters */}
-        <div className="mb-6 lg:mb-8">
-          <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search properties..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white border-gray-200 shadow-sm"
-              />
-            </div>
-
-            {/* Desktop Controls */}
-            <div className="hidden lg:flex items-center gap-4">
-              {/* Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+      <main className="flex-1 overflow-auto">
+        <div className="relative z-10 p-4 lg:p-8">
+          {/* Search and Filters */}
+          <div className="mb-8">
+            <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+              {/* Search */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-5 h-5" />
+                <Input
+                  placeholder="Search properties..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="pl-12 bg-white border-0 shadow-md rounded-xl focus:ring-2 focus:ring-blue-200 transition"
+                />
+              </div>
+              {/* Desktop Controls */}
+              <div className="hidden lg:flex items-center gap-4">
+                {/* Filter */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="border-0 bg-white shadow-md rounded-xl text-gray-700 hover:bg-blue-50 transition">
+                      <Filter className="w-5 h-5 mr-2 text-blue-500" />
+                      {filterStatus === 'all' ? 'All Status' : filterStatus}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setFilterStatus('all')}>
+                      All Status
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus('active')}>
+                      Active
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setFilterStatus('maintenance')}>
+                      Maintenance
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setFilterStatus('inactive')}>
+                      Inactive
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {/* View Toggle */}
+                <div className="flex items-center bg-white shadow-md rounded-xl overflow-hidden border-0">
                   <Button
-                    variant="outline"
-                    className="border-gray-200 text-gray-700 hover:bg-gray-50">
-                    <Filter className="w-4 h-4 mr-2" />
-                    {filterStatus === 'all' ? 'All Status' : filterStatus}
+                    variant={viewType === 'grid' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewType('grid')}
+                    className={`rounded-none ${
+                      viewType === 'grid' ? 'bg-blue-100 text-blue-700' : ''
+                    }`}>
+                    <Grid3X3 className="w-5 h-5" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setFilterStatus('all')}>
-                    All Status
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFilterStatus('active')}>
-                    Active
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setFilterStatus('maintenance')}>
-                    Maintenance
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFilterStatus('inactive')}>
-                    Inactive
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* View Toggle */}
-              <div className="flex items-center border border-gray-200 rounded-lg">
+                  <Button
+                    variant={viewType === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewType('list')}
+                    className={`rounded-none ${
+                      viewType === 'list' ? 'bg-blue-100 text-blue-700' : ''
+                    }`}>
+                    <List className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+              {/* Mobile Add Button */}
+              <div className="lg:hidden">
                 <Button
-                  variant={viewType === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewType('grid')}
-                  className="rounded-r-none">
-                  <Grid3X3 className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewType === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewType('list')}
-                  className="rounded-l-none">
-                  <List className="w-4 h-4" />
+                  onClick={() => setViewMode('add')}
+                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add Property
                 </Button>
               </div>
             </div>
-
-            {/* Mobile Add Button */}
-            <div className="lg:hidden">
-              <Button
-                onClick={() => setViewMode('add')}
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Property
-              </Button>
-            </div>
           </div>
-        </div>
 
-        {/* Properties Grid/List */}
-        <div
-          className={
-            viewType === 'grid'
-              ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'
-              : 'space-y-4'
-          }>
-          {filteredProperties.map(property => {
-            const tenants = getPropertyTenants(property.id);
-            const occupancyRate =
-              (property.occupiedUnits / property.totalUnits) * 100;
+          {/* Properties Grid/List */}
+          <div
+            className={
+              viewType === 'grid'
+                ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8'
+                : 'flex flex-col gap-6'
+            }>
+            {filteredProperties.map(property => {
+              const tenants = getPropertyTenants(property.id);
+              const occupancyRate =
+                (property.occupiedUnits / property.totalUnits) * 100;
 
-            return (
-              <Card
-                key={property.id}
-                className="bg-white shadow-lg hover:shadow-xl transition-shadow border-0 overflow-hidden">
-                <CardContent className="p-0">
-                  {/* Property Image */}
+              // --- LIST VIEW ---
+              if (viewType === 'list') {
+                return (
+                  <Card
+                    key={property.id}
+                    className="group flex flex-col sm:flex-row items-stretch bg-white/90 shadow-xl border-0 rounded-2xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 relative ring-1 ring-blue-100">
+                    {/* Image */}
+                    <div className="relative w-full sm:w-56 flex-shrink-0">
+                      <img
+                        src={
+                          property.thumbnail ||
+                          `/placeholder.svg?height=240&width=400&text=${property.type}+Property`
+                        }
+                        alt={property.name}
+                        className="w-full h-40 sm:h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                      {/* Badges */}
+                      <div className="absolute top-3 left-3 flex gap-2 z-10">
+                        <Badge
+                          className={
+                            getStatusColor(property.status) + ' shadow'
+                          }>
+                          {property.status}
+                        </Badge>
+                        <Badge
+                          className={getTypeColor(property.type) + ' shadow'}>
+                          {property.type}
+                        </Badge>
+                      </div>
+                      <div className="absolute bottom-3 left-3 z-10">
+                        <Badge className="bg-white/90 text-gray-700 border-0 shadow">
+                          <Star className="w-4 h-4 mr-1 fill-yellow-400 text-yellow-400" />
+                          New
+                        </Badge>
+                      </div>
+                    </div>
+                    {/* Info & Stats */}
+                    <div className="flex-1 flex flex-col justify-between p-6">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-gray-900 font-extrabold text-xl truncate tracking-tight">
+                            {property.name}
+                          </h3>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 p-0 rounded-full hover:bg-blue-50">
+                                <MoreVertical className="w-5 h-5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedPropertyId(property.id);
+                                  setViewMode('details');
+                                }}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedPropertyId(property.id);
+                                  setViewMode('edit');
+                                }}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleDeleteProperty(property.id)
+                                }
+                                className="text-red-600">
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
+                          <MapPin className="w-4 h-4" />
+                          <span className="truncate">{property.address}</span>
+                        </div>
+                        {/* Stats Row */}
+                        <div className="flex flex-wrap gap-6 mb-4">
+                          <div className="flex items-center gap-2">
+                            <Building className="w-4 h-4 text-blue-400" />
+                            <span className="text-xs text-gray-500">Units</span>
+                            <span className="font-bold text-gray-900 ml-1">
+                              {property.occupiedUnits}/{property.totalUnits}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-green-400" />
+                            <span className="text-xs text-gray-500">
+                              Tenants
+                            </span>
+                            <span className="font-bold text-gray-900 ml-1">
+                              {tenants.length}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-orange-400" />
+                            <span className="text-xs text-gray-500">Rent</span>
+                            <span className="font-bold text-blue-600 ml-1">
+                              ₱{property.monthlyRent.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        {/* Occupancy Bar */}
+                        <div className="mb-4">
+                          <div className="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Occupancy Rate</span>
+                            <span>{occupancyRate.toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${occupancyRate}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {/* Action Button */}
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          onClick={() => {
+                            setSelectedPropertyId(property.id);
+                            setViewMode('details');
+                          }}
+                          className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg shadow hover:from-blue-600 hover:to-blue-700 transition-all">
+                          View Details
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setSelectedPropertyId(property.id);
+                            setViewMode('edit');
+                          }}
+                          variant="outline"
+                          className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50 font-semibold rounded-lg">
+                          Edit
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              }
+
+              // --- GRID VIEW ---
+              return (
+                <Card
+                  key={property.id}
+                  className="group bg-white/90 shadow-xl border-0 rounded-2xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 relative ring-1 ring-blue-100">
+                  {/* Property Image with overlay gradient and floating action */}
                   <div className="relative">
                     <img
                       src={
                         property.thumbnail ||
-                        `/placeholder.svg?height=200&width=300&text=${property.type}+Property`
+                        `/placeholder.svg?height=240&width=400&text=${property.type}+Property`
                       }
                       alt={property.name}
-                      className="w-full h-32 lg:h-40 object-cover"
+                      className="w-full h-44 object-cover transition-transform duration-300 group-hover:scale-105"
                     />
-                    <div className="absolute top-2 right-2 flex gap-1">
-                      <Badge className={getStatusColor(property.status)}>
+                    {/* Overlay gradient for text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none rounded-t-2xl" />
+                    {/* Floating quick action button */}
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      onClick={() => {
+                        setSelectedPropertyId(property.id);
+                        setViewMode('details');
+                      }}
+                      className="absolute bottom-3 right-3 z-10 bg-white/80 hover:bg-blue-600 hover:text-white text-blue-600 shadow-lg rounded-full transition-all"
+                      aria-label="View Details">
+                      <Eye className="w-5 h-5" />
+                    </Button>
+                    {/* Badges */}
+                    <div className="absolute top-3 right-3 flex gap-2 z-10">
+                      <Badge
+                        className={getStatusColor(property.status) + ' shadow'}>
                         {property.status}
                       </Badge>
-                      <Badge className={getTypeColor(property.type)}>
+                      <Badge
+                        className={getTypeColor(property.type) + ' shadow'}>
                         {property.type}
                       </Badge>
                     </div>
-                    <div className="absolute top-2 left-2">
-                      <Badge className="bg-white/90 text-gray-700 border-0">
-                        <Star className="w-3 h-3 mr-1 fill-yellow-400 text-yellow-400" />
+                    <div className="absolute top-3 left-3 z-10">
+                      <Badge className="bg-white/90 text-gray-700 border-0 shadow">
+                        <Star className="w-4 h-4 mr-1 fill-yellow-400 text-yellow-400" />
                         New
                       </Badge>
                     </div>
                   </div>
 
                   {/* Property Info */}
-                  <div className="p-4 lg:p-6">
+                  <div className="p-6">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <h3 className="text-gray-900 font-semibold text-lg lg:text-xl mb-2">
+                        <h3 className="text-gray-900 font-extrabold text-xl mb-1 truncate tracking-tight">
                           {property.name}
                         </h3>
-                        <div className="flex items-center gap-1 text-gray-600 text-sm mb-2">
+                        <div className="flex items-center gap-1 text-gray-500 text-sm mb-2">
                           <MapPin className="w-4 h-4" />
                           <span className="truncate">{property.address}</span>
                         </div>
@@ -437,9 +539,9 @@ export function PropertyManagement({ onBack }: PropertyManagementProps) {
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0">
-                            <MoreVertical className="w-4 h-4" />
+                            size="icon"
+                            className="h-9 w-9 p-0 rounded-full hover:bg-blue-50">
+                            <MoreVertical className="w-5 h-5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -469,83 +571,90 @@ export function PropertyManagement({ onBack }: PropertyManagementProps) {
                       </DropdownMenu>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <div className="text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <Building className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-500">Units</span>
+                    {/* Modern stats row */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex flex-col items-center flex-1">
+                        <div className="flex items-center gap-1 mb-1">
+                          <Building className="w-4 h-4 text-blue-400" />
+                          <span className="text-xs text-gray-500">Units</span>
                         </div>
-                        <div className="text-lg font-semibold text-gray-900">
+                        <div className="text-lg font-bold text-gray-900">
                           {property.occupiedUnits}/{property.totalUnits}
                         </div>
                       </div>
-                      <div className="text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <Users className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-500">Tenants</span>
+                      <div className="flex flex-col items-center flex-1">
+                        <div className="flex items-center gap-1 mb-1">
+                          <Users className="w-4 h-4 text-green-400" />
+                          <span className="text-xs text-gray-500">Tenants</span>
                         </div>
-                        <div className="text-lg font-semibold text-gray-900">
+                        <div className="text-lg font-bold text-gray-900">
                           {tenants.length}
                         </div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-sm text-gray-500 mb-1">Rent</div>
-                        <div className="text-lg font-semibold text-blue-600">
+                      <div className="flex flex-col items-center flex-1">
+                        <div className="text-xs text-gray-500 mb-1">Rent</div>
+                        <div className="text-lg font-bold text-blue-600">
                           ₱{property.monthlyRent.toLocaleString()}
                         </div>
                       </div>
                     </div>
 
-                    {/* Occupancy Rate Bar */}
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-gray-500 mb-1">
+                    {/* Occupancy Rate Bar with label */}
+                    {/* <div className="mb-4">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
                         <span>Occupancy Rate</span>
                         <span>{occupancyRate.toFixed(1)}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                         <div
                           className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${occupancyRate}%` }}
                         />
                       </div>
-                    </div>
+                    </div> */}
 
-                    <Button
+                    {/* Modern action button */}
+                    {/* <Button
                       onClick={() => {
                         setSelectedPropertyId(property.id);
                         setViewMode('details');
                       }}
-                      variant="outline"
-                      className="w-full border-blue-200 text-blue-700 hover:bg-blue-50">
+                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg shadow hover:from-blue-600 hover:to-blue-700 transition-all">
                       View Details
-                    </Button>
+                    </Button> */}
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {filteredProperties.length === 0 && (
-          <div className="text-center py-12 lg:py-16">
-            <Building className="w-16 h-16 lg:w-20 lg:h-20 text-gray-400 mx-auto mb-4 lg:mb-6" />
-            <h3 className="text-gray-900 text-lg lg:text-xl font-semibold mb-2">
-              No properties found
-            </h3>
-            <p className="text-gray-600 mb-6 lg:mb-8 max-w-md mx-auto">
-              {searchTerm
-                ? 'Try adjusting your search terms'
-                : 'Start by adding your first property'}
-            </p>
-            <Button
-              onClick={() => setViewMode('add')}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-2">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Property
-            </Button>
+                </Card>
+              );
+            })}
           </div>
-        )}
-      </div>
+
+          {/* Empty State with Illustration */}
+          {filteredProperties.length === 0 && (
+            <div className="text-center py-16">
+              <img
+                src="/placeholder.svg"
+                alt="No properties"
+                className="mx-auto mb-6 w-32 h-32 opacity-60"
+              />
+              <h3 className="text-gray-900 text-xl font-bold mb-2">
+                No properties found
+              </h3>
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                {searchTerm
+                  ? 'Try adjusting your search terms'
+                  : 'Start by adding your first property'}
+              </p>
+              <Button
+                onClick={() => setViewMode('add')}
+                aria-label="Add Property"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg">
+                <Plus className="w-5 h-5 mr-2" />
+                Add Property
+              </Button>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

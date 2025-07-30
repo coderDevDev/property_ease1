@@ -3,6 +3,9 @@
 import type React from 'react';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +32,55 @@ interface RegisterScreenProps {
   selectedRole: 'owner' | 'tenant';
 }
 
+// Zod schema for form validation
+const createRegisterSchema = (role: 'owner' | 'tenant') => {
+  const baseSchema = z.object({
+    email: z
+      .string()
+      .min(1, 'Email is required')
+      .email('Please enter a valid email address'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+        'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+      ),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    firstName: z
+      .string()
+      .min(1, 'First name is required')
+      .min(2, 'First name must be at least 2 characters'),
+    lastName: z
+      .string()
+      .min(1, 'Last name is required')
+      .min(2, 'Last name must be at least 2 characters'),
+    phone: z
+      .string()
+      .min(1, 'Phone number is required')
+      .regex(/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number'),
+    acceptTerms: z
+      .boolean()
+      .refine(val => val === true, 'You must accept the terms and conditions'),
+    role: z.literal(role)
+  });
+
+  if (role === 'owner') {
+    return baseSchema.extend({
+      companyName: z.string().optional(),
+      businessLicense: z.string().optional()
+    });
+  } else {
+    return baseSchema.extend({
+      emergencyContactName: z.string().optional(),
+      emergencyContactPhone: z.string().optional(),
+      emergencyContactRelationship: z.string().optional()
+    });
+  }
+};
+
+type RegisterFormData = z.infer<ReturnType<typeof createRegisterSchema>>;
+
 export function RegisterScreen({
   onBack,
   onLogin,
@@ -37,41 +89,38 @@ export function RegisterScreen({
   const { authState, register, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [formData, setFormData] = useState<RegisterData>({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    phone: '',
-    role: selectedRole,
-    // Owner specific
-    companyName: '',
-    businessLicense: '',
-    // Tenant specific
-    emergencyContactName: '',
-    emergencyContactPhone: '',
-    emergencyContactRelationship: ''
+
+  const schema = createRegisterSchema(selectedRole);
+
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors, isValid, isDirty },
+    watch,
+    setValue,
+    trigger
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(schema),
+    mode: 'onChange',
+    defaultValues: {
+      role: selectedRole,
+      acceptTerms: false
+    }
   });
 
-  const handleInputChange = (field: keyof RegisterData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (authState.error) clearError();
-  };
+  const watchedPassword = watch('password');
+  const watchedConfirmPassword = watch('confirmPassword');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Check if passwords match
+  const passwordsMatch =
+    watchedPassword === watchedConfirmPassword && watchedPassword !== '';
 
-    if (formData.password !== formData.confirmPassword) {
+  const onSubmit = async (data: RegisterFormData) => {
+    if (!passwordsMatch) {
       return;
     }
 
-    if (!acceptTerms) {
-      return;
-    }
-
-    const result = await register(formData);
+    const result = await register(data as RegisterData);
 
     // If registration is successful, redirect to dashboard
     if (result.success) {
@@ -98,15 +147,7 @@ export function RegisterScreen({
   const config = roleConfig[selectedRole];
   const Icon = config.icon;
 
-  const passwordsMatch = formData.password === formData.confirmPassword;
-  const isFormValid =
-    formData.email &&
-    formData.password &&
-    formData.firstName &&
-    formData.lastName &&
-    formData.phone &&
-    passwordsMatch &&
-    acceptTerms;
+  const isFormValid = isValid && passwordsMatch && isDirty;
 
   return (
     <div className="min-h-screen bg-property-background flex items-center justify-center p-4 lg:p-8">
@@ -144,7 +185,9 @@ export function RegisterScreen({
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4 lg:space-y-6">
             {/* Personal Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-property-text-primary lg:text-xl">
@@ -159,15 +202,20 @@ export function RegisterScreen({
                   </Label>
                   <Input
                     id="firstName"
-                    value={formData.firstName}
-                    onChange={e =>
-                      handleInputChange('firstName', e.target.value)
-                    }
+                    {...registerField('firstName')}
                     placeholder="John"
-                    required
-                    className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
+                    className={`mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
+                      errors.firstName
+                        ? 'border-red-300 focus:border-red-500'
+                        : ''
+                    }`}
                     disabled={authState.isLoading}
                   />
+                  {errors.firstName && (
+                    <p className="text-red-500 text-xs lg:text-sm mt-1">
+                      {errors.firstName.message}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label
@@ -177,15 +225,20 @@ export function RegisterScreen({
                   </Label>
                   <Input
                     id="lastName"
-                    value={formData.lastName}
-                    onChange={e =>
-                      handleInputChange('lastName', e.target.value)
-                    }
+                    {...registerField('lastName')}
                     placeholder="Doe"
-                    required
-                    className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
+                    className={`mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
+                      errors.lastName
+                        ? 'border-red-300 focus:border-red-500'
+                        : ''
+                    }`}
                     disabled={authState.isLoading}
                   />
+                  {errors.lastName && (
+                    <p className="text-red-500 text-xs lg:text-sm mt-1">
+                      {errors.lastName.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -200,14 +253,19 @@ export function RegisterScreen({
                   <Input
                     id="email"
                     type="email"
-                    value={formData.email}
-                    onChange={e => handleInputChange('email', e.target.value)}
+                    {...registerField('email')}
                     placeholder="john@example.com"
-                    required
-                    className="pl-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
+                    className={`pl-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
+                      errors.email ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                     disabled={authState.isLoading}
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-red-500 text-xs lg:text-sm mt-1">
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -221,14 +279,19 @@ export function RegisterScreen({
                   <Input
                     id="phone"
                     type="tel"
-                    value={formData.phone}
-                    onChange={e => handleInputChange('phone', e.target.value)}
+                    {...registerField('phone')}
                     placeholder="+63 912 345 6789"
-                    required
-                    className="pl-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
+                    className={`pl-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
+                      errors.phone ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                     disabled={authState.isLoading}
                   />
                 </div>
+                {errors.phone && (
+                  <p className="text-red-500 text-xs lg:text-sm mt-1">
+                    {errors.phone.message}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -247,10 +310,7 @@ export function RegisterScreen({
                     </Label>
                     <Input
                       id="companyName"
-                      value={formData.companyName}
-                      onChange={e =>
-                        handleInputChange('companyName', e.target.value)
-                      }
+                      {...registerField('companyName')}
                       placeholder="Your Property Management Company"
                       className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
                       disabled={authState.isLoading}
@@ -264,10 +324,7 @@ export function RegisterScreen({
                     </Label>
                     <Input
                       id="businessLicense"
-                      value={formData.businessLicense}
-                      onChange={e =>
-                        handleInputChange('businessLicense', e.target.value)
-                      }
+                      {...registerField('businessLicense')}
                       placeholder="BL-2024-001"
                       className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
                       disabled={authState.isLoading}
@@ -290,10 +347,7 @@ export function RegisterScreen({
                   </Label>
                   <Input
                     id="emergencyContactName"
-                    value={formData.emergencyContactName}
-                    onChange={e =>
-                      handleInputChange('emergencyContactName', e.target.value)
-                    }
+                    {...registerField('emergencyContactName')}
                     placeholder="Jane Doe"
                     className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
                     disabled={authState.isLoading}
@@ -309,13 +363,7 @@ export function RegisterScreen({
                     <Input
                       id="emergencyContactPhone"
                       type="tel"
-                      value={formData.emergencyContactPhone}
-                      onChange={e =>
-                        handleInputChange(
-                          'emergencyContactPhone',
-                          e.target.value
-                        )
-                      }
+                      {...registerField('emergencyContactPhone')}
                       placeholder="+63 912 345 6789"
                       className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
                       disabled={authState.isLoading}
@@ -329,13 +377,7 @@ export function RegisterScreen({
                     </Label>
                     <Input
                       id="emergencyContactRelationship"
-                      value={formData.emergencyContactRelationship}
-                      onChange={e =>
-                        handleInputChange(
-                          'emergencyContactRelationship',
-                          e.target.value
-                        )
-                      }
+                      {...registerField('emergencyContactRelationship')}
                       placeholder="Sister"
                       className="mt-1 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
                       disabled={authState.isLoading}
@@ -361,13 +403,13 @@ export function RegisterScreen({
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={e =>
-                        handleInputChange('password', e.target.value)
-                      }
+                      {...registerField('password')}
                       placeholder="Create a strong password"
-                      required
-                      className="pr-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base"
+                      className={`pr-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
+                        errors.password
+                          ? 'border-red-300 focus:border-red-500'
+                          : ''
+                      }`}
                       disabled={authState.isLoading}
                     />
                     <Button
@@ -384,6 +426,11 @@ export function RegisterScreen({
                       )}
                     </Button>
                   </div>
+                  {errors.password && (
+                    <p className="text-red-500 text-xs lg:text-sm mt-1">
+                      {errors.password.message}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -396,15 +443,11 @@ export function RegisterScreen({
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
-                      value={formData.confirmPassword}
-                      onChange={e =>
-                        handleInputChange('confirmPassword', e.target.value)
-                      }
+                      {...registerField('confirmPassword')}
                       placeholder="Confirm your password"
-                      required
                       className={`pr-10 border-gray-300 focus:border-property-action h-12 lg:h-14 text-base ${
-                        formData.confirmPassword && !passwordsMatch
-                          ? 'border-red-300'
+                        watchedConfirmPassword && !passwordsMatch
+                          ? 'border-red-300 focus:border-red-500'
                           : ''
                       }`}
                       disabled={authState.isLoading}
@@ -425,7 +468,7 @@ export function RegisterScreen({
                       )}
                     </Button>
                   </div>
-                  {formData.confirmPassword && !passwordsMatch && (
+                  {watchedConfirmPassword && !passwordsMatch && (
                     <p className="text-red-500 text-xs lg:text-sm mt-1">
                       Passwords do not match
                     </p>
@@ -438,8 +481,10 @@ export function RegisterScreen({
             <div className="flex items-start space-x-3 lg:space-x-4">
               <Checkbox
                 id="terms"
-                checked={acceptTerms}
-                onCheckedChange={checked => setAcceptTerms(checked as boolean)}
+                checked={watch('acceptTerms')}
+                onCheckedChange={checked =>
+                  setValue('acceptTerms', checked as boolean)
+                }
                 disabled={authState.isLoading}
                 className="mt-1 lg:mt-2"
               />
@@ -456,6 +501,11 @@ export function RegisterScreen({
                 </span>
               </Label>
             </div>
+            {errors.acceptTerms && (
+              <p className="text-red-500 text-xs lg:text-sm">
+                {errors.acceptTerms.message}
+              </p>
+            )}
 
             <Button
               type="submit"
