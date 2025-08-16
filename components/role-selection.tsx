@@ -14,14 +14,14 @@ import {
 } from 'lucide-react';
 
 interface RoleSelectionProps {
-  onRoleSelect: (role: 'owner' | 'tenant') => void;
+  onRoleSelect: (role: 'owner' | 'tenant' | 'admin') => void;
   onBack: () => void;
 }
 
 export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
-  const [selectedRole, setSelectedRole] = useState<'owner' | 'tenant' | null>(
-    null
-  );
+  const [selectedRole, setSelectedRole] = useState<
+    'owner' | 'tenant' | 'admin' | null
+  >(null);
 
   const roles = [
     {
@@ -37,8 +37,8 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
         'Handle maintenance requests',
         'Generate reports'
       ],
-      gradient: 'from-blue-500 to-purple-600',
-      bgGradient: 'from-blue-50 to-purple-50',
+      gradient: 'from-blue-500 to-blue-600',
+      bgGradient: 'from-blue-50 to-blue-100',
       iconColor: 'text-blue-500',
       glowColor: 'shadow-blue-500/25'
     },
@@ -55,15 +55,33 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
         'Receive notifications',
         'Access documents'
       ],
-      gradient: 'from-purple-500 to-pink-600',
-      bgGradient: 'from-purple-50 to-pink-50',
-      iconColor: 'text-purple-500',
-      glowColor: 'shadow-purple-500/25'
+      gradient: 'from-blue-400 to-blue-500',
+      bgGradient: 'from-blue-50 to-blue-100',
+      iconColor: 'text-blue-400',
+      glowColor: 'shadow-blue-400/25'
+    },
+    {
+      id: 'admin' as const,
+      title: 'System Administrator',
+      subtitle: 'Admin',
+      description: 'Full system oversight and user management',
+      icon: Users,
+      features: [
+        'Manage all users and properties',
+        'System analytics and reporting',
+        'Content moderation',
+        'System configuration',
+        'Audit logs and monitoring'
+      ],
+      gradient: 'from-blue-600 to-blue-700',
+      bgGradient: 'from-blue-100 to-blue-200',
+      iconColor: 'text-blue-600',
+      glowColor: 'shadow-blue-600/25'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex flex-col p-4 relative overflow-hidden">
       {/* Background Decorations */}
       <div className="absolute inset-0">
         <div className="absolute top-10 left-10 w-32 h-32 bg-blue-200/30 rounded-full blur-2xl" />

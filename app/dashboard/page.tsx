@@ -3,8 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { PropertyOwnerDashboard } from '@/components/property-owner-dashboard';
-import { TenantDashboard } from '@/components/tenant-dashboard';
+import { AdminDashboard } from '@/components/admin-dashboard';
 
 export default function DashboardPage() {
   const { authState } = useAuth();
@@ -49,10 +48,19 @@ export default function DashboardPage() {
     );
   }
 
-  if (authState.user?.role === 'owner') {
-    return <div></div>;
-  } else if (authState.user?.role === 'tenant') {
-    return <TenantDashboard />;
+  useEffect(() => {
+    // Redirect owners to their dedicated section
+    if (!authState.isLoading && authState.user?.role === 'owner') {
+      router.push('/owner/dashboard');
+    }
+    // Redirect tenants to their dedicated section
+    if (!authState.isLoading && authState.user?.role === 'tenant') {
+      router.push('/tenant/dashboard');
+    }
+  }, [authState, router]);
+
+  if (authState.user?.role === 'admin') {
+    return <AdminDashboard />;
   }
 
   // Fallback for unknown role

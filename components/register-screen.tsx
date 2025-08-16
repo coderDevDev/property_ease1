@@ -21,6 +21,7 @@ import {
   EyeOff,
   Building,
   Home,
+  Users,
   Loader2,
   Phone,
   Mail,
@@ -31,11 +32,11 @@ import type { RegisterData } from '@/types/auth';
 interface RegisterScreenProps {
   onBack: () => void;
   onLogin: () => void;
-  selectedRole: 'owner' | 'tenant';
+  selectedRole: 'owner' | 'tenant' | 'admin';
 }
 
 // Zod schema for form validation
-const createRegisterSchema = (role: 'owner' | 'tenant') => {
+const createRegisterSchema = (role: 'owner' | 'tenant' | 'admin') => {
   const baseSchema = z.object({
     email: z
       .string()
@@ -72,12 +73,15 @@ const createRegisterSchema = (role: 'owner' | 'tenant') => {
       companyName: z.string().optional(),
       businessLicense: z.string().optional()
     });
-  } else {
+  } else if (role === 'tenant') {
     return baseSchema.extend({
       emergencyContactName: z.string().optional(),
       emergencyContactPhone: z.string().optional(),
       emergencyContactRelationship: z.string().optional()
     });
+  } else {
+    // Admin role - no additional fields required
+    return baseSchema;
   }
 };
 
@@ -171,16 +175,22 @@ export function RegisterScreen({
     owner: {
       icon: Building,
       title: 'Property Owner/Manager',
-      color: 'bg-property-action',
+      color: 'bg-blue-500',
       description: 'Create your property management account'
     },
     tenant: {
       icon: Home,
       title: 'Tenant/Resident',
-      color: 'bg-purple-500',
+      color: 'bg-blue-400',
       description: 'Create your tenant account'
+    },
+    admin: {
+      icon: Users,
+      title: 'System Administrator',
+      color: 'bg-blue-600',
+      description: 'Create your admin account'
     }
-  };
+  } as const;
 
   const config = roleConfig[selectedRole];
   const Icon = config.icon;
@@ -188,7 +198,7 @@ export function RegisterScreen({
   // Show success message after registration
   if (isRegistrationSuccess) {
     return (
-      <div className="min-h-screen bg-property-background flex items-center justify-center p-4 lg:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4 lg:p-8">
         <Card className="w-full max-w-md bg-property-card shadow-lg border border-gray-100 lg:shadow-2xl">
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -229,7 +239,7 @@ export function RegisterScreen({
   }
 
   return (
-    <div className="min-h-screen bg-property-background flex items-center justify-center p-4 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4 lg:p-8">
       <Card className="w-full max-w-md lg:max-w-2xl bg-property-card shadow-lg border border-gray-100 lg:shadow-2xl">
         <CardHeader className="text-center pb-4">
           <div className="flex items-center gap-3 mb-4">
@@ -286,7 +296,11 @@ export function RegisterScreen({
                   id="email"
                   type="email"
                   placeholder="Enter your email address"
-                  className="pl-10 border-gray-300 focus:border-property-action"
+                  className={`pl-10 focus:border-property-action ${
+                    errors.email
+                      ? 'border-red-300 focus:border-red-500'
+                      : 'border-gray-300'
+                  }`}
                   disabled={authState.isLoading}
                 />
               </div>
@@ -311,7 +325,11 @@ export function RegisterScreen({
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Create a password"
-                    className="pr-10 border-gray-300 focus:border-property-action"
+                    className={`pr-10 focus:border-property-action ${
+                      errors.password
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-300'
+                    }`}
                     disabled={authState.isLoading}
                   />
                   <button
@@ -345,7 +363,12 @@ export function RegisterScreen({
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="Confirm your password"
-                    className="pr-10 border-gray-300 focus:border-property-action"
+                    className={`pr-10 focus:border-property-action ${
+                      errors.confirmPassword ||
+                      (!passwordsMatch && confirmPassword)
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-300'
+                    }`}
                     disabled={authState.isLoading}
                   />
                   <button
@@ -386,7 +409,11 @@ export function RegisterScreen({
                   id="firstName"
                   type="text"
                   placeholder="Enter your first name"
-                  className="border-gray-300 focus:border-property-action"
+                  className={`focus:border-property-action ${
+                    errors.firstName
+                      ? 'border-red-300 focus:border-red-500'
+                      : 'border-gray-300'
+                  }`}
                   disabled={authState.isLoading}
                 />
                 {errors.firstName && (
@@ -407,7 +434,11 @@ export function RegisterScreen({
                   id="lastName"
                   type="text"
                   placeholder="Enter your last name"
-                  className="border-gray-300 focus:border-property-action"
+                  className={`focus:border-property-action ${
+                    errors.lastName
+                      ? 'border-red-300 focus:border-red-500'
+                      : 'border-gray-300'
+                  }`}
                   disabled={authState.isLoading}
                 />
                 {errors.lastName && (
@@ -432,7 +463,11 @@ export function RegisterScreen({
                   id="phone"
                   type="tel"
                   placeholder="Enter your phone number"
-                  className="pl-10 border-gray-300 focus:border-property-action"
+                  className={`pl-10 focus:border-property-action ${
+                    errors.phone
+                      ? 'border-red-300 focus:border-red-500'
+                      : 'border-gray-300'
+                  }`}
                   disabled={authState.isLoading}
                 />
               </div>
@@ -453,11 +488,11 @@ export function RegisterScreen({
                     Company Name (Optional)
                   </Label>
                   <Input
-                    {...registerField('companyName')}
+                    {...registerField('companyName' as any)}
                     id="companyName"
                     type="text"
                     placeholder="Enter your company name"
-                    className="border-gray-300 focus:border-property-action"
+                    className="border-gray-300 focus:border-blue-400"
                     disabled={authState.isLoading}
                   />
                 </div>
@@ -469,11 +504,11 @@ export function RegisterScreen({
                     Business License (Optional)
                   </Label>
                   <Input
-                    {...registerField('businessLicense')}
+                    {...registerField('businessLicense' as any)}
                     id="businessLicense"
                     type="text"
                     placeholder="Enter your business license number"
-                    className="border-gray-300 focus:border-property-action"
+                    className="border-gray-300 focus:border-blue-400"
                     disabled={authState.isLoading}
                   />
                 </div>
@@ -490,11 +525,11 @@ export function RegisterScreen({
                       Emergency Contact Name (Optional)
                     </Label>
                     <Input
-                      {...registerField('emergencyContactName')}
+                      {...registerField('emergencyContactName' as any)}
                       id="emergencyContactName"
                       type="text"
                       placeholder="Enter emergency contact name"
-                      className="border-gray-300 focus:border-property-action"
+                      className="border-gray-300 focus:border-blue-400"
                       disabled={authState.isLoading}
                     />
                   </div>
@@ -506,11 +541,11 @@ export function RegisterScreen({
                       Emergency Contact Phone (Optional)
                     </Label>
                     <Input
-                      {...registerField('emergencyContactPhone')}
+                      {...registerField('emergencyContactPhone' as any)}
                       id="emergencyContactPhone"
                       type="tel"
                       placeholder="Enter emergency contact phone"
-                      className="border-gray-300 focus:border-property-action"
+                      className="border-gray-300 focus:border-blue-400"
                       disabled={authState.isLoading}
                     />
                   </div>
@@ -523,11 +558,11 @@ export function RegisterScreen({
                     Relationship to Emergency Contact (Optional)
                   </Label>
                   <Input
-                    {...registerField('emergencyContactRelationship')}
+                    {...registerField('emergencyContactRelationship' as any)}
                     id="emergencyContactRelationship"
                     type="text"
                     placeholder="e.g., Spouse, Parent, Friend"
-                    className="border-gray-300 focus:border-property-action"
+                    className="border-gray-300 focus:border-blue-400"
                     disabled={authState.isLoading}
                   />
                 </div>

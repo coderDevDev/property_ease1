@@ -1,10 +1,40 @@
 # Database Setup Guide
 
-This guide will help you set up the Supabase database for PropertyEase.
+This guide will help you set up the complete Supabase database for PropertyEase with all advanced features.
 
-## 🚨 Current Issue
+## 🎯 Complete Feature Set
 
-You're seeing a "Database error saving new user" error because the trigger function has issues. Follow these steps to fix it.
+This database setup now supports ALL features from the requirements including:
+
+**Tenant Features:**
+
+- User registration and authentication
+- Property listings and search
+- Online rent payments (GCash/Maya support)
+- Maintenance request submission with image attachments
+- In-app messaging system
+- Document management and downloads
+- Real-time notifications and alerts
+- Lease agreement management
+
+**Owner Features:**
+
+- Property and tenant management
+- Payment tracking and reporting
+- Maintenance task assignment and tracking
+- Messaging and announcements
+- Document uploads and management
+- Analytics and reporting
+- Multi-property support
+
+**Admin Features:**
+
+- User account management and moderation
+- System-wide property and payment oversight
+- Content moderation capabilities
+- System analytics and reporting
+- Configuration management
+- Audit logging and system health monitoring
 
 ## 📋 Prerequisites
 
@@ -37,28 +67,71 @@ You're seeing a "Database error saving new user" error because the trigger funct
    - Run this to clean up any existing tables:
 
    ```sql
+   -- Drop all tables and types for clean setup
+   DROP TABLE IF EXISTS audit_logs CASCADE;
+   DROP TABLE IF EXISTS system_settings CASCADE;
+   DROP TABLE IF EXISTS announcements CASCADE;
+   DROP TABLE IF EXISTS notifications CASCADE;
+   DROP TABLE IF EXISTS documents CASCADE;
+   DROP TABLE IF EXISTS messages CASCADE;
+   DROP TABLE IF EXISTS conversations CASCADE;
+   DROP TABLE IF EXISTS maintenance_requests CASCADE;
+   DROP TABLE IF EXISTS payments CASCADE;
    DROP TABLE IF EXISTS tenants CASCADE;
    DROP TABLE IF EXISTS properties CASCADE;
    DROP TABLE IF EXISTS users CASCADE;
+
+   -- Drop all custom types
    DROP TYPE IF EXISTS user_role CASCADE;
    DROP TYPE IF EXISTS property_type CASCADE;
    DROP TYPE IF EXISTS property_status CASCADE;
    DROP TYPE IF EXISTS tenant_status CASCADE;
+   DROP TYPE IF EXISTS payment_type CASCADE;
+   DROP TYPE IF EXISTS payment_method CASCADE;
+   DROP TYPE IF EXISTS payment_status CASCADE;
+   DROP TYPE IF EXISTS maintenance_category CASCADE;
+   DROP TYPE IF EXISTS maintenance_priority CASCADE;
+   DROP TYPE IF EXISTS maintenance_status CASCADE;
+   DROP TYPE IF EXISTS message_type CASCADE;
+   DROP TYPE IF EXISTS file_type CASCADE;
+   DROP TYPE IF EXISTS document_category CASCADE;
+   DROP TYPE IF EXISTS notification_type CASCADE;
+   DROP TYPE IF EXISTS notification_priority CASCADE;
+   DROP TYPE IF EXISTS announcement_type CASCADE;
+   DROP TYPE IF EXISTS announcement_priority CASCADE;
+   DROP TYPE IF EXISTS target_audience CASCADE;
+   DROP TYPE IF EXISTS system_setting_category CASCADE;
    ```
 
-3. **Create Tables with Fixed Script**
+3. **Create Complete Database Schema**
 
    - Click **New Query**
    - Copy the entire contents of `scripts/create-tables-fixed.sql`
    - Paste it into the SQL editor
    - Click **Run** to execute
 
-4. **Verify Tables Created**
+4. **Verify Complete Schema Created**
+
    - Go to **Table Editor** in the left sidebar
    - You should see these tables:
-     - `users`
-     - `properties`
-     - `tenants`
+     - `users` (with admin role support)
+     - `properties` (enhanced with location data)
+     - `tenants` (enhanced lease management)
+     - `payments` (complete payment tracking)
+     - `maintenance_requests` (with image support)
+     - `messages` (messaging system)
+     - `conversations` (chat conversations)
+     - `documents` (file management)
+     - `notifications` (real-time alerts)
+     - `announcements` (owner-to-tenant communication)
+     - `system_settings` (admin configuration)
+     - `audit_logs` (system activity tracking)
+
+5. **Set up Storage Buckets**
+   - Go to **Storage** in the left sidebar
+   - Create a new bucket called `documents`
+   - Set the bucket to be publicly accessible for file downloads
+   - Configure appropriate file upload policies
 
 ### Step 3: Configure Authentication
 
@@ -128,24 +201,36 @@ You're seeing a "Database error saving new user" error because the trigger funct
 
 **Solution**: The fixed script creates RLS policies automatically. Make sure you ran the entire script.
 
-## 🔄 What's Fixed in the New Script
+## 🔄 What's New in the Complete Schema
 
-### Improved Trigger Function
+### Enhanced Database Architecture
 
-- **Better error handling**: Won't fail registration if trigger has issues
-- **Safe defaults**: Handles missing metadata gracefully
-- **Exception handling**: Logs errors but doesn't break registration
+- **Complete Feature Coverage**: All functional requirements from T-01 to A-08 supported
+- **Admin Role Support**: Full admin dashboard with user management and system oversight
+- **Advanced Payment System**: GCash/Maya integration support with receipt management
+- **Messaging System**: Real-time chat between tenants and owners
+- **Document Management**: File uploads with categorization and access control
+- **Maintenance Tracking**: Complete workflow from request to completion with image support
+- **Notification System**: Real-time alerts for all user actions and reminders
+- **Audit Logging**: Complete system activity tracking for compliance
+- **Analytics Support**: Built-in views and functions for reporting and insights
 
-### Enhanced AuthAPI
+### Improved Security & Performance
 
-- **Fallback mechanism**: Manually creates user record if trigger fails
-- **Better error handling**: Provides detailed error messages
-- **Retry logic**: Waits for trigger to execute before checking
+- **Comprehensive RLS Policies**: Row-level security for all tables with proper access control
+- **Optimized Indexes**: Performance indexes on all commonly queried fields
+- **Data Integrity**: Check constraints and foreign key relationships
+- **Automated Triggers**: Auto-updating timestamps and conversation management
+- **Storage Integration**: Seamless file upload and management with Supabase Storage
 
-### Additional RLS Policy
+### Advanced Features
 
-- **Insert policy**: Allows users to insert their own profile records
-- **Better security**: Maintains security while allowing registration
+- **Multi-Property Support**: Owners can manage multiple properties
+- **Geographic Data**: Property location coordinates for mapping
+- **Flexible Payment Types**: Rent, deposits, utilities, penalties, and custom payments
+- **Maintenance Categories**: Organized system for different types of maintenance
+- **Announcement System**: Targeted communication to specific user groups
+- **System Settings**: Configurable application settings through admin interface
 
 ## 📞 Getting Help
 

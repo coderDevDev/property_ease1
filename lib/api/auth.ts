@@ -1,109 +1,94 @@
 import { supabase } from '@/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
 import type { RegisterData, LoginCredentials } from '@/types/auth';
-
-// Create a service client for admin operations that bypass RLS
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZWtxYnlkc3Nta2t2cWF5bm90Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzgzMzI0MSwiZXhwIjoyMDY5NDA5MjQxfQ.ltrPkJfcWdG_wAMMFSs7no7Fk3d8jSMlcwBiSDIXfsQ'
-);
 
 export class AuthAPI {
   static async register(data: RegisterData) {
     try {
-      // Register user with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            first_name: data.firstName,
-            last_name: data.lastName,
-            phone: data.phone,
-            role: data.role,
-            ...(data.role === 'owner' && {
-              company_name: data.companyName,
-              business_license: data.businessLicense
-            }),
-            ...(data.role === 'tenant' && {
-              emergency_contact_name: data.emergencyContactName,
-              emergency_contact_phone: data.emergencyContactPhone,
-              emergency_contact_relationship: data.emergencyContactRelationship
-            })
-          }
+      console.log(
+        '🚀 Starting registration for:',
+        data.email,
+        'Role:',
+        data.role
+      );
+
+      // Try server-side API route first (preferred method)
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          console.log('✅ Registration completed via server API:', result);
+          return result;
+        } else {
+          console.warn(
+            '⚠️ Server API failed, trying fallback method:',
+            result.message
+          );
+          throw new Error(result.message);
         }
-      });
+      } catch (serverError) {
+        console.warn(
+          '⚠️ Server registration failed, trying client-side fallback:',
+          serverError
+        );
 
-      if (authError) {
-        throw new Error(authError.message);
-      }
+        // Fallback to direct client-side registration
+        console.log('🔄 Attempting client-side registration fallback...');
 
-      if (!authData.user) {
-        throw new Error('Registration failed');
-      }
-
-      // Wait a moment for the trigger to execute
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check if user record was created by the trigger using admin client
-      const { data: userData, error: userCheckError } = await supabaseAdmin
-        .from('users')
-        .select('id')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (userCheckError || !userData) {
-        // If trigger failed, manually create the user record using admin client
-        console.log('Trigger failed, manually creating user record');
-        const { error: insertError } = await supabaseAdmin
-          .from('users')
-          .insert({
-            id: authData.user.id,
+        const { data: authData, error: authError } = await supabase.auth.signUp(
+          {
             email: data.email,
-            first_name: data.firstName,
-            last_name: data.lastName,
-            phone: data.phone,
-            role: data.role,
-            is_verified: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
+            password: data.password,
+            options: {
+              data: {
+                first_name: data.firstName,
+                last_name: data.lastName,
+                phone: data.phone,
+                role: data.role,
+                ...(data.role === 'owner' && {
+                  company_name: data.companyName,
+                  business_license: data.businessLicense
+                }),
+                ...(data.role === 'tenant' && {
+                  emergency_contact_name: data.emergencyContactName,
+                  emergency_contact_phone: data.emergencyContactPhone,
+                  emergency_contact_relationship:
+                    data.emergencyContactRelationship
+                }),
+                ...(data.role === 'admin' && {
+                  is_admin: true
+                })
+              }
+            }
+          }
+        );
 
-        if (insertError) {
-          console.error('Manual user creation failed:', insertError);
-          // Don't throw error here as the auth user was created successfully
+        if (authError) {
+          throw new Error(authError.message);
         }
+
+        if (!authData.user) {
+          throw new Error('Registration failed');
+        }
+
+        console.log('✅ Fallback registration successful');
+
+        return {
+          success: true,
+          message:
+            'Registration successful! Please check your email to verify your account.',
+          user: authData.user
+        };
       }
-
-      // Update the user record with additional data using admin client
-      const { error: updateError } = await supabaseAdmin
-        .from('users')
-        .update({
-          company_name: data.role === 'owner' ? data.companyName : null,
-          business_license: data.role === 'owner' ? data.businessLicense : null,
-          emergency_contact_name:
-            data.role === 'tenant' ? data.emergencyContactName : null,
-          emergency_contact_phone:
-            data.role === 'tenant' ? data.emergencyContactPhone : null,
-          emergency_contact_relationship:
-            data.role === 'tenant' ? data.emergencyContactRelationship : null
-        })
-        .eq('id', authData.user.id);
-
-      if (updateError) {
-        console.error('Profile update error:', updateError);
-        // Don't throw error here as the user was created successfully
-        // The additional data can be updated later
-      }
-
-      return {
-        success: true,
-        message:
-          'Registration successful! Please check your email to verify your account.',
-        user: authData.user
-      };
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('💥 Registration error:', error);
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Registration failed'

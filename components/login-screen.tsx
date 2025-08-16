@@ -14,18 +14,26 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, Eye, EyeOff, Building, Home, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Building,
+  Home,
+  Users,
+  Loader2
+} from 'lucide-react';
 import type { LoginCredentials } from '@/types/auth';
 
 interface LoginScreenProps {
   onBack: () => void;
   onForgotPassword: () => void;
   onRegister: () => void;
-  selectedRole: 'owner' | 'tenant';
+  selectedRole: 'owner' | 'tenant' | 'admin';
 }
 
 // Zod schema for login form validation
-const createLoginSchema = (role: 'owner' | 'tenant') => {
+const createLoginSchema = (role: 'owner' | 'tenant' | 'admin') => {
   return z.object({
     email: z
       .string()
@@ -119,10 +127,16 @@ export function LoginScreen({
     tenant: {
       icon: Home,
       title: 'Tenant',
-      color: 'bg-purple-500',
+      color: 'bg-blue-400',
       description: 'Access your rental information'
+    },
+    admin: {
+      icon: Users,
+      title: 'System Administrator',
+      color: 'bg-blue-600',
+      description: 'System oversight and management'
     }
-  };
+  } as const;
 
   const config = roleConfig[selectedRole];
   const Icon = config.icon;
@@ -138,7 +152,7 @@ export function LoginScreen({
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col p-4 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex flex-col p-4 lg:p-8">
       <Card className="w-full max-w-sm lg:max-w-lg mx-auto mt-8 lg:mt-12 bg-white/90 backdrop-blur-sm shadow-xl lg:shadow-2xl border-0">
         <CardHeader className="text-center pb-4 lg:pb-6">
           <div className="flex items-center gap-3 mb-4 lg:mb-6">
@@ -191,7 +205,11 @@ export function LoginScreen({
                 id="email"
                 type="email"
                 placeholder="Enter your email"
-                className="mt-1 border-gray-300 focus:border-blue-500"
+                className={`mt-1 focus:border-blue-500 ${
+                  errors.email
+                    ? 'border-red-300 focus:border-red-500'
+                    : 'border-gray-300'
+                }`}
                 disabled={authState.isLoading}
               />
               {errors.email && (
@@ -211,7 +229,11 @@ export function LoginScreen({
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
-                  className="pr-10 border-gray-300 focus:border-blue-500"
+                  className={`pr-10 focus:border-blue-500 ${
+                    errors.password
+                      ? 'border-red-300 focus:border-red-500'
+                      : 'border-gray-300'
+                  }`}
                   disabled={authState.isLoading}
                 />
                 <button

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Supabase Storage Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <h2>Supabase Storage Test</h2>
+    <input type="file" id="fileInput" accept="image/*" />
+    <button onclick="testUpload()">Test Upload</button>
+    <div id="result"></div>
+
+    <script>
+      // Replace with your Supabase credentials
+      const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+      const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+      const supabase = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
+
+      async function testUpload() {
+        const resultDiv = document.getElementById('result');
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+
+        if (!file) {
+          resultDiv.innerHTML =
+            '<p style="color: red;">Please select a file first!</p>';
+          return;
+        }
+
+        try {
+          resultDiv.innerHTML = '<p>Testing upload...</p>';
+
+          // Check if bucket exists
+          const { data: buckets, error: bucketsError } =
+            await supabase.storage.listBuckets();
+
+          if (bucketsError) {
+            resultDiv.innerHTML = `<p style="color: red;">Error listing buckets: ${bucketsError.message}</p>`;
+            return;
+          }
+
+          const propertyBucket = buckets.find(b => b.id === 'property-images');
+          if (!propertyBucket) {
+            resultDiv.innerHTML =
+              '<p style="color: red;">❌ property-images bucket not found!</p><p>Please create it in Supabase Dashboard → Storage</p>';
+            return;
+          }
+
+          resultDiv.innerHTML +=
+            '<p style="color: green;">✅ property-images bucket exists</p>';
+
+          // Test upload
+          const fileName = `test-${Date.now()}.${file.name.split('.').pop()}`;
+          const { data, error } = await supabase.storage
+            .from('property-images')
+            .upload(`test/${fileName}`, file);
+
+          if (error) {
+            resultDiv.innerHTML += `<p style="color: red;">❌ Upload failed: ${error.message}</p>`;
+
+            if (error.message.includes('row-level security policy')) {
+              resultDiv.innerHTML +=
+                '<p style="color: orange;">💡 Solution: Make sure the bucket is set to PUBLIC in Supabase Dashboard</p>';
+            }
+          } else {
+            resultDiv.innerHTML +=
+              '<p style="color: green;">✅ Upload successful!</p>';
+
+            // Get public URL
+            const { data: urlData } = supabase.storage
+              .from('property-images')
+              .getPublicUrl(`test/${fileName}`);
+
+            resultDiv.innerHTML += `<p>📸 Image URL: <a href="${urlData.publicUrl}" target="_blank">${urlData.publicUrl}</a></p>`;
+
+            // Clean up test file
+            await supabase.storage
+              .from('property-images')
+              .remove([`test/${fileName}`]);
+            resultDiv.innerHTML += '<p>🧹 Test file cleaned up</p>';
+          }
+        } catch (error) {
+          resultDiv.innerHTML += `<p style="color: red;">💥 Unexpected error: ${error.message}</p>`;
+        }
+      }
+    </script>
+  </body>
+</html>
+
+
+
+
+
