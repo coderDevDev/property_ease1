@@ -92,7 +92,7 @@ export default function OwnerApplicationsPage() {
   const [actionNote, setActionNote] = useState('');
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
   const fetchApplications = async () => {
     if (!authState.user?.id) return;
@@ -170,6 +170,41 @@ export default function OwnerApplicationsPage() {
     if (!selectedApplication || !actionType) return;
 
     try {
+      // Check unit availability first
+      if (actionType === 'approve') {
+        const { data: availabilityStatusData } = await supabase.rpc(
+          'get_unit_availability_status',
+          {
+            p_property_id: selectedApplication.property_id,
+            p_unit_number: selectedApplication.unit_number,
+            p_application_id: selectedApplication.id
+          }
+        );
+
+        console.log({ availabilityStatusData });
+
+        let availabilityStatus = availabilityStatusData[0];
+
+        if (!availabilityStatus?.is_available) {
+          const details = availabilityStatus?.details;
+          let description = 'Please check the unit status and try again.';
+
+          // Add more specific details based on the status
+          if (details?.application_status) {
+            description = `This unit already has a ${details.application_status} application.`;
+          } else if (details?.tenant_id) {
+            description = 'This unit is currently occupied by a tenant.';
+          } else if (details?.occupied_units) {
+            description = `Property is at capacity (${details.occupied_units}/${details.total_units} units occupied).`;
+          }
+
+          toast.error(details?.message || 'Unit is not available', {
+            description
+          });
+          return;
+        }
+      }
+
       // Start a transaction using RPC for atomic operations
       const { data: result, error: rpcError } = await supabase.rpc(
         actionType === 'approve'
@@ -181,7 +216,16 @@ export default function OwnerApplicationsPage() {
         }
       );
 
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        console.error('RPC Error:', rpcError);
+        throw new Error(rpcError.message);
+      }
+
+      let resultData = result[0];
+
+      if (!resultData?.success) {
+        throw new Error(resultData?.message || 'Failed to process application');
+      }
 
       // Update local state
       setApplications(prev =>
@@ -207,19 +251,19 @@ export default function OwnerApplicationsPage() {
             action: {
               label: 'View Tenant',
               onClick: () =>
-                router.push(`/owner/dashboard/tenants/${result.tenant_id}`)
+                router.push(`/owner/dashboard/tenants/${resultData.tenant_id}`)
             }
           }
         );
 
         // Create welcome notification for the tenant
-        await supabase.rpc('send_notification', {
-          user_ids: [selectedApplication.user_id],
-          title: 'Application Approved! 🎉',
-          message: `Your application for ${selectedApplication.property_name} - Unit ${selectedApplication.unit_number} has been approved. Welcome to our community!`,
-          type: 'system',
-          priority: 'high'
-        });
+        // await supabase.rpc('send_notification', {
+        //   user_ids: [selectedApplication.user_id],
+        //   title: 'Application Approved! 🎉',
+        //   message: `Your application for ${selectedApplication.property_name} - Unit ${selectedApplication.unit_number} has been approved. Welcome to our community!`,
+        //   type: 'system',
+        //   priority: 'high'
+        // });
 
         // Send email notification (you'll need to implement this in your backend)
         // await supabase.functions.invoke('send-application-approval-email', {
@@ -238,36 +282,41 @@ export default function OwnerApplicationsPage() {
         toast.success('Application rejected successfully.');
 
         // Create notification for the tenant
-        await supabase.rpc('send_notification', {
-          user_ids: [selectedApplication.user_id],
-          title: 'Application Status Update',
-          message: `Your application for ${selectedApplication.property_name} - Unit ${selectedApplication.unit_number} has been reviewed. Unfortunately, we cannot proceed with your application at this time.`,
-          type: 'system',
-          priority: 'high'
-        });
+        // await supabase.rpc('send_notification', {
+        //   user_ids: [selectedApplication.user_id],
+        //   title: 'Application Status Update',
+        //   message: `Your application for ${selectedApplication.property_name} - Unit ${selectedApplication.unit_number} has been reviewed. Unfortunately, we cannot proceed with your application at this time.`,
+        //   type: 'system',
+        //   priority: 'high'
+        // });
 
-        // Send email notification
-        await supabase.functions.invoke('send-application-rejection-email', {
-          body: {
-            email: selectedApplication.user_email,
-            name: selectedApplication.user_name,
-            property: selectedApplication.property_name,
-            unit: selectedApplication.unit_number,
-            reason: actionNote
-          }
-        });
+        // // Send email notification
+        // await supabase.functions.invoke('send-application-rejection-email', {
+        //   body: {
+        //     email: selectedApplication.user_email,
+        //     name: selectedApplication.user_name,
+        //     property: selectedApplication.property_name,
+        //     unit: selectedApplication.unit_number,
+        //     reason: actionNote
+        //   }
+        // });
       }
 
-      // Close dialog and reset state
-      setShowActionDialog(false);
+      // Close both dialogs and reset state
+      setShowDetailsDialog(false); // Close the details dialog
+      setShowActionDialog(false); // Close the action dialog
+      setSelectedApplication(null); // Clear selected application
       setActionType(null);
       setActionNote('');
 
       // Refresh the applications list to get updated data
-      fetchApplications();
+      await fetchApplications(); // Wait for the refresh to complete
     } catch (error) {
       console.error('Failed to process application:', error);
-      toast.error('Failed to process application. Please try again.');
+      toast.error('Failed to process application', {
+        description:
+          error instanceof Error ? error.message : 'Please try again later'
+      });
     }
   };
 
@@ -468,21 +517,22 @@ export default function OwnerApplicationsPage() {
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'px-3 rounded-l-md border-r border-blue-200',
-                  viewMode === 'grid' && 'bg-blue-50 text-blue-600'
-                )}
-                onClick={() => setViewMode('grid')}>
-                <LayoutGrid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
                   'px-3 rounded-r-md',
                   viewMode === 'table' && 'bg-blue-50 text-blue-600'
                 )}
                 onClick={() => setViewMode('table')}>
                 <Table2 className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'px-3 rounded-l-md border-r border-blue-200',
+                  viewMode === 'grid' && 'bg-blue-50 text-blue-600'
+                )}
+                onClick={() => setViewMode('grid')}>
+                <LayoutGrid className="w-4 h-4" />
               </Button>
             </div>
           </div>

@@ -31,7 +31,11 @@ import {
   Activity,
   Download,
   Send,
-  RefreshCw
+  RefreshCw,
+  Upload,
+  Trash2,
+  Image,
+  File
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -42,6 +46,7 @@ import {
 import { TenantsAPI, type TenantAnalytics } from '@/lib/api/tenants';
 import { PaymentsAPI } from '@/lib/api/payments';
 import { MaintenanceAPI } from '@/lib/api/maintenance';
+import { DocumentsAPI, type Document } from '@/lib/api/documents';
 import { toast } from 'sonner';
 
 interface Tenant {
@@ -116,6 +121,7 @@ export default function TenantDetailsPage() {
   const [maintenanceRequests, setMaintenanceRequests] = useState<
     MaintenanceRequest[]
   >([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -130,12 +136,14 @@ export default function TenantDetailsPage() {
           tenantResult,
           analyticsResult,
           paymentsResult,
-          maintenanceResult
+          maintenanceResult,
+          documentsResult
         ] = await Promise.all([
           TenantsAPI.getTenant(tenantId),
           TenantsAPI.getTenantAnalytics(tenantId),
           PaymentsAPI.getPayments(tenantId),
-          MaintenanceAPI.getMaintenanceRequests(undefined, tenantId)
+          MaintenanceAPI.getMaintenanceRequests(undefined, tenantId),
+          DocumentsAPI.getTenantDocuments(tenantId)
         ]);
 
         if (tenantResult.success) {
@@ -154,6 +162,10 @@ export default function TenantDetailsPage() {
 
         if (maintenanceResult.success) {
           setMaintenanceRequests(maintenanceResult.data);
+        }
+
+        if (documentsResult.success && documentsResult.data) {
+          setDocuments(documentsResult.data);
         }
       } catch (error) {
         console.error('Failed to load tenant data:', error);
@@ -921,24 +933,140 @@ export default function TenantDetailsPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Documents & Files</CardTitle>
+                    <input
+                      type="file"
+                      id="document-upload"
+                      className="hidden"
+                      onChange={async e => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+
+                        try {
+                          const result = await DocumentsAPI.uploadDocument(
+                            tenantId,
+                            file,
+                            'other'
+                          );
+
+                          if (result.success) {
+                            toast.success('Document uploaded successfully');
+                            // Refresh documents list
+                            const { data } =
+                              await DocumentsAPI.getTenantDocuments(tenantId);
+                            if (data) setDocuments(data);
+                          } else {
+                            toast.error(
+                              result.message || 'Failed to upload document'
+                            );
+                          }
+                        } catch (error) {
+                          console.error('Upload error:', error);
+                          toast.error('Failed to upload document');
+                        }
+                      }}
+                    />
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-blue-200 text-blue-600">
-                      <FileText className="w-4 h-4 mr-2" />
+                      className="border-blue-200 text-blue-600"
+                      onClick={() =>
+                        document.getElementById('document-upload')?.click()
+                      }>
+                      <Upload className="w-4 h-4 mr-2" />
                       Upload Document
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No documents uploaded yet</p>
-                    <p className="text-sm text-gray-400 mt-2">
-                      Upload lease agreements, ID copies, and other important
-                      documents
-                    </p>
-                  </div>
+                  {documents.length > 0 ? (
+                    <div className="space-y-4">
+                      {documents.map(doc => (
+                        <div
+                          key={doc.id}
+                          className="flex items-center justify-between p-4 border border-blue-100 rounded-lg bg-blue-50/50 hover:bg-blue-50 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white">
+                              {doc.type.includes('image') ? (
+                                <Image className="w-6 h-6" />
+                              ) : (
+                                <File className="w-6 h-6" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">
+                                {doc.name}
+                              </p>
+                              <div className="flex items-center gap-3 text-sm text-gray-500">
+                                <span>
+                                  {(doc.size / 1024 / 1024).toFixed(2)} MB
+                                </span>
+                                <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                <span>
+                                  {doc.type.split('/')[1]?.toUpperCase() ||
+                                    'Unknown'}
+                                </span>
+                                <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                <span>{formatShortDate(doc.uploaded_at)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => window.open(doc.url, '_blank')}>
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={async () => {
+                                if (
+                                  !confirm(
+                                    'Are you sure you want to delete this document?'
+                                  )
+                                )
+                                  return;
+
+                                try {
+                                  const result =
+                                    await DocumentsAPI.deleteDocument(doc.id);
+                                  if (result.success) {
+                                    toast.success(
+                                      'Document deleted successfully'
+                                    );
+                                    setDocuments(docs =>
+                                      docs.filter(d => d.id !== doc.id)
+                                    );
+                                  } else {
+                                    toast.error(
+                                      result.message ||
+                                        'Failed to delete document'
+                                    );
+                                  }
+                                } catch (error) {
+                                  console.error('Delete error:', error);
+                                  toast.error('Failed to delete document');
+                                }
+                              }}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No documents uploaded yet</p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Upload lease agreements, ID copies, and other important
+                        documents
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

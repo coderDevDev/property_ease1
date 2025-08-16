@@ -1,23 +1,45 @@
 -- Function to check if a unit is available
 CREATE OR REPLACE FUNCTION public.is_unit_available(
   p_property_id UUID,
-  p_unit_number TEXT
+  p_unit_number TEXT,
+  p_application_id UUID DEFAULT NULL
 )
 RETURNS BOOLEAN AS $$
 BEGIN
-  RETURN NOT EXISTS (
+  -- Check if unit is occupied by an active tenant
+  IF EXISTS (
     SELECT 1
     FROM public.tenants
     WHERE property_id = p_property_id
       AND unit_number = p_unit_number
       AND status = 'active'
-  ) AND NOT EXISTS (
+  ) THEN
+    RETURN FALSE;
+  END IF;
+
+  -- Check if unit has any other pending/approved applications (excluding current application)
+  IF EXISTS (
     SELECT 1
     FROM public.rental_applications
     WHERE property_id = p_property_id
       AND unit_number = p_unit_number
       AND status IN ('pending', 'approved')
-  );
+      AND (p_application_id IS NULL OR id != p_application_id)
+  ) THEN
+    RETURN FALSE;
+  END IF;
+
+  -- Check if property has available units
+  IF EXISTS (
+    SELECT 1
+    FROM public.properties
+    WHERE id = p_property_id
+      AND occupied_units >= total_units
+  ) THEN
+    RETURN FALSE;
+  END IF;
+
+  RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -32,6 +54,7 @@ RETURNS TABLE (
 ) AS $$
 DECLARE
   v_application RECORD;
+  v_availability RECORD;
   v_tenant_id UUID;
 BEGIN
   -- Get application details
@@ -45,9 +68,16 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Check if unit is still available
-  IF NOT public.is_unit_available(v_application.property_id, v_application.unit_number) THEN
-    RETURN QUERY SELECT false, NULL::UUID, 'Unit is no longer available';
+  -- Check availability using the existing function
+  SELECT * INTO v_availability 
+  FROM public.get_unit_availability_status(
+    v_application.property_id, 
+    v_application.unit_number,
+    application_id
+  );
+
+  IF NOT v_availability.is_available THEN
+    RETURN QUERY SELECT false, NULL::UUID, (v_availability.details->>'message')::TEXT;
     RETURN;
   END IF;
 

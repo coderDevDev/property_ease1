@@ -7,6 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
+import { cn } from '@/lib/utils';
+import {
   Users,
   MapPin,
   DollarSign,
@@ -25,7 +34,9 @@ import {
   MoreVertical,
   UserPlus,
   FileText,
-  Home
+  Home,
+  Table2,
+  LayoutGrid
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -76,6 +87,7 @@ export default function TenantsPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterProperty, setFilterProperty] = useState('all');
   const [expiringTenants, setExpiringTenants] = useState<Tenant[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
   useEffect(() => {
     const loadTenants = async () => {
@@ -369,160 +381,310 @@ export default function TenantsPage() {
               className="w-full pl-10 pr-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="terminated">Terminated</option>
-            </select>
-            <select
-              value={filterProperty}
-              onChange={e => setFilterProperty(e.target.value)}
-              className="px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm">
-              <option value="all">All Properties</option>
-              {getUniqueProperties().map(property => (
-                <option key={property.id} value={property.id}>
-                  {property.name}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-400" />
+              <select
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="terminated">Terminated</option>
+              </select>
+              <select
+                value={filterProperty}
+                onChange={e => setFilterProperty(e.target.value)}
+                className="px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm">
+                <option value="all">All Properties</option>
+                {getUniqueProperties().map(property => (
+                  <option key={property.id} value={property.id}>
+                    {property.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center rounded-lg border border-blue-200 bg-white">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'px-3 rounded-l-md border-r border-blue-200',
+                  viewMode === 'grid' && 'bg-blue-50 text-blue-600'
+                )}
+                onClick={() => setViewMode('grid')}>
+                <LayoutGrid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'px-3 rounded-r-md',
+                  viewMode === 'table' && 'bg-blue-50 text-blue-600'
+                )}
+                onClick={() => setViewMode('table')}>
+                <Table2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Tenants Grid */}
+        {/* Tenants List */}
         {filteredTenants.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredTenants.map(tenant => (
-              <Card
-                key={tenant.id}
-                className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {tenant.user.first_name[0]}
-                        {tenant.user.last_name[0]}
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg font-bold text-gray-900">
-                          {tenant.user.first_name} {tenant.user.last_name}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          {getStatusBadge(tenant.status)}
-                          {getLeaseStatusBadge(tenant.lease_end)}
+          viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredTenants.map(tenant => (
+                <Card
+                  key={tenant.id}
+                  className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                          {tenant.user.first_name[0]}
+                          {tenant.user.last_name[0]}
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg font-bold text-gray-900">
+                            {tenant.user.first_name} {tenant.user.last_name}
+                          </CardTitle>
+                          <div className="flex items-center gap-2 mt-1">
+                            {getStatusBadge(tenant.status)}
+                            {getLeaseStatusBadge(tenant.lease_end)}
+                          </div>
                         </div>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:bg-blue-50">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(
+                                `/owner/dashboard/tenants/${tenant.id}`
+                              )
+                            }>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(
+                                `/owner/dashboard/tenants/${tenant.id}/edit`
+                              )
+                            }>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit Tenant
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Send Message
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <FileText className="w-4 h-4 mr-2" />
+                            Generate Invoice
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      {/* Property Information */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <Home className="w-4 h-4 text-blue-500" />
+                        <span className="text-gray-600">Property:</span>
+                        <span className="font-medium text-gray-900 truncate">
+                          {tenant.property.name}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="w-4 h-4 text-blue-500" />
+                        <span className="text-gray-600">Unit:</span>
+                        <span className="font-medium text-gray-900">
+                          {tenant.unit_number}
+                        </span>
+                      </div>
+
+                      {/* Contact Information */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="w-4 h-4 text-blue-500" />
+                        <span className="text-gray-600 truncate">
+                          {tenant.user.email}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="w-4 h-4 text-blue-500" />
+                        <span className="text-gray-600">
+                          {tenant.user.phone}
+                        </span>
+                      </div>
+
+                      {/* Financial Information */}
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <div>
+                          <p className="text-xs text-gray-500">Monthly Rent</p>
+                          <p className="font-bold text-lg text-blue-600">
+                            {formatCurrency(tenant.monthly_rent)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">Lease Period</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {formatDate(tenant.lease_start)} -{' '}
+                            {formatDate(tenant.lease_end)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <div className="pt-2">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-8 w-8 p-0 hover:bg-blue-50">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
+                          className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-colors"
                           onClick={() =>
                             router.push(`/owner/dashboard/tenants/${tenant.id}`)
                           }>
                           <Eye className="w-4 h-4 mr-2" />
                           View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            router.push(
-                              `/owner/dashboard/tenants/${tenant.id}/edit`
-                            )
-                          }>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit Tenant
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          Send Message
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <FileText className="w-4 h-4 mr-2" />
-                          Generate Invoice
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    {/* Property Information */}
-                    <div className="flex items-center gap-2 text-sm">
-                      <Home className="w-4 h-4 text-blue-500" />
-                      <span className="text-gray-600">Property:</span>
-                      <span className="font-medium text-gray-900 truncate">
-                        {tenant.property.name}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="w-4 h-4 text-blue-500" />
-                      <span className="text-gray-600">Unit:</span>
-                      <span className="font-medium text-gray-900">
-                        {tenant.unit_number}
-                      </span>
-                    </div>
-
-                    {/* Contact Information */}
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="w-4 h-4 text-blue-500" />
-                      <span className="text-gray-600 truncate">
-                        {tenant.user.email}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="w-4 h-4 text-blue-500" />
-                      <span className="text-gray-600">{tenant.user.phone}</span>
-                    </div>
-
-                    {/* Financial Information */}
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                      <div>
-                        <p className="text-xs text-gray-500">Monthly Rent</p>
-                        <p className="font-bold text-lg text-blue-600">
-                          {formatCurrency(tenant.monthly_rent)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">Lease Period</p>
-                        <p className="text-sm font-medium text-gray-900">
-                          {formatDate(tenant.lease_start)} -{' '}
-                          {formatDate(tenant.lease_end)}
-                        </p>
+                        </Button>
                       </div>
                     </div>
-
-                    {/* Action Button */}
-                    <div className="pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                        onClick={() =>
-                          router.push(`/owner/dashboard/tenants/${tenant.id}`)
-                        }>
-                        <Eye className="w-4 h-4 mr-2" />
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tenant</TableHead>
+                      <TableHead>Property & Unit</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Lease Period</TableHead>
+                      <TableHead>Monthly Rent</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTenants.map(tenant => (
+                      <TableRow key={tenant.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                              {tenant.user.first_name[0]}
+                              {tenant.user.last_name[0]}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {tenant.user.first_name} {tenant.user.last_name}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {tenant.property.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Unit {tenant.unit_number}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {getStatusBadge(tenant.status)}
+                            {getLeaseStatusBadge(tenant.lease_end)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-sm text-gray-500">
+                              Start: {formatDate(tenant.lease_start)}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              End: {formatDate(tenant.lease_end)}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium text-blue-600">
+                            {formatCurrency(tenant.monthly_rent)}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-sm text-gray-500">
+                              {tenant.user.email}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {tenant.user.phone}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 hover:bg-blue-50">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(
+                                    `/owner/dashboard/tenants/${tenant.id}`
+                                  )
+                                }>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(
+                                    `/owner/dashboard/tenants/${tenant.id}/edit`
+                                  )
+                                }>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit Tenant
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <MessageSquare className="w-4 h-4 mr-2" />
+                                Send Message
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <FileText className="w-4 h-4 mr-2" />
+                                Generate Invoice
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )
         ) : (
           <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
             <CardContent className="text-center py-12">
@@ -558,8 +720,3 @@ export default function TenantsPage() {
     </div>
   );
 }
-
-
-
-
-
