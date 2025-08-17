@@ -281,4 +281,70 @@ export class PaymentsAPI {
       };
     }
   }
+
+  static async createPaymentWithXendit({
+    tenant_id,
+    property_id,
+    amount,
+    payment_type,
+    payment_method,
+    due_date,
+    description,
+    created_by,
+    sendXenditLink = false
+  }: {
+    tenant_id: string;
+    property_id: string;
+    amount: number;
+    payment_type: string;
+    payment_method: string;
+    due_date: string;
+    description?: string;
+    created_by: string;
+    sendXenditLink?: boolean;
+  }) {
+    try {
+      if (sendXenditLink) {
+        console.log('Dex');
+        // Call backend API route to create payment and Xendit invoice
+        const res = await fetch('/api/payments/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tenant_id,
+            property_id,
+            amount,
+            payment_type,
+            payment_method,
+            due_date,
+            description,
+            created_by,
+            sendXenditLink: true
+          })
+        });
+        const result = await res.json();
+        return result;
+      } else {
+        // Just create payment in Supabase
+        return await PaymentsAPI.createPayment({
+          tenant_id,
+          property_id,
+          amount,
+          payment_type,
+          payment_method,
+          due_date,
+          notes: description,
+          created_by
+        });
+      }
+    } catch (error) {
+      console.error('Create payment with Xendit error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to create payment',
+        data: null
+      };
+    }
+  }
 }

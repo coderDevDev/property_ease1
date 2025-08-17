@@ -70,6 +70,71 @@ export class DocumentsAPI {
     }
   }
 
+  static async uploadMultipleDocuments(
+    tenantId: string,
+    files: File[],
+    category: Document['category'],
+    onProgress?: (file: File, progress: number) => void
+  ) {
+    const results = [];
+    for (const file of files) {
+      try {
+        // Use XMLHttpRequest for progress
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${tenantId}/${Date.now()}_${file.name.replace(
+          /[^a-zA-Z0-9.]/g,
+          '_'
+        )}`;
+        const { data: urlData } = await supabase.storage
+          .from('tenant-documents')
+          .createSignedUploadUrl(fileName);
+        if (!urlData?.signedUrl)
+          throw new Error('Failed to get signed upload URL');
+
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', urlData.signedUrl, true);
+          xhr.upload.onprogress = event => {
+            if (onProgress && event.lengthComputable) {
+              onProgress(file, Math.round((event.loaded / event.total) * 100));
+            }
+          };
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              resolve();
+            } else {
+              reject(new Error('Upload failed'));
+            }
+          };
+          xhr.onerror = () => reject(new Error('Upload failed'));
+          xhr.send(file);
+        });
+
+        // Get public URL
+        const { data: publicUrlData } = await supabase.storage
+          .from('tenant-documents')
+          .getPublicUrl(fileName);
+        if (!publicUrlData?.publicUrl)
+          throw new Error('Failed to get public URL');
+
+        // Create document record
+        const { data, error } = await supabase.from('tenant_documents').insert({
+          tenant_id: tenantId,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          url: publicUrlData.publicUrl,
+          category
+        });
+        if (error) throw error;
+        results.push({ success: true, data, file });
+      } catch (error) {
+        results.push({ success: false, error, file });
+      }
+    }
+    return results;
+  }
+
   static async deleteDocument(documentId: string) {
     try {
       // Get document to get file path

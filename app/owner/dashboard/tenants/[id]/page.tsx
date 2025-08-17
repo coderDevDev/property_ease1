@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   Users,
   MapPin,
-  DollarSign,
+  PhilippinePeso,
   Edit,
   ArrowLeft,
   Calendar,
@@ -48,6 +48,27 @@ import { PaymentsAPI } from '@/lib/api/payments';
 import { MaintenanceAPI } from '@/lib/api/maintenance';
 import { DocumentsAPI, type Document } from '@/lib/api/documents';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
+import { saveAs } from 'file-saver';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select } from '@/components/ui/select';
+import { format } from 'date-fns';
 
 interface Tenant {
   id: string;
@@ -95,6 +116,7 @@ interface Payment {
   description: string;
   late_fee: number;
   created_at: string;
+  reference_number?: string; // Added for Xendit link
 }
 
 interface MaintenanceRequest {
@@ -124,6 +146,36 @@ export default function TenantDetailsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Add state for document upload UI
+  const [selectedCategory, setSelectedCategory] = useState<
+    'lease' | 'id' | 'payment' | 'other'
+  >('lease');
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
+    {}
+  );
+  const [uploading, setUploading] = useState(false);
+
+  // Add state for Add Payment modal
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const [addPaymentLoading, setAddPaymentLoading] = useState(false);
+  const [addPaymentAmount, setAddPaymentAmount] = useState<number>(
+    tenant?.monthly_rent || 0
+  );
+  const [addPaymentDueDate, setAddPaymentDueDate] = useState<string>('');
+  const [addPaymentType, setAddPaymentType] = useState<
+    'rent' | 'utility' | 'deposit' | 'penalty' | 'other'
+  >('rent');
+  const [addPaymentMethod, setAddPaymentMethod] = useState<
+    'gcash' | 'maya' | 'bank_transfer' | 'cash' | 'check'
+  >('gcash');
+  const [addPaymentDescription, setAddPaymentDescription] = useState('');
+  const [addPaymentXendit, setAddPaymentXendit] = useState(false);
+
+  const [paymentSummary, setPaymentSummary] = useState<any | null>(null);
+  const [futurePayments, setFuturePayments] = useState<Payment[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
 
   useEffect(() => {
     const loadTenantData = async () => {
@@ -177,6 +229,72 @@ export default function TenantDetailsPage() {
 
     loadTenantData();
   }, [tenantId]);
+
+  // Fetch payment summary and future payments
+  useEffect(() => {
+    const fetchPaymentSummary = async () => {
+      if (!tenantId) return;
+      setLoadingPayments(true);
+      try {
+        // Payment summary view
+        const { data: summary, error: summaryError } = await supabase
+          .from('payment_summary')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .single();
+        if (!summaryError && summary) setPaymentSummary(summary);
+        // Future payments (next 3 months)
+        const now = new Date();
+        const threeMonths = new Date(now);
+        threeMonths.setMonth(now.getMonth() + 3);
+        const { data: future, error: futureError } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .gte('due_date', now.toISOString().slice(0, 10))
+          .lte('due_date', threeMonths.toISOString().slice(0, 10))
+          .order('due_date', { ascending: true });
+        if (!futureError && future) setFuturePayments(future);
+      } catch (e) {
+        // ignore
+      } finally {
+        setLoadingPayments(false);
+      }
+    };
+    fetchPaymentSummary();
+  }, [tenantId]);
+
+  // Helper to get next unpaid/scheduled month
+  const getNextDueDate = () => {
+    if (!tenant) return '';
+    const now = new Date();
+    const leaseEnd = new Date(tenant.lease_end);
+    const leaseStart = new Date(tenant.lease_start);
+    let current = new Date(Math.max(now.getTime(), leaseStart.getTime()));
+    current.setDate(1);
+    leaseEnd.setDate(1);
+    const paymentMap = new Map();
+    payments.forEach(p => {
+      const d = new Date(p.due_date);
+      const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+      paymentMap.set(key, p);
+    });
+    while (current <= leaseEnd) {
+      const key = `${current.getFullYear()}-${current.getMonth() + 1}`;
+      if (!paymentMap.has(key)) {
+        return format(current, 'yyyy-MM-dd');
+      }
+      current.setMonth(current.getMonth() + 1);
+    }
+    return format(now, 'yyyy-MM-dd');
+  };
+
+  useEffect(() => {
+    if (tenant) {
+      setAddPaymentAmount(tenant.monthly_rent);
+      setAddPaymentDueDate(getNextDueDate());
+    }
+  }, [tenant]);
 
   const handleEdit = () => {
     router.push(`/owner/dashboard/tenants/${tenantId}/edit`);
@@ -387,6 +505,88 @@ export default function TenantDetailsPage() {
     );
   };
 
+  // Helper: Get current bill (this month's rent + charges)
+  const getCurrentBill = () => {
+    if (!tenant) return 0;
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
+    // Find all unpaid/overdue payments for this month
+    const currentPayments = payments.filter(
+      p =>
+        (p.payment_status === 'pending' || p.payment_status === 'overdue') &&
+        new Date(p.due_date).getMonth() + 1 === month &&
+        new Date(p.due_date).getFullYear() === year
+    );
+
+    if (currentPayments.length > 0) {
+      return currentPayments.reduce(
+        (sum, p) => sum + (p.amount || 0) + (p.late_fee || 0),
+        0
+      );
+    }
+
+    // If no payment record, but lease is active, show expected rent
+    const leaseStart = new Date(tenant.lease_start);
+    const leaseEnd = new Date(tenant.lease_end);
+
+    console.log({ tenant });
+    if (now >= leaseStart && now <= leaseEnd) {
+      return tenant.monthly_rent || 0;
+    }
+
+    return 0;
+  };
+
+  // Helper: Outstanding balance (sum of unpaid/overdue)
+  const getOutstandingBalance = () => {
+    return payments
+      .filter(
+        p => p.payment_status === 'pending' || p.payment_status === 'overdue'
+      )
+      .reduce((sum, p) => sum + (p.amount || 0) + (p.late_fee || 0), 0);
+  };
+
+  // Helper: Generate receipt HTML
+  const generateReceiptHTML = (payment: Payment) => {
+    return `
+      <div style="font-family: Inter, Arial, sans-serif; max-width: 400px; margin: 0 auto; border: 1px solid #e3e8f0; border-radius: 12px; padding: 32px; background: #fff;">
+        <h2 style="color: #1E88E5; margin-bottom: 8px;">Payment Receipt</h2>
+        <p style="margin: 0 0 8px 0; color: #1F2937;">Tenant: <b>${
+          tenant?.user.first_name
+        } ${tenant?.user.last_name}</b></p>
+        <p style="margin: 0 0 8px 0; color: #1F2937;">Property: <b>${
+          tenant?.property.name
+        }</b></p>
+        <p style="margin: 0 0 8px 0; color: #1F2937;">Unit: <b>${
+          tenant?.unit_number
+        }</b></p>
+        <hr style="margin: 16px 0; border: none; border-top: 1px solid #e3e8f0;" />
+        <p style="margin: 0 0 8px 0; color: #1F2937;">Amount: <b>₱${formatCurrency(
+          payment.amount
+        )}</b></p>
+        <p style="margin: 0 0 8px 0; color: #1F2937;">Late Fee: <b>₱${formatCurrency(
+          payment.late_fee || 0
+        )}</b></p>
+        <p style="margin: 0 0 8px 0; color: #1F2937;">Total Paid: <b>₱${formatCurrency(
+          (payment.amount || 0) + (payment.late_fee || 0)
+        )}</b></p>
+        <p style="margin: 0 0 8px 0; color: #1F2937;">Due Date: <b>${formatShortDate(
+          payment.due_date
+        )}</b></p>
+        <p style="margin: 0 0 8px 0; color: #1F2937;">Paid Date: <b>${
+          payment.payment_date ? formatShortDate(payment.payment_date) : '-'
+        }</b></p>
+        <p style="margin: 0 0 8px 0; color: #1F2937;">Status: <b>${
+          payment.payment_status
+        }</b></p>
+        <hr style="margin: 16px 0; border: none; border-top: 1px solid #e3e8f0;" />
+        <p style="font-size: 12px; color: #888;">Receipt generated by PropertyEase</p>
+      </div>
+    `;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
@@ -505,7 +705,7 @@ export default function TenantDetailsPage() {
                       {formatCurrency(tenant.monthly_rent)}
                     </p>
                   </div>
-                  <DollarSign className="w-10 h-10 opacity-80" />
+                  <PhilippinePeso className="w-10 h-10 opacity-80" />
                 </div>
               </CardContent>
             </Card>
@@ -576,7 +776,7 @@ export default function TenantDetailsPage() {
             value={activeTab}
             onValueChange={setActiveTab}
             className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm border border-blue-100">
+            <TabsList className="grid w-full grid-cols-5 bg-white/80 backdrop-blur-sm border border-blue-100">
               <TabsTrigger
                 value="overview"
                 className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
@@ -585,7 +785,7 @@ export default function TenantDetailsPage() {
               <TabsTrigger
                 value="payments"
                 className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                Payments ({payments.length})
+                Payments
               </TabsTrigger>
               <TabsTrigger
                 value="maintenance"
@@ -789,69 +989,460 @@ export default function TenantDetailsPage() {
             </TabsContent>
 
             <TabsContent value="payments" className="mt-6">
-              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Payment History</CardTitle>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <Card className="bg-blue-50/60 border border-blue-100 shadow-md rounded-xl">
+                  <CardContent className="p-7">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-600 text-sm mb-1 font-medium">
+                          Current Bill
+                        </p>
+                        <p className="text-3xl font-bold text-blue-900">
+                          {formatCurrency(getCurrentBill())}
+                        </p>
+                      </div>
+                      <PhilippinePeso className="w-10 h-10 opacity-80 text-blue-400" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-red-50/60 border border-red-100 shadow-md rounded-xl">
+                  <CardContent className="p-7">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-red-600 text-sm mb-1 font-medium">
+                          Outstanding Balance
+                        </p>
+                        <p className="text-3xl font-bold text-red-900">
+                          {formatCurrency(getOutstandingBalance())}
+                        </p>
+                      </div>
+                      <PhilippinePeso className="w-10 h-10 opacity-80 text-red-400" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-green-50/60 border border-green-100 shadow-md rounded-xl">
+                  <CardContent className="p-7">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-600 text-sm mb-1 font-medium">
+                          Future Payments
+                        </p>
+                        <p className="text-3xl font-bold text-green-900">
+                          {formatCurrency(
+                            futurePayments.reduce(
+                              (sum, p) =>
+                                sum + (p.amount || 0) + (p.late_fee || 0),
+                              0
+                            )
+                          )}
+                        </p>
+                      </div>
+                      <PhilippinePeso className="w-10 h-10 opacity-80 text-green-400" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Payments Sub-Tabs */}
+              <Tabs defaultValue="schedule" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm border border-blue-100 mb-6">
+                  <TabsTrigger
+                    value="schedule"
+                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-l-xl">
+                    Payment Schedule
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="history"
+                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-r-xl">
+                    Payment History
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="schedule">
+                  <div className="flex justify-end mb-4">
                     <Button
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700 text-white">
-                      <Send className="w-4 h-4 mr-2" />
-                      Send Invoice
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg"
+                      onClick={() => setShowAddPayment(true)}>
+                      + Add Payment
                     </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {payments.length > 0 ? (
-                    <div className="space-y-4">
-                      {payments.map(payment => (
-                        <div
-                          key={payment.id}
-                          className="flex items-center justify-between p-4 border border-blue-100 rounded-lg bg-blue-50/50">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white">
-                              <CreditCard className="w-6 h-6" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900">
-                                {payment.description}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Due: {formatShortDate(payment.due_date)}
-                                {payment.payment_date &&
-                                  ` • Paid: ${formatShortDate(
-                                    payment.payment_date
-                                  )}`}
-                              </p>
-                              {payment.payment_method && (
-                                <p className="text-xs text-gray-500">
-                                  via {payment.payment_method}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            {getPaymentStatusBadge(payment.payment_status)}
-                            <p className="text-lg font-bold text-gray-900 mt-1">
-                              {formatCurrency(payment.amount)}
-                            </p>
-                            {payment.late_fee > 0 && (
-                              <p className="text-sm text-red-600">
-                                +{formatCurrency(payment.late_fee)} late fee
-                              </p>
-                            )}
-                          </div>
+                  <Dialog
+                    open={showAddPayment}
+                    onOpenChange={setShowAddPayment}>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Add Payment</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Amount
+                          </label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={addPaymentAmount}
+                            onChange={e =>
+                              setAddPaymentAmount(Number(e.target.value))
+                            }
+                            className="w-full"
+                          />
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">No payment history yet</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Due Date
+                          </label>
+                          <Input
+                            type="date"
+                            value={addPaymentDueDate}
+                            onChange={e => setAddPaymentDueDate(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Payment Type
+                          </label>
+                          <select
+                            value={addPaymentType}
+                            onChange={e =>
+                              setAddPaymentType(e.target.value as any)
+                            }
+                            className="w-full rounded-lg border border-blue-200 px-3 py-2 bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="rent">Rent</option>
+                            <option value="utility">Utility</option>
+                            <option value="deposit">Deposit</option>
+                            <option value="penalty">Penalty</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Payment Method
+                          </label>
+                          <select
+                            value={addPaymentMethod}
+                            onChange={e =>
+                              setAddPaymentMethod(e.target.value as any)
+                            }
+                            className="w-full rounded-lg border border-blue-200 px-3 py-2 bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="gcash">GCash</option>
+                            <option value="maya">Maya</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="cash">Cash</option>
+                            <option value="check">Check</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Description/Notes
+                          </label>
+                          <Textarea
+                            value={addPaymentDescription}
+                            onChange={e =>
+                              setAddPaymentDescription(e.target.value)
+                            }
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="addPaymentXendit"
+                            checked={addPaymentXendit}
+                            onChange={e =>
+                              setAddPaymentXendit(e.target.checked)
+                            }
+                          />
+                          <label
+                            htmlFor="addPaymentXendit"
+                            className="text-sm text-gray-700">
+                            Send Xendit Payment Link
+                          </label>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          onClick={async () => {
+                            setAddPaymentLoading(true);
+                            try {
+                              const result =
+                                await PaymentsAPI.createPaymentWithXendit({
+                                  tenant_id: tenant.id,
+                                  property_id: tenant.property.id,
+                                  amount: addPaymentAmount,
+                                  payment_type: addPaymentType,
+                                  payment_method: addPaymentMethod,
+                                  due_date: addPaymentDueDate,
+                                  description: addPaymentDescription,
+                                  created_by: authState?.user?.id || '',
+                                  sendXenditLink: addPaymentXendit
+                                });
+                              if (result.success) {
+                                toast.success('Payment created successfully');
+                                setShowAddPayment(false);
+                                // Refresh payments
+                                const paymentsResult =
+                                  await PaymentsAPI.getPayments(tenant.id);
+                                if (paymentsResult.success)
+                                  setPayments(paymentsResult.data);
+                              } else {
+                                toast.error(
+                                  result.message || 'Failed to create payment'
+                                );
+                              }
+                            } catch (err) {
+                              toast.error('Failed to create payment');
+
+                              console.log(err);
+                            } finally {
+                              setAddPaymentLoading(false);
+                            }
+                          }}
+                          disabled={addPaymentLoading}
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white">
+                          {addPaymentLoading ? 'Creating...' : 'Create Payment'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  <Card className="bg-white/95 border border-blue-100 shadow-lg rounded-xl">
+                    <CardHeader>
+                      <CardTitle>Payment Schedule</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Due Date</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Paid Date</TableHead>
+                              <TableHead>Receipt</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {/* Generate schedule from now until lease end */}
+                            {(() => {
+                              if (!tenant) return null;
+                              const schedule = [];
+                              const now = new Date();
+                              const leaseEnd = new Date(tenant.lease_end);
+                              const leaseStart = new Date(tenant.lease_start);
+                              // Start from this month or lease start, whichever is later
+                              let current = new Date(
+                                Math.max(now.getTime(), leaseStart.getTime())
+                              );
+                              current.setDate(1); // always first of month
+                              leaseEnd.setDate(1);
+                              // Build a map of payments by YYYY-MM
+                              const paymentMap = new Map();
+                              payments.forEach(p => {
+                                const d = new Date(p.due_date);
+                                const key = `${d.getFullYear()}-${
+                                  d.getMonth() + 1
+                                }`;
+                                paymentMap.set(key, p);
+                              });
+                              while (current <= leaseEnd) {
+                                const key = `${current.getFullYear()}-${
+                                  current.getMonth() + 1
+                                }`;
+                                const payment = paymentMap.get(key);
+                                schedule.push({
+                                  due_date: new Date(current),
+                                  payment
+                                });
+                                current.setMonth(current.getMonth() + 1);
+                              }
+                              return schedule.map(
+                                ({ due_date, payment }, idx) => {
+                                  const isFuture = due_date > now;
+                                  let status = 'scheduled';
+                                  let paidDate = '-';
+                                  let amount = tenant.monthly_rent;
+                                  let receipt = null;
+                                  if (payment) {
+                                    amount =
+                                      (payment.amount || 0) +
+                                      (payment.late_fee || 0);
+                                    paidDate = payment.payment_date
+                                      ? formatShortDate(payment.payment_date)
+                                      : '-';
+                                    status = payment.payment_status;
+                                    if (status === 'completed') {
+                                      receipt = (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="border-blue-200 text-blue-600"
+                                          onClick={() => {
+                                            const html =
+                                              generateReceiptHTML(payment);
+                                            const blob = new Blob([html], {
+                                              type: 'text/html'
+                                            });
+                                            saveAs(
+                                              blob,
+                                              `receipt-${payment.id}.html`
+                                            );
+                                          }}>
+                                          <Download className="w-4 h-4" />
+                                          Receipt
+                                        </Button>
+                                      );
+                                    }
+                                  }
+                                  // Status badge
+                                  let badge = null;
+                                  if (status === 'completed') {
+                                    badge = (
+                                      <Badge className="bg-green-100 text-green-700 border-0">
+                                        Paid
+                                      </Badge>
+                                    );
+                                  } else if (status === 'pending') {
+                                    badge = (
+                                      <Badge className="bg-yellow-100 text-yellow-700 border-0">
+                                        Pending
+                                      </Badge>
+                                    );
+                                  } else if (status === 'overdue') {
+                                    badge = (
+                                      <Badge className="bg-red-100 text-red-700 border-0">
+                                        Overdue
+                                      </Badge>
+                                    );
+                                  } else {
+                                    badge = (
+                                      <Badge className="bg-gray-100 text-gray-700 border-0">
+                                        Scheduled
+                                      </Badge>
+                                    );
+                                  }
+                                  return (
+                                    <TableRow
+                                      key={due_date.toISOString() + idx}>
+                                      <TableCell>
+                                        {formatShortDate(
+                                          due_date.toISOString()
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        {formatCurrency(amount)}
+                                      </TableCell>
+                                      <TableCell>{badge}</TableCell>
+                                      <TableCell>{paidDate}</TableCell>
+                                      <TableCell>{receipt}</TableCell>
+                                    </TableRow>
+                                  );
+                                }
+                              );
+                            })()}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="history">
+                  <Card className="bg-white/95 border border-blue-100 shadow-lg rounded-xl">
+                    <CardHeader>
+                      <CardTitle>Payment History</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead>Paid Date</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Late Fee</TableHead>
+                            <TableHead>Total</TableHead>
+                            <TableHead>Method</TableHead>
+                            <TableHead>Receipt</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {payments.map(payment => (
+                            <TableRow key={payment.id}>
+                              <TableCell>
+                                {getPaymentStatusBadge(payment.payment_status)}
+                              </TableCell>
+                              <TableCell>
+                                {formatShortDate(payment.due_date)}
+                              </TableCell>
+                              <TableCell>
+                                {payment.payment_date
+                                  ? formatShortDate(payment.payment_date)
+                                  : '-'}
+                              </TableCell>
+                              <TableCell>
+                                ₱{formatCurrency(payment.amount)}
+                              </TableCell>
+                              <TableCell>
+                                ₱{formatCurrency(payment.late_fee || 0)}
+                              </TableCell>
+                              <TableCell>
+                                ₱
+                                {formatCurrency(
+                                  (payment.amount || 0) +
+                                    (payment.late_fee || 0)
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {payment.payment_method || '-'}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-200 text-blue-600"
+                                  onClick={() => {
+                                    const html = generateReceiptHTML(payment);
+                                    const blob = new Blob([html], {
+                                      type: 'text/html'
+                                    });
+                                    saveAs(blob, `receipt-${payment.id}.html`);
+                                  }}>
+                                  <Download className="w-4 h-4" />
+                                  Receipt
+                                </Button>
+                                {payment.reference_number &&
+                                  payment.reference_number.startsWith(
+                                    'http'
+                                  ) && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-blue-200 text-blue-600 ml-2"
+                                      onClick={() =>
+                                        window.open(
+                                          payment.reference_number,
+                                          '_blank'
+                                        )
+                                      }>
+                                      Pay Now
+                                    </Button>
+                                  )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {payments.length === 0 && (
+                        <div className="text-center py-8">
+                          <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-500">
+                            No payment history yet
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
 
             <TabsContent value="maintenance" className="mt-6">
@@ -931,53 +1522,227 @@ export default function TenantDetailsPage() {
             <TabsContent value="documents" className="mt-6">
               <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <CardTitle>Documents & Files</CardTitle>
-                    <input
-                      type="file"
-                      id="document-upload"
-                      className="hidden"
-                      onChange={async e => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-
-                        try {
-                          const result = await DocumentsAPI.uploadDocument(
-                            tenantId,
-                            file,
-                            'other'
-                          );
-
-                          if (result.success) {
-                            toast.success('Document uploaded successfully');
-                            // Refresh documents list
-                            const { data } =
-                              await DocumentsAPI.getTenantDocuments(tenantId);
-                            if (data) setDocuments(data);
-                          } else {
-                            toast.error(
-                              result.message || 'Failed to upload document'
-                            );
-                          }
-                        } catch (error) {
-                          console.error('Upload error:', error);
-                          toast.error('Failed to upload document');
+                    <div className="flex flex-col md:flex-row gap-2 items-center">
+                      <select
+                        className="rounded-lg border border-blue-200 px-3 py-2 bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={selectedCategory}
+                        onChange={e =>
+                          setSelectedCategory(e.target.value as any)
                         }
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-blue-200 text-blue-600"
-                      onClick={() =>
-                        document.getElementById('document-upload')?.click()
-                      }>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Document
-                    </Button>
+                        disabled={uploading}>
+                        <option value="lease">Lease Agreement</option>
+                        <option value="id">Government ID</option>
+                        <option value="payment">Proof of Payment</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <input
+                        type="file"
+                        id="document-upload"
+                        className="hidden"
+                        multiple
+                        onChange={e => {
+                          if (e.target.files) {
+                            setUploadFiles(prev => [
+                              ...prev,
+                              ...Array.from(e.target.files!)
+                            ]);
+                          }
+                        }}
+                        accept="image/*,.pdf,.doc,.docx"
+                        disabled={uploading}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-blue-200 text-blue-600"
+                        onClick={() =>
+                          document.getElementById('document-upload')?.click()
+                        }
+                        disabled={uploading}>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Add Files
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Drag-and-drop area and file preview */}
+                  <div
+                    className={
+                      'mb-6 rounded-lg border-2 border-dashed ' +
+                      (uploadFiles.length === 0
+                        ? 'border-blue-200 hover:border-blue-400 bg-blue-50/50'
+                        : 'border-blue-100 bg-white')
+                    }
+                    style={{ transition: 'border-color 0.2s, background 0.2s' }}
+                    onDragOver={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onDrop={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const files = Array.from(e.dataTransfer.files).filter(
+                        file => file.size <= 10 * 1024 * 1024
+                      );
+                      setUploadFiles(prev => [...prev, ...files]);
+                    }}>
+                    {uploadFiles.length === 0 ? (
+                      <div
+                        className="p-8 text-center cursor-pointer"
+                        onClick={() =>
+                          document.getElementById('document-upload')?.click()
+                        }>
+                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Upload className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">
+                          Drop your files here
+                        </h4>
+                        <p className="text-sm text-gray-500 mb-4">
+                          or{' '}
+                          <span className="text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
+                            browse from your computer
+                          </span>
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
+                          <span className="px-2 py-1 bg-gray-100 rounded-full">
+                            Images (JPG, PNG)
+                          </span>
+                          <span className="px-2 py-1 bg-gray-100 rounded-full">
+                            PDF Documents
+                          </span>
+                          <span className="px-2 py-1 bg-gray-100 rounded-full">
+                            Word Documents
+                          </span>
+                          <span className="px-2 py-1 bg-gray-100 rounded-full">
+                            Max 10MB
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 space-y-4">
+                        <div className="flex flex-wrap gap-4">
+                          {uploadFiles.map((file, idx) => (
+                            <div
+                              key={file.name + idx}
+                              className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                              <div className="h-10 w-10 flex items-center justify-center bg-white rounded-lg border border-gray-200">
+                                {file.type.includes('image') ? (
+                                  <Image className="w-5 h-5 text-blue-600" />
+                                ) : file.type.includes('pdf') ? (
+                                  <FileText className="w-5 h-5 text-blue-600" />
+                                ) : (
+                                  <File className="w-5 h-5 text-blue-600" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium text-gray-900 truncate">
+                                  {file.name}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                  <span>
+                                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                                  </span>
+                                  <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                  <span>
+                                    {file.type.split('/')[1]?.toUpperCase() ||
+                                      'Unknown'}
+                                  </span>
+                                </div>
+                              </div>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
+                                onClick={() =>
+                                  setUploadFiles(prev =>
+                                    prev.filter((_, i) => i !== idx)
+                                  )
+                                }
+                                disabled={uploading}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                              {uploading && (
+                                <div className="ml-2 w-24">
+                                  <div className="h-2 rounded-full bg-blue-100 overflow-hidden">
+                                    <div
+                                      className="h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all"
+                                      style={{
+                                        width: `${
+                                          uploadProgress[file.name] || 0
+                                        }%`
+                                      }}></div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-blue-200 text-blue-600"
+                            onClick={() => setUploadFiles([])}
+                            disabled={uploading}>
+                            Clear
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                            disabled={uploading || uploadFiles.length === 0}
+                            onClick={async () => {
+                              setUploading(true);
+                              setUploadProgress({});
+                              try {
+                                const results =
+                                  await DocumentsAPI.uploadMultipleDocuments(
+                                    tenantId,
+                                    uploadFiles,
+                                    selectedCategory,
+                                    (file, progress) => {
+                                      setUploadProgress(prev => ({
+                                        ...prev,
+                                        [file.name]: progress
+                                      }));
+                                    }
+                                  );
+                                const successCount = results.filter(
+                                  r => r.success
+                                ).length;
+                                if (successCount > 0) {
+                                  toast.success(
+                                    `${successCount} file(s) uploaded successfully`
+                                  );
+                                  const { data } =
+                                    await DocumentsAPI.getTenantDocuments(
+                                      tenantId
+                                    );
+                                  if (data) setDocuments(data);
+                                }
+                                const failed = results.filter(r => !r.success);
+                                if (failed.length > 0) {
+                                  toast.error(
+                                    `${failed.length} file(s) failed to upload`
+                                  );
+                                }
+                                setUploadFiles([]);
+                              } catch (err) {
+                                toast.error('Failed to upload files');
+                              } finally {
+                                setUploading(false);
+                              }
+                            }}>
+                            {uploading ? 'Uploading...' : 'Upload Files'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {/* Document List */}
                   {documents.length > 0 ? (
                     <div className="space-y-4">
                       {documents.map(doc => (
@@ -1007,6 +1772,16 @@ export default function TenantDetailsPage() {
                                 </span>
                                 <span className="w-1 h-1 rounded-full bg-gray-300" />
                                 <span>{formatShortDate(doc.uploaded_at)}</span>
+                                <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                <Badge className="bg-blue-100 text-blue-700 border-0">
+                                  {doc.category === 'lease'
+                                    ? 'Lease Agreement'
+                                    : doc.category === 'id'
+                                    ? 'Government ID'
+                                    : doc.category === 'payment'
+                                    ? 'Proof of Payment'
+                                    : 'Other'}
+                                </Badge>
                               </div>
                             </div>
                           </div>
@@ -1029,7 +1804,6 @@ export default function TenantDetailsPage() {
                                   )
                                 )
                                   return;
-
                                 try {
                                   const result =
                                     await DocumentsAPI.deleteDocument(doc.id);

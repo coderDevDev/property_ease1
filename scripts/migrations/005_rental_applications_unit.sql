@@ -34,3 +34,4 @@ BEGIN
     WHERE o.unit_number IS NULL;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
