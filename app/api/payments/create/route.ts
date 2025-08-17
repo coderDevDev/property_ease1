@@ -69,8 +69,7 @@ export async function POST(req: NextRequest) {
           description: description || 'Property Payment',
           amount: Math.round(Number(amount)),
           currency: 'PHP',
-          success_redirect_url:
-            process.env.NEXT_PUBLIC_XENDIT_SUCCESS_URL || undefined
+          success_redirect_url: `${process.env.NEXT_PUBLIC_XENDIT_SUCCESS_URL}/${tenant_id}`
         })
       });
       const xenditData = await xenditRes.json();

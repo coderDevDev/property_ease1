@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   const payload = await req.json();
+  console.log('Xendit Webhook Payload:', payload);
+
   const {
     external_id,
     status,
@@ -15,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   if (status === 'PAID') {
     const supabase = createServerSupabaseClient();
-    await supabase
+    const { error } = await supabase
       .from('payments')
       .update({
         payment_status: 'paid',
@@ -25,6 +27,9 @@ export async function POST(req: NextRequest) {
         receipt_url: payment_link || null
       })
       .eq('id', external_id);
+    if (error) {
+      console.error('Supabase update error:', error);
+    }
   }
 
   return NextResponse.json({ received: true });
