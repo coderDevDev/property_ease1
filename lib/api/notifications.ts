@@ -1,25 +1,49 @@
-import { supabase } from '@/lib/supabase';
-import type { Database } from '@/types/database';
+'use client';
 
-type Notification = Database['public']['Tables']['notifications']['Row'];
-type NotificationInsert =
-  Database['public']['Tables']['notifications']['Insert'];
-type NotificationUpdate =
-  Database['public']['Tables']['notifications']['Update'];
+import { supabase } from '@/lib/supabase';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type:
+    | 'payment'
+    | 'maintenance'
+    | 'lease'
+    | 'system'
+    | 'announcement'
+    | 'reminder';
+  priority: 'low' | 'medium' | 'high';
+  is_read: boolean;
+  action_url?: string;
+  data?: any;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotificationStats {
+  total_notifications: number;
+  unread_notifications: number;
+  urgent_notifications: number;
+  recent_notifications: number;
+}
 
 export class NotificationsAPI {
-  static async getNotifications(
-    userId: string,
-    limit: number = 20,
-    offset: number = 0
-  ) {
+  // Get notifications for a user
+  static async getUserNotifications(userId: string): Promise<{
+    success: boolean;
+    data?: Notification[];
+    message?: string;
+  }> {
     try {
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+        .limit(50);
 
       if (error) {
         throw new Error(error.message);
@@ -27,76 +51,82 @@ export class NotificationsAPI {
 
       return { success: true, data: data || [] };
     } catch (error) {
-      console.error('Get notifications error:', error);
+      console.error('Get user notifications error:', error);
       return {
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch notifications',
-        data: []
+        message: 'Failed to get notifications'
       };
     }
   }
 
-  static async getUnreadNotifications(userId: string) {
+  // Get notification statistics
+  static async getNotificationStats(userId: string): Promise<{
+    success: boolean;
+    data?: NotificationStats;
+    message?: string;
+  }> {
     try {
       const { data, error } = await supabase
         .from('notifications')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('is_read', false)
-        .order('created_at', { ascending: false });
+        .select('is_read, priority, created_at')
+        .eq('user_id', userId);
 
       if (error) {
         throw new Error(error.message);
       }
 
-      return { success: true, data: data || [] };
+      const notifications = data || [];
+      const now = new Date();
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      const stats: NotificationStats = {
+        total_notifications: notifications.length,
+        unread_notifications: notifications.filter(n => !n.is_read).length,
+        urgent_notifications: notifications.filter(n => n.priority === 'high')
+          .length,
+        recent_notifications: notifications.filter(
+          n => new Date(n.created_at) > oneWeekAgo
+        ).length
+      };
+
+      return { success: true, data: stats };
     } catch (error) {
-      console.error('Get unread notifications error:', error);
+      console.error('Get notification stats error:', error);
       return {
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch unread notifications',
-        data: []
+        message: 'Failed to get notification statistics'
       };
     }
   }
 
-  static async getUnreadCount(userId: string) {
-    try {
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('is_read', false);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return { success: true, data: count || 0 };
-    } catch (error) {
-      console.error('Get unread count error:', error);
-      return {
-        success: false,
-        message:
-          error instanceof Error ? error.message : 'Failed to get unread count',
-        data: 0
-      };
-    }
-  }
-
-  static async createNotification(
-    notification: Omit<NotificationInsert, 'id' | 'created_at' | 'updated_at'>
-  ) {
+  // Create a new notification
+  static async createNotification(notificationData: {
+    user_id: string;
+    title: string;
+    message: string;
+    type: Notification['type'];
+    priority?: Notification['priority'];
+    action_url?: string;
+    data?: any;
+    expires_at?: string;
+  }): Promise<{
+    success: boolean;
+    data?: Notification;
+    message?: string;
+  }> {
     try {
       const { data, error } = await supabase
         .from('notifications')
-        .insert([notification])
+        .insert({
+          user_id: notificationData.user_id,
+          title: notificationData.title,
+          message: notificationData.message,
+          type: notificationData.type,
+          priority: notificationData.priority || 'medium',
+          action_url: notificationData.action_url,
+          data: notificationData.data,
+          expires_at: notificationData.expires_at
+        })
         .select()
         .single();
 
@@ -104,60 +134,50 @@ export class NotificationsAPI {
         throw new Error(error.message);
       }
 
-      return {
-        success: true,
-        message: 'Notification created successfully',
-        data
-      };
+      return { success: true, data };
     } catch (error) {
       console.error('Create notification error:', error);
       return {
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to create notification',
-        data: null
+        message: 'Failed to create notification'
       };
     }
   }
 
-  static async markAsRead(notificationId: string) {
+  // Mark notification as read
+  static async markAsRead(notificationId: string): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId)
-        .select()
-        .single();
+        .update({ is_read: true, updated_at: new Date().toISOString() })
+        .eq('id', notificationId);
 
       if (error) {
         throw new Error(error.message);
       }
 
-      return {
-        success: true,
-        message: 'Notification marked as read',
-        data
-      };
+      return { success: true };
     } catch (error) {
       console.error('Mark notification as read error:', error);
       return {
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to mark notification as read',
-        data: null
+        message: 'Failed to mark notification as read'
       };
     }
   }
 
-  static async markAllAsRead(userId: string) {
+  // Mark all notifications as read
+  static async markAllAsRead(userId: string): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .update({ is_read: true, updated_at: new Date().toISOString() })
         .eq('user_id', userId)
         .eq('is_read', false);
 
@@ -165,23 +185,21 @@ export class NotificationsAPI {
         throw new Error(error.message);
       }
 
-      return {
-        success: true,
-        message: 'All notifications marked as read'
-      };
+      return { success: true };
     } catch (error) {
       console.error('Mark all notifications as read error:', error);
       return {
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to mark all notifications as read'
+        message: 'Failed to mark all notifications as read'
       };
     }
   }
 
-  static async deleteNotification(notificationId: string) {
+  // Delete notification
+  static async deleteNotification(notificationId: string): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
     try {
       const { error } = await supabase
         .from('notifications')
@@ -192,193 +210,224 @@ export class NotificationsAPI {
         throw new Error(error.message);
       }
 
-      return {
-        success: true,
-        message: 'Notification deleted successfully'
-      };
+      return { success: true };
     } catch (error) {
       console.error('Delete notification error:', error);
       return {
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to delete notification'
+        message: 'Failed to delete notification'
       };
     }
   }
 
-  static async getNotificationsByType(userId: string, type: string) {
+  // Create notification for announcement
+  static async createAnnouncementNotification(
+    announcementId: string,
+    announcementTitle: string,
+    propertyName: string,
+    targetUserIds: string[]
+  ): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('type', type)
-        .order('created_at', { ascending: false });
+      // Get user roles to determine correct action URLs
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, role')
+        .in('id', targetUserIds);
 
-      if (error) {
-        throw new Error(error.message);
+      if (usersError) {
+        console.error('Error fetching user roles:', usersError);
+        throw usersError;
       }
 
-      return { success: true, data: data || [] };
-    } catch (error) {
-      console.error('Get notifications by type error:', error);
-      return {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch notifications',
-        data: []
-      };
-    }
-  }
+      const notifications = targetUserIds.map(userId => {
+        const user = users?.find(u => u.id === userId);
+        const actionUrl =
+          user?.role === 'owner'
+            ? `/owner/dashboard/announcements/${announcementId}`
+            : `/tenant/dashboard/announcements/${announcementId}`;
 
-  static async sendBulkNotifications(
-    userIds: string[],
-    title: string,
-    message: string,
-    type: Database['public']['Enums']['notification_type'],
-    priority: Database['public']['Enums']['notification_priority'] = 'medium',
-    actionUrl?: string,
-    data?: Record<string, any>
-  ) {
-    try {
-      const notifications = userIds.map(userId => ({
-        user_id: userId,
-        title,
-        message,
-        type,
-        priority,
-        action_url: actionUrl,
-        data
-      }));
-
-      const { data, error } = await supabase
-        .from('notifications')
-        .insert(notifications)
-        .select();
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return {
-        success: true,
-        message: `${notifications.length} notifications sent successfully`,
-        data
-      };
-    } catch (error) {
-      console.error('Send bulk notifications error:', error);
-      return {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to send bulk notifications',
-        data: null
-      };
-    }
-  }
-
-  static async sendPaymentReminder(
-    tenantIds: string[],
-    dueDate: string,
-    amount: number
-  ) {
-    try {
-      const title = 'Payment Reminder';
-      const message = `Your rent payment of ₱${amount.toLocaleString()} is due on ${new Date(
-        dueDate
-      ).toLocaleDateString()}`;
-
-      return await this.sendBulkNotifications(
-        tenantIds,
-        title,
-        message,
-        'payment',
-        'high',
-        '/dashboard/payments'
-      );
-    } catch (error) {
-      console.error('Send payment reminder error:', error);
-      return {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to send payment reminder',
-        data: null
-      };
-    }
-  }
-
-  static async sendMaintenanceUpdate(
-    tenantId: string,
-    maintenanceId: string,
-    status: string
-  ) {
-    try {
-      const title = 'Maintenance Update';
-      const message = `Your maintenance request status has been updated to: ${status}`;
-
-      return await this.createNotification({
-        user_id: tenantId,
-        title,
-        message,
-        type: 'maintenance',
-        priority: 'medium',
-        action_url: `/dashboard/maintenance/${maintenanceId}`,
-        data: {
-          maintenance_id: maintenanceId,
-          status
-        }
+        return {
+          user_id: userId,
+          title: 'New Announcement',
+          message: `${announcementTitle} - ${propertyName}`,
+          type: 'announcement' as const,
+          priority: 'medium' as const,
+          action_url: actionUrl,
+          data: {
+            announcement_id: announcementId,
+            property_name: propertyName
+          }
+        };
       });
+
+      const { error } = await supabase
+        .from('notifications')
+        .insert(notifications);
+
+      if (error) {
+        console.error('Supabase insert error:', error);
+        console.error('Notifications being inserted:', notifications);
+        throw new Error(error.message);
+      }
+
+      console.log(
+        `Successfully created ${notifications.length} notifications for announcement ${announcementId}`
+      );
+      return { success: true };
     } catch (error) {
-      console.error('Send maintenance update error:', error);
+      console.error('Create announcement notification error:', error);
       return {
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to send maintenance update',
-        data: null
+        message: 'Failed to create announcement notification'
       };
     }
   }
 
-  static async cleanupExpiredNotifications() {
+  // Create notification for message
+  static async createMessageNotification(
+    messageId: string,
+    senderName: string,
+    messagePreview: string,
+    recipientId: string
+  ): Promise<{
+    success: boolean;
+    data?: Notification;
+    message?: string;
+  }> {
     try {
       const { data, error } = await supabase
         .from('notifications')
-        .delete()
-        .lt('expires_at', new Date().toISOString());
+        .insert({
+          user_id: recipientId,
+          title: `New Message from ${senderName}`,
+          message: messagePreview,
+          type: 'system',
+          priority: 'medium',
+          action_url: '/dashboard/messages',
+          data: {
+            message_id: messageId,
+            sender_name: senderName
+          }
+        })
+        .select()
+        .single();
 
       if (error) {
         throw new Error(error.message);
       }
 
-      return {
-        success: true,
-        message: 'Expired notifications cleaned up successfully'
-      };
+      return { success: true, data };
     } catch (error) {
-      console.error('Cleanup expired notifications error:', error);
+      console.error('Create message notification error:', error);
       return {
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to cleanup expired notifications'
+        message: 'Failed to create message notification'
+      };
+    }
+  }
+
+  // Create notification for maintenance update
+  static async createMaintenanceNotification(
+    maintenanceId: string,
+    maintenanceTitle: string,
+    status: string,
+    userId: string,
+    isOwner: boolean = false
+  ): Promise<{
+    success: boolean;
+    data?: Notification;
+    message?: string;
+  }> {
+    try {
+      const title = isOwner
+        ? `Maintenance Request Updated: ${maintenanceTitle}`
+        : `Your Maintenance Request: ${maintenanceTitle}`;
+
+      const message = isOwner
+        ? `Status updated to: ${status.replace('_', ' ')}`
+        : `Your request status has been updated to: ${status.replace(
+            '_',
+            ' '
+          )}`;
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title,
+          message,
+          type: 'maintenance',
+          priority: status === 'urgent' ? 'high' : 'medium',
+          action_url: `/dashboard/maintenance/${maintenanceId}`,
+          data: {
+            maintenance_id: maintenanceId,
+            status,
+            is_owner: isOwner
+          }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Create maintenance notification error:', error);
+      return {
+        success: false,
+        message: 'Failed to create maintenance notification'
+      };
+    }
+  }
+
+  // Create notification for payment reminder
+  static async createPaymentReminderNotification(
+    paymentId: string,
+    amount: number,
+    dueDate: string,
+    userId: string
+  ): Promise<{
+    success: boolean;
+    data?: Notification;
+    message?: string;
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title: 'Payment Reminder',
+          message: `Payment of ₱${amount.toLocaleString()} is due on ${new Date(
+            dueDate
+          ).toLocaleDateString()}`,
+          type: 'payment',
+          priority: 'high',
+          action_url: '/dashboard/payments',
+          data: {
+            payment_id: paymentId,
+            amount,
+            due_date: dueDate
+          }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Create payment reminder notification error:', error);
+      return {
+        success: false,
+        message: 'Failed to create payment reminder notification'
       };
     }
   }
 }
-
-
-
-
-
-
-

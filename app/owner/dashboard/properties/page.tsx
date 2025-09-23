@@ -10,7 +10,6 @@ import {
   Building,
   MapPin,
   Users,
-  DollarSign,
   Plus,
   Search,
   Filter,

@@ -23,7 +23,6 @@ import {
   Grid3X3,
   List,
   TrendingUp,
-  DollarSign,
   Calendar,
   Star
 } from 'lucide-react';
@@ -294,7 +293,7 @@ export function PropertyManagement({ onBack }: PropertyManagementProps) {
                       ₱{totalRent.toLocaleString()}
                     </p>
                   </div>
-                  <DollarSign className="w-8 h-8 opacity-80" />
+                  <PhilippinePeso className="w-8 h-8 opacity-80" />
                 </div>
               </CardContent>
             </Card>

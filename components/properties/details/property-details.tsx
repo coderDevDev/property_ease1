@@ -11,7 +11,6 @@ import {
   MapPin,
   Building,
   Users,
-  DollarSign,
   Calendar,
   Phone,
   Mail,
@@ -205,7 +204,7 @@ export function PropertyDetails({
           </Card>
           <Card className="rounded-2xl shadow-xl border-0 bg-white/90">
             <CardContent className="p-6 text-center">
-              <DollarSign className="w-8 h-8 text-green-600 mx-auto mb-2" />
+              <PhilippinePeso className="w-8 h-8 text-green-600 mx-auto mb-2" />
               <div className="text-2xl font-bold text-gray-900 mb-1">
                 ₱{totalMonthlyIncome.toLocaleString()}
               </div>

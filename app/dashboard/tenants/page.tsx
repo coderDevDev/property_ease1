@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users, UserPlus, Search } from 'lucide-react';
+import {
+  ArrowLeft,
+  Users,
+  UserPlus,
+  Search,
+  PhilippinePeso
+} from 'lucide-react';
 
 export default function TenantsPage() {
   const { authState } = useAuth();

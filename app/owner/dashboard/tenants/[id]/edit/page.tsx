@@ -13,7 +13,6 @@ import {
   Edit,
   Home,
   Calendar,
-  DollarSign,
   FileText,
   Shield,
   Save,
@@ -459,7 +458,7 @@ export default function EditTenantPage() {
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-blue-600" />
+                  <PhilippinePeso className="w-5 h-5 text-blue-600" />
                   Financial Details
                 </CardTitle>
               </CardHeader>
@@ -627,9 +626,3 @@ export default function EditTenantPage() {
     </div>
   );
 }
-
-
-
-
-
-

@@ -199,6 +199,40 @@ export class PropertiesAPI {
     }
   }
 
+  static async getTenantProperties(tenantId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .select(
+          `
+          *,
+          property:properties(*)
+        `
+        )
+        .eq('user_id', tenantId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Extract properties from tenant records
+      const properties =
+        data?.map(tenant => tenant.property).filter(Boolean) || [];
+
+      return { success: true, data: properties };
+    } catch (error) {
+      console.error('Get tenant properties error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to fetch properties',
+        data: []
+      };
+    }
+  }
+
   static async getPropertyAnalytics(
     propertyId: string
   ): Promise<{ success: boolean; data?: PropertyAnalytics; message?: string }> {

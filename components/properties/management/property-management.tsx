@@ -23,7 +23,6 @@ import {
   Grid3X3,
   List,
   TrendingUp,
-  DollarSign,
   Calendar,
   Star,
   Briefcase,
@@ -429,7 +428,7 @@ export function PropertyManagement({ onBack }: PropertyManagementProps) {
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-orange-400" />
+                            <PhilippinePeso className="w-4 h-4 text-orange-400" />
                             <span className="text-xs text-gray-500">Rent</span>
                             <span className="font-bold text-blue-600 ml-1">
                               ₱{property.monthlyRent.toLocaleString()}

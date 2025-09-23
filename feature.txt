@@ -1,0 +1,34 @@
+The PropertEase aims to address the ongoing challenges in managing residential and rental properties through the integration of a centralized, web and mobile-based Property Management System. These objectives will guide both the researchers and readers in understanding the necessary steps in implementing an efficient and technology-driven management solution for property owners and renters:
+
+To develop a web-based and mobile-accessible system that allows property owners and managers to register, monitor, and manage multiple properties, tenant profiles, and lease agreements in one platform.
+To integrate secure digital payment gateways, such as GCash and Maya, enabling tenants to make rent payments online while generating automated 
+	receipts and maintaining a complete payment history for owners and renters.
+To implement a feature that allows renters to submit maintenance requests, including image attachments and descriptions of issues, enabling owners and administrators to assign personnel and track resolution progress in real time.
+To establish an in-app messaging feature that allows direct communication between tenants and property owners, along with an announcement board for important updates, notices, and maintenance schedules.
+To enable the uploading and secure management of essential documents including lease contracts, identification, billing records, and other compliance files for both tenants and landlords.
+To develop an intelligent notification system that sends real-time alerts to renters regarding upcoming rent due dates, maintenance updates, and announcements, and notifies property owners of pending tenant requests or unpaid dues.
+To create a scalable system architecture capable of supporting multiple property types and users, ensuring that as the number of registered properties grows, the platform can efficiently manage both commercial and residential buildings.
+
+Scope and Limitations
+
+Through providing a complete platform with the following essential features and functionalities to both property owners and tenants, the Naga Property Portal seeks to modernize property management:
+Property Management System: The platform enables property owners and administrators to generate and maintain property listings. They are capable of entering and updating property details, such as type, location, and availability.
+
+Through the portal, tenants can check out available listings, examine property details, and submit direct lease applications.
+Tenant and Owner Profiles: Tenant and owner profiles are going to be supported by the system, allowing for the easy storage and retrieval of personal and lease-related data. Besides viewing their leases, transaction histories, and any other relevant documents, both parties will have the ability to update their profiles.
+Payment integration: The platform permits tenants to pay directly through third-party providers like Maya and GCash. In addition to tracking previous payments and reminding users when rent is due, the system will automatically generate receipts. The system will automatically create receipts, keep track of past payments, and remind users when rent is due.
+Maintenance Request System: Tenants can expect the ability to request maintenance via the app. They are able to track the progress of their requests, attach images, and provide details. To ensure prompt completion of maintenance tasks, property managers will have access to a dashboard.
+Messaging and Communication Features: The messaging element of the system allows for direct communication between property owners and tenants. This will provide easy discussions on a range of subjects, such as maintenance, leasing terms, or general inquiries. Property managers will also be able to broadcast notices to all tenants through an announcement feature.
+Document Upload and Management: Important papers can be uploaded and handled through the system, including identification documents, lease agreements, payment receipts, and other real estate-related information. Landlords and tenants can be available to safely access, download, and upload these documents.
+
+Real-Time Notifications: When there are significant updates, such as maintenance updates, reminders for payments, new announcements, or messages from the other party, the portal will notify both property owners and tenants. This guarantees prompt communication and improves the user experience in general.
+Scalability for Future Use:Future integration of extra features like advanced property analytics, and third-party services like cleaning or insurance will be possible thanks to the system's scalable design. Both large and small property owners will be able to use the platform.
+
+
+
+Limitations
+
+Regardless of its objective of offering an integrated property management solution, the Naga Property Portal has some limitations that should be considered in :
+Limited Payment Methods: The portal will not accept other payment methods like cash or bank transfers, but it will offer safe payment choices via third- party services like GCash, PayMaya, Visa Debit, and Mastercard. Users who don't use the supported platforms may have less access as a result.
+No Offline Functionality: The platform will not include offline features, despite being browser-friendly and mobile-friendly. Without an internet connection, for instance, tenants won't be able to access their profiles, make rent payments, or request maintenance.
+Property Availability Accuracy: Property owners will be responsible for updating the system's property availability. Tenants may become confused if a property has already been leased but is still listed as available due to sporadic inconsistencies or delays in updating listings.

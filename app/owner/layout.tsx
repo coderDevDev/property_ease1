@@ -1,6 +1,7 @@
 'use client';
 
 import { PropertyOwnerSidebar } from './components/property-owner-sidebar';
+import { TopNavbar } from '@/components/layout/top-navbar';
 import { useAuth } from '@/hooks/useAuth';
 import { redirect } from 'next/navigation';
 import { useEffect } from 'react';
@@ -40,7 +41,10 @@ export default function OwnerLayout({
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
       <PropertyOwnerSidebar />
-      <main className="lg:ml-72">{children}</main>
+      <div className="lg:ml-72">
+        <TopNavbar role="owner" />
+        <main className="pt-16">{children}</main>
+      </div>
     </div>
   );
 }

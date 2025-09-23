@@ -22,7 +22,6 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import {
-  DollarSign,
   Search,
   Calendar,
   CreditCard,
@@ -31,7 +30,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  PhilippinePeso
 } from 'lucide-react';
 import { AdminAPI } from '@/lib/api/admin';
 import { toast } from 'sonner';
@@ -127,7 +127,7 @@ export default function PaymentsPage() {
       case 'cancelled':
         return <AlertCircle className="w-4 h-4" />;
       default:
-        return <DollarSign className="w-4 h-4" />;
+        return <PhilippinePeso className="w-4 h-4" />;
     }
   };
 
@@ -345,7 +345,7 @@ export default function PaymentsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5" />
+            <PhilippinePeso className="w-5 h-5" />
             Payments ({filteredPayments.length})
           </CardTitle>
         </CardHeader>
@@ -474,7 +474,7 @@ export default function PaymentsPage() {
           </div>
           {filteredPayments.length === 0 && (
             <div className="text-center py-8">
-              <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <PhilippinePeso className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 No payments found
               </h3>

@@ -1,25 +1,90 @@
 import { supabase } from '@/lib/supabase';
-import type { Database } from '@/types/database';
+import { NotificationsAPI } from './notifications';
 
-type Message = Database['public']['Tables']['messages']['Row'];
-type MessageInsert = Database['public']['Tables']['messages']['Insert'];
-type MessageUpdate = Database['public']['Tables']['messages']['Update'];
-type Conversation = Database['public']['Tables']['conversations']['Row'];
-type ConversationInsert =
-  Database['public']['Tables']['conversations']['Insert'];
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  recipient_id: string;
+  property_id?: string;
+  subject?: string;
+  content: string;
+  message_type: 'direct' | 'maintenance' | 'payment' | 'general';
+  is_read: boolean;
+  attachments: string[];
+  parent_message_id?: string;
+  created_at: string;
+  updated_at: string;
+  sender: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    avatar_url?: string;
+    role: string;
+  };
+  recipient: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    avatar_url?: string;
+    role: string;
+  };
+  property?: {
+    id: string;
+    name: string;
+    address: string;
+  };
+}
+
+export interface Conversation {
+  id: string;
+  property_id?: string;
+  participants: string[];
+  last_message_id?: string;
+  last_message_at?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  property?: {
+    id: string;
+    name: string;
+    address: string;
+  };
+  last_message?: Message;
+  participants_data: Array<{
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    avatar_url?: string;
+    role: string;
+  }>;
+  unread_count: number;
+}
+
+export interface MessageFormData {
+  recipient_id: string;
+  property_id?: string;
+  subject?: string;
+  content: string;
+  message_type: 'direct' | 'maintenance' | 'payment' | 'general';
+  attachments?: string[];
+  parent_message_id?: string;
+}
 
 export class MessagesAPI {
-  static async getConversations(userId: string) {
+  // Get all conversations for a user
+  static async getConversations(userId: string): Promise<{
+    success: boolean;
+    data?: Conversation[];
+    message?: string;
+  }> {
     try {
       const { data, error } = await supabase
         .from('conversations')
-        .select(
-          `
-          *,
-          last_message:messages(*),
-          property:properties(*)
-        `
-        )
+        .select('*')
         .contains('participants', [userId])
         .eq('is_active', true)
         .order('last_message_at', { ascending: false });
@@ -28,31 +93,170 @@ export class MessagesAPI {
         throw new Error(error.message);
       }
 
-      return { success: true, data: data || [] };
+      // Get conversations with all related data separately
+      const conversationsWithDetails = await Promise.all(
+        (data || []).map(async conversation => {
+          // Get property data
+          const propertyResult = conversation.property_id
+            ? await supabase
+                .from('properties')
+                .select('id, name, address')
+                .eq('id', conversation.property_id)
+                .single()
+            : { data: null };
+
+          // Get last message data
+          const lastMessageResult = conversation.last_message_id
+            ? await supabase
+                .from('messages')
+                .select('id, content, created_at, sender_id')
+                .eq('id', conversation.last_message_id)
+                .single()
+            : { data: null };
+
+          // Get sender data for last message
+          const senderResult = lastMessageResult.data?.sender_id
+            ? await supabase
+                .from('users')
+                .select('id, first_name, last_name, avatar_url')
+                .eq('id', lastMessageResult.data.sender_id)
+                .single()
+            : { data: null };
+
+          // Get participants data
+          const { data: participantsData } = await supabase
+            .from('users')
+            .select('id, first_name, last_name, email, avatar_url, role')
+            .in('id', conversation.participants);
+
+          // Get unread count
+          const { count: unreadCount } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('conversation_id', conversation.id)
+            .eq('recipient_id', userId)
+            .eq('is_read', false);
+
+          return {
+            ...conversation,
+            property: propertyResult.data,
+            last_message: lastMessageResult.data
+              ? {
+                  ...lastMessageResult.data,
+                  sender: senderResult.data
+                }
+              : null,
+            participants_data: participantsData || [],
+            unread_count: unreadCount || 0
+          };
+        })
+      );
+
+      return { success: true, data: conversationsWithDetails };
     } catch (error) {
       console.error('Get conversations error:', error);
       return {
         success: false,
         message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch conversations',
-        data: []
+          error instanceof Error ? error.message : 'Failed to get conversations'
       };
     }
   }
 
-  static async getConversation(id: string) {
+  // Get messages for a specific conversation
+  static async getConversationMessages(
+    conversationId: string,
+    userId: string
+  ): Promise<{
+    success: boolean;
+    data?: Message[];
+    message?: string;
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Mark messages as read
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('conversation_id', conversationId)
+        .eq('recipient_id', userId)
+        .eq('is_read', false);
+
+      // Get sender and recipient data separately
+      const messagesWithDetails = await Promise.all(
+        (data || []).map(async message => {
+          const [senderResult, recipientResult, propertyResult] =
+            await Promise.all([
+              supabase
+                .from('users')
+                .select('id, first_name, last_name, email, avatar_url, role')
+                .eq('id', message.sender_id)
+                .single(),
+              supabase
+                .from('users')
+                .select('id, first_name, last_name, email, avatar_url, role')
+                .eq('id', message.recipient_id)
+                .single(),
+              message.property_id
+                ? supabase
+                    .from('properties')
+                    .select('id, name, address')
+                    .eq('id', message.property_id)
+                    .single()
+                : Promise.resolve({ data: null })
+            ]);
+
+          return {
+            ...message,
+            sender: senderResult.data,
+            recipient: recipientResult.data,
+            property: propertyResult.data
+          };
+        })
+      );
+
+      return { success: true, data: messagesWithDetails };
+    } catch (error) {
+      console.error('Get conversation messages error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to get messages'
+      };
+    }
+  }
+
+  // Create a new conversation
+  static async createConversation(
+    participants: string[],
+    propertyId?: string
+  ): Promise<{
+    success: boolean;
+    data?: Conversation;
+    message?: string;
+  }> {
     try {
       const { data, error } = await supabase
         .from('conversations')
+        .insert({
+          participants,
+          property_id: propertyId
+        })
         .select(
           `
           *,
-          property:properties(*)
+          property:properties(id, name, address)
         `
         )
-        .eq('id', id)
         .single();
 
       if (error) {
@@ -61,144 +265,296 @@ export class MessagesAPI {
 
       return { success: true, data };
     } catch (error) {
-      console.error('Get conversation error:', error);
-      return {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch conversation',
-        data: null
-      };
-    }
-  }
-
-  static async createConversation(
-    conversation: Omit<ConversationInsert, 'id' | 'created_at' | 'updated_at'>
-  ) {
-    try {
-      const { data, error } = await supabase
-        .from('conversations')
-        .insert([conversation])
-        .select()
-        .single();
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return {
-        success: true,
-        message: 'Conversation created successfully',
-        data
-      };
-    } catch (error) {
       console.error('Create conversation error:', error);
       return {
         success: false,
         message:
           error instanceof Error
             ? error.message
-            : 'Failed to create conversation',
-        data: null
+            : 'Failed to create conversation'
       };
     }
   }
 
-  static async getMessages(
-    conversationId: string,
-    limit: number = 50,
-    offset: number = 0
-  ) {
+  // Send a message
+  static async sendMessage(
+    messageData: MessageFormData,
+    senderId: string
+  ): Promise<{
+    success: boolean;
+    data?: Message;
+    message?: string;
+  }> {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(
-          `
-          *,
-          sender:users!sender_id(*),
-          recipient:users!recipient_id(*)
-        `
-        )
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      // Check if conversation exists between sender and recipient
+      let conversationId: string;
 
-      if (error) {
-        throw new Error(error.message);
+      const { data: existingConversation } = await supabase
+        .from('conversations')
+        .select('id')
+        .contains('participants', [senderId, messageData.recipient_id])
+        .eq('is_active', true)
+        .single();
+
+      if (existingConversation) {
+        conversationId = existingConversation.id;
+      } else {
+        // Create new conversation
+        const conversationResult = await this.createConversation(
+          [senderId, messageData.recipient_id],
+          messageData.property_id
+        );
+
+        if (!conversationResult.success || !conversationResult.data) {
+          throw new Error('Failed to create conversation');
+        }
+
+        conversationId = conversationResult.data.id;
       }
 
-      return { success: true, data: data?.reverse() || [] };
-    } catch (error) {
-      console.error('Get messages error:', error);
-      return {
-        success: false,
-        message:
-          error instanceof Error ? error.message : 'Failed to fetch messages',
-        data: []
-      };
-    }
-  }
-
-  static async sendMessage(
-    message: Omit<MessageInsert, 'id' | 'created_at' | 'updated_at'>
-  ) {
-    try {
+      // Send the message
       const { data, error } = await supabase
         .from('messages')
-        .insert([message])
-        .select(
-          `
-          *,
-          sender:users!sender_id(*),
-          recipient:users!recipient_id(*)
-        `
-        )
+        .insert({
+          conversation_id: conversationId,
+          sender_id: senderId,
+          recipient_id: messageData.recipient_id,
+          property_id: messageData.property_id,
+          subject: messageData.subject,
+          content: messageData.content,
+          message_type: messageData.message_type,
+          attachments: messageData.attachments || [],
+          parent_message_id: messageData.parent_message_id
+        })
+        .select('*')
         .single();
 
       if (error) {
         throw new Error(error.message);
       }
 
-      // Send notification to recipient
-      if (data) {
-        await this.notifyRecipient(data);
+      // Get sender and recipient data
+      const [senderResult, recipientResult, propertyResult] = await Promise.all(
+        [
+          supabase
+            .from('users')
+            .select('id, first_name, last_name, email, avatar_url, role')
+            .eq('id', data.sender_id)
+            .single(),
+          supabase
+            .from('users')
+            .select('id, first_name, last_name, email, avatar_url, role')
+            .eq('id', data.recipient_id)
+            .single(),
+          data.property_id
+            ? supabase
+                .from('properties')
+                .select('id, name, address')
+                .eq('id', data.property_id)
+                .single()
+            : Promise.resolve({ data: null })
+        ]
+      );
+
+      const messageWithDetails = {
+        ...data,
+        sender: senderResult.data,
+        recipient: recipientResult.data,
+        property: propertyResult.data
+      };
+
+      // Update conversation's last message
+      await supabase
+        .from('conversations')
+        .update({
+          last_message_id: data.id,
+          last_message_at: data.created_at
+        })
+        .eq('id', conversationId);
+
+      // Create notification for the recipient
+      try {
+        const senderName = `${senderResult.data?.first_name} ${senderResult.data?.last_name}`;
+        const messagePreview =
+          data.content.length > 100
+            ? data.content.substring(0, 100) + '...'
+            : data.content;
+
+        await NotificationsAPI.createMessageNotification(
+          data.id,
+          senderName,
+          messagePreview,
+          data.recipient_id
+        );
+
+        console.log('Message notification created successfully');
+      } catch (notificationError) {
+        console.error(
+          'Failed to create message notification:',
+          notificationError
+        );
+        // Don't fail the message sending if notification creation fails
       }
 
-      return {
-        success: true,
-        message: 'Message sent successfully',
-        data
-      };
+      return { success: true, data: messageWithDetails };
     } catch (error) {
       console.error('Send message error:', error);
       return {
         success: false,
         message:
-          error instanceof Error ? error.message : 'Failed to send message',
-        data: null
+          error instanceof Error ? error.message : 'Failed to send message'
       };
     }
   }
 
-  static async markMessageAsRead(messageId: string) {
+  // Get available recipients for a user
+  static async getAvailableRecipients(
+    userId: string,
+    userRole: string
+  ): Promise<{
+    success: boolean;
+    data?: Array<{
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      avatar_url?: string;
+      property?: {
+        id: string;
+        name: string;
+      };
+    }>;
+    message?: string;
+  }> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
+        .from('users')
+        .select('id, first_name, last_name, email, avatar_url, role')
+        .neq('id', userId)
+        .eq('is_active', true);
+
+      if (userRole === 'owner') {
+        // Owners can message tenants from their properties
+        const { data: ownerProperties } = await supabase
+          .from('properties')
+          .select('id')
+          .eq('owner_id', userId);
+
+        if (ownerProperties && ownerProperties.length > 0) {
+          const propertyIds = ownerProperties.map(p => p.id);
+          const { data: tenants } = await supabase
+            .from('tenants')
+            .select('user_id, property_id')
+            .in('property_id', propertyIds);
+
+          // Get user and property data separately
+          const recipients = await Promise.all(
+            (tenants || []).map(async tenant => {
+              const [userResult, propertyResult] = await Promise.all([
+                supabase
+                  .from('users')
+                  .select('id, first_name, last_name, email, avatar_url, role')
+                  .eq('id', tenant.user_id)
+                  .single(),
+                supabase
+                  .from('properties')
+                  .select('id, name')
+                  .eq('id', tenant.property_id)
+                  .single()
+              ]);
+
+              return {
+                id: userResult.data?.id,
+                name: `${userResult.data?.first_name} ${userResult.data?.last_name}`,
+                email: userResult.data?.email,
+                role: userResult.data?.role,
+                avatar_url: userResult.data?.avatar_url,
+                property: {
+                  id: propertyResult.data?.id,
+                  name: propertyResult.data?.name
+                }
+              };
+            })
+          );
+
+          return { success: true, data: recipients };
+        }
+      } else if (userRole === 'tenant') {
+        // Tenants can message their property owner
+        const { data: tenantData } = await supabase
+          .from('tenants')
+          .select('property_id')
+          .eq('user_id', userId)
+          .single();
+
+        if (tenantData) {
+          // Get property and owner data separately
+          const [propertyResult, ownerResult] = await Promise.all([
+            supabase
+              .from('properties')
+              .select('id, name, owner_id')
+              .eq('id', tenantData.property_id)
+              .single(),
+            supabase
+              .from('properties')
+              .select('owner_id')
+              .eq('id', tenantData.property_id)
+              .single()
+          ]);
+
+          if (ownerResult.data?.owner_id) {
+            const ownerUserResult = await supabase
+              .from('users')
+              .select('id, first_name, last_name, email, avatar_url, role')
+              .eq('id', ownerResult.data.owner_id)
+              .single();
+
+            const recipients = [
+              {
+                id: ownerUserResult.data?.id,
+                name: `${ownerUserResult.data?.first_name} ${ownerUserResult.data?.last_name}`,
+                email: ownerUserResult.data?.email,
+                role: ownerUserResult.data?.role,
+                avatar_url: ownerUserResult.data?.avatar_url,
+                property: {
+                  id: propertyResult.data?.id,
+                  name: propertyResult.data?.name
+                }
+              }
+            ];
+
+            return { success: true, data: recipients };
+          }
+        }
+      }
+
+      return { success: true, data: [] };
+    } catch (error) {
+      console.error('Get available recipients error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to get recipients'
+      };
+    }
+  }
+
+  // Mark message as read
+  static async markMessageAsRead(messageId: string): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
+    try {
+      const { error } = await supabase
         .from('messages')
         .update({ is_read: true })
-        .eq('id', messageId)
-        .select()
-        .single();
+        .eq('id', messageId);
 
       if (error) {
         throw new Error(error.message);
       }
 
-      return {
-        success: true,
-        message: 'Message marked as read',
-        data
-      };
+      return { success: true };
     } catch (error) {
       console.error('Mark message as read error:', error);
       return {
@@ -206,18 +562,20 @@ export class MessagesAPI {
         message:
           error instanceof Error
             ? error.message
-            : 'Failed to mark message as read',
-        data: null
+            : 'Failed to mark message as read'
       };
     }
   }
 
-  static async markConversationAsRead(conversationId: string, userId: string) {
+  // Mark all messages as read for a user
+  static async markAllMessagesAsRead(userId: string): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('messages')
         .update({ is_read: true })
-        .eq('conversation_id', conversationId)
         .eq('recipient_id', userId)
         .eq('is_read', false);
 
@@ -225,27 +583,26 @@ export class MessagesAPI {
         throw new Error(error.message);
       }
 
-      return {
-        success: true,
-        message: 'Conversation marked as read'
-      };
+      return { success: true };
     } catch (error) {
-      console.error('Mark conversation as read error:', error);
+      console.error('Mark all messages as read error:', error);
       return {
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to mark conversation as read'
+        message: 'Failed to mark all messages as read'
       };
     }
   }
 
-  static async getUnreadCount(userId: string) {
+  // Get unread messages count for a user
+  static async getUnreadMessagesCount(userId: string): Promise<{
+    success: boolean;
+    data?: { count: number };
+    message?: string;
+  }> {
     try {
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from('messages')
-        .select('id')
+        .select('*', { count: 'exact', head: true })
         .eq('recipient_id', userId)
         .eq('is_read', false);
 
@@ -253,145 +610,167 @@ export class MessagesAPI {
         throw new Error(error.message);
       }
 
-      return { success: true, data: data?.length || 0 };
+      return { success: true, data: { count: count || 0 } };
     } catch (error) {
-      console.error('Get unread count error:', error);
+      console.error('Get unread messages count error:', error);
       return {
         success: false,
-        message:
-          error instanceof Error ? error.message : 'Failed to get unread count',
-        data: 0
+        message: 'Failed to get unread messages count'
       };
     }
   }
 
-  static async findOrCreateConversation(
-    participants: string[],
-    propertyId?: string
-  ) {
+  // Delete a message
+  static async deleteMessage(messageId: string): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
     try {
-      // Try to find existing conversation
-      const { data: existingConversation } = await supabase
-        .from('conversations')
-        .select('*')
-        .contains('participants', participants)
-        .eq('property_id', propertyId || null)
-        .eq('is_active', true)
-        .single();
-
-      if (existingConversation) {
-        return { success: true, data: existingConversation };
-      }
-
-      // Create new conversation
-      const { data: newConversation, error } = await supabase
-        .from('conversations')
-        .insert([
-          {
-            participants,
-            property_id: propertyId,
-            is_active: true
-          }
-        ])
-        .select()
-        .single();
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', messageId);
 
       if (error) {
         throw new Error(error.message);
       }
 
-      return {
-        success: true,
-        data: newConversation
-      };
+      return { success: true };
     } catch (error) {
-      console.error('Find or create conversation error:', error);
+      console.error('Delete message error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to delete message'
+      };
+    }
+  }
+
+  // Archive a conversation
+  static async archiveConversation(conversationId: string): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .update({ is_active: false })
+        .eq('id', conversationId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Archive conversation error:', error);
       return {
         success: false,
         message:
           error instanceof Error
             ? error.message
-            : 'Failed to find or create conversation',
-        data: null
+            : 'Failed to archive conversation'
       };
     }
   }
 
-  static async searchMessages(
-    query: string,
-    conversationId?: string,
-    userId?: string
-  ) {
+  // Get message statistics
+  static async getMessageStats(userId: string): Promise<{
+    success: boolean;
+    data?: {
+      total_conversations: number;
+      unread_messages: number;
+      total_messages: number;
+      recent_activity: number;
+    };
+    message?: string;
+  }> {
     try {
-      let dbQuery = supabase
-        .from('messages')
-        .select(
-          `
-          *,
-          sender:users!sender_id(*),
-          recipient:users!recipient_id(*),
-          conversation:conversations(*)
-        `
-        )
-        .textSearch('content', query)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      const [conversationsResult, unreadResult, totalResult] =
+        await Promise.all([
+          // Total conversations
+          supabase
+            .from('conversations')
+            .select('*', { count: 'exact', head: true })
+            .contains('participants', [userId])
+            .eq('is_active', true),
 
-      if (conversationId) {
-        dbQuery = dbQuery.eq('conversation_id', conversationId);
-      }
+          // Unread messages
+          supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('recipient_id', userId)
+            .eq('is_read', false),
 
-      if (userId) {
-        dbQuery = dbQuery.or(
-          `sender_id.eq.${userId},recipient_id.eq.${userId}`
-        );
-      }
+          // Total messages
+          supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+        ]);
 
-      const { data, error } = await dbQuery;
+      const stats = {
+        total_conversations: conversationsResult.count || 0,
+        unread_messages: unreadResult.count || 0,
+        total_messages: totalResult.count || 0,
+        recent_activity: 0 // This could be calculated based on messages in last 7 days
+      };
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return { success: true, data: data || [] };
+      return { success: true, data: stats };
     } catch (error) {
-      console.error('Search messages error:', error);
+      console.error('Get message stats error:', error);
       return {
         success: false,
         message:
-          error instanceof Error ? error.message : 'Failed to search messages',
-        data: []
+          error instanceof Error ? error.message : 'Failed to get message stats'
       };
     }
   }
 
-  private static async notifyRecipient(message: any) {
-    try {
-      // Create notification for recipient
-      await supabase.from('notifications').insert({
-        user_id: message.recipient_id,
-        title: 'New Message',
-        message: `You have a new message from ${
-          message.sender?.first_name || 'someone'
-        }`,
-        type: 'system',
-        priority: 'medium',
-        action_url: `/dashboard/messages/${message.conversation_id}`,
-        data: {
-          message_id: message.id,
-          conversation_id: message.conversation_id,
-          sender_id: message.sender_id
-        }
-      });
-    } catch (error) {
-      console.error('Failed to notify recipient:', error);
-    }
+  // Subscribe to real-time message updates
+  static subscribeToMessages(userId: string, callback: (payload: any) => void) {
+    return supabase
+      .channel('messages')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `recipient_id=eq.${userId}`
+        },
+        callback
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `participants=cs.{${userId}}`
+        },
+        callback
+      )
+      .subscribe();
+  }
+
+  // Subscribe to conversation updates
+  static subscribeToConversations(
+    userId: string,
+    callback: (payload: any) => void
+  ) {
+    return supabase
+      .channel('conversations')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `participants=cs.{${userId}}`
+        },
+        callback
+      )
+      .subscribe();
   }
 }
-
-
-
-
-
-
-

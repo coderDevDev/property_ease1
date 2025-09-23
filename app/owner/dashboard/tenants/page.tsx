@@ -18,7 +18,6 @@ import { cn } from '@/lib/utils';
 import {
   Users,
   MapPin,
-  DollarSign,
   Plus,
   Search,
   Filter,
@@ -36,7 +35,8 @@ import {
   FileText,
   Home,
   Table2,
-  LayoutGrid
+  LayoutGrid,
+  PhilippinePeso
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -321,7 +321,7 @@ export default function TenantsPage() {
                   </p>
                   <p className="text-purple-200 text-xs">Monthly</p>
                 </div>
-                <DollarSign className="w-10 h-10 opacity-80" />
+                <PhilippinePeso className="w-10 h-10 opacity-80" />
               </div>
             </CardContent>
           </Card>

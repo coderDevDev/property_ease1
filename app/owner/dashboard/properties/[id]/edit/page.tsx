@@ -19,7 +19,6 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   Building,
   MapPin,
-  DollarSign,
   Users,
   FileText,
   Plus,

@@ -1,427 +1,430 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
+import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import {
-  CreditCard,
+  DollarSign,
+  Eye,
   Calendar,
-  Clock,
+  AlertTriangle,
   CheckCircle,
-  AlertCircle,
+  Clock,
+  Home,
+  Table2,
+  LayoutGrid,
+  CreditCard,
   Receipt,
-  Wallet,
-  ArrowRight,
-  Download,
-  Filter,
-  Search,
-  Plus
+  Download
 } from 'lucide-react';
+import { PaymentsAPI, type PaymentWithDetails } from '@/lib/api/payments';
+import { PaymentCard } from '@/components/payments/payment-card';
+import { PaymentFilters } from '@/components/payments/payment-filters';
 import { toast } from 'sonner';
-import { TenantAPI } from '@/lib/api/tenant';
 
-interface Payment {
-  id: string;
-  amount: number;
-  due_date: string;
-  paid_date?: string;
-  status: 'paid' | 'pending' | 'overdue';
-  payment_method?: string;
-  transaction_id?: string;
-  description: string;
-  receipt_url?: string;
-}
-
-interface PaymentStats {
-  total_paid: number;
-  total_pending: number;
-  next_payment_date?: string;
-  next_payment_amount?: number;
-}
-
-export default function PaymentsPage() {
+export default function TenantPaymentsPage() {
   const { authState } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [stats, setStats] = useState<PaymentStats | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [processingPayment, setProcessingPayment] = useState(false);
-  const [filter, setFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
+  const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterType, setFilterType] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
+  // Load tenant payments
   useEffect(() => {
-    const fetchPayments = async () => {
+    const loadPayments = async () => {
       if (!authState.user?.id) return;
 
       try {
-        setLoading(true);
-        const result = await TenantAPI.getPayments(authState.user.id);
+        setIsLoading(true);
+        const result = await PaymentsAPI.getTenantPayments(authState.user.id);
 
-        if (result.success && result.data) {
-          setPayments(result.data.payments);
-          setStats(result.data.stats);
+        if (result.success) {
+          setPayments(result.data || []);
         } else {
-          toast.error('Failed to load payments');
+          toast.error(result.message || 'Failed to load payments');
         }
       } catch (error) {
-        console.error('Failed to fetch payments:', error);
+        console.error('Failed to load payments:', error);
         toast.error('Failed to load payments');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchPayments();
+    loadPayments();
   }, [authState.user?.id]);
 
-  const handleMakePayment = async (paymentId: string) => {
-    try {
-      setProcessingPayment(true);
-      const result = await TenantAPI.processPayment(paymentId);
-
-      if (result.success) {
-        // Update the payment in the list
-        setPayments(prevPayments =>
-          prevPayments.map(payment =>
-            payment.id === paymentId
-              ? {
-                  ...payment,
-                  status: 'paid',
-                  paid_date: new Date().toISOString()
-                }
-              : payment
-          )
-        );
-        setShowPaymentDialog(false);
-        toast.success('Payment processed successfully');
-      } else {
-        toast.error(result.message || 'Failed to process payment');
-      }
-    } catch (error) {
-      console.error('Payment processing error:', error);
-      toast.error('Failed to process payment');
-    } finally {
-      setProcessingPayment(false);
-    }
-  };
-
-  const handleDownloadReceipt = async (payment: Payment) => {
-    try {
-      const result = await TenantAPI.downloadReceipt(payment.id);
-      if (result.success && result.url) {
-        window.open(result.url, '_blank');
-      } else {
-        toast.error('Failed to download receipt');
-      }
-    } catch (error) {
-      console.error('Failed to download receipt:', error);
-      toast.error('Failed to download receipt');
-    }
-  };
-
+  // Filter payments
   const filteredPayments = payments.filter(payment => {
-    const matchesFilter = filter === 'all' || payment.status === filter;
     const matchesSearch =
-      searchQuery === '' ||
-      payment.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.transaction_id?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+      payment.payment_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.reference_number?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = filterStatus === 'all' || payment.payment_status === filterStatus;
+    const matchesType = filterType === 'all' || payment.payment_type === filterType;
+
+    return matchesSearch && matchesStatus && matchesType;
   });
 
-  if (loading) {
+  // Get status badge variant
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return 'bg-green-100 text-green-700';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'failed':
+        return 'bg-red-100 text-red-700';
+      case 'refunded':
+        return 'bg-blue-100 text-blue-700';
+      case 'partial':
+        return 'bg-orange-100 text-orange-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  // Get payment type badge variant
+  const getPaymentTypeBadge = (type: string) => {
+    switch (type) {
+      case 'rent':
+        return 'bg-blue-100 text-blue-700';
+      case 'deposit':
+        return 'bg-purple-100 text-purple-700';
+      case 'security_deposit':
+        return 'bg-indigo-100 text-indigo-700';
+      case 'utility':
+        return 'bg-green-100 text-green-700';
+      case 'penalty':
+        return 'bg-red-100 text-red-700';
+      case 'other':
+        return 'bg-gray-100 text-gray-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  // Handle view payment
+  const handleViewPayment = (payment: PaymentWithDetails) => {
+    router.push(`/tenant/dashboard/payments/${payment.id}`);
+  };
+
+  // Handle download receipt
+  const handleDownloadReceipt = (payment: PaymentWithDetails) => {
+    if (payment.receipt_url) {
+      window.open(payment.receipt_url, '_blank');
+    } else {
+      toast.error('No receipt available for this payment');
+    }
+  };
+
+  // Statistics
+  const stats = {
+    total: payments.length,
+    pending: payments.filter(p => p.payment_status === 'pending').length,
+    paid: payments.filter(p => p.payment_status === 'paid').length,
+    overdue: payments.filter(p => p.payment_status === 'pending' && new Date(p.due_date) < new Date()).length,
+    totalAmount: payments.reduce((sum, p) => sum + Number(p.amount), 0),
+    pendingAmount: payments.filter(p => p.payment_status === 'pending').reduce((sum, p) => sum + Number(p.amount), 0),
+    paidAmount: payments.filter(p => p.payment_status === 'paid').reduce((sum, p) => sum + Number(p.amount), 0)
+  };
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading payments...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-blue-600 font-medium">Loading payments...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Payments</h1>
-        <p className="text-gray-600">
-          View and manage your rent payments and transaction history
-        </p>
-      </div>
-
-      {/* Payment Stats */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-full">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Paid</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  ₱{stats?.total_paid.toLocaleString() || '0'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <Clock className="w-6 h-6 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Pending Payments</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  ₱{stats?.total_pending.toLocaleString() || '0'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Calendar className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Next Payment</p>
-                {stats?.next_payment_date ? (
-                  <>
-                    <p className="text-lg font-semibold text-gray-900">
-                      ₱{stats.next_payment_amount?.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Due:{' '}
-                      {new Date(stats.next_payment_date).toLocaleDateString()}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-lg font-semibold text-gray-900">
-                    No upcoming payments
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Search */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 flex gap-4">
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[180px] bg-white">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Payments</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="overdue">Overdue</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Search payments..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white"
-            />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              My Payments
+            </h1>
+            <p className="text-blue-600/70 mt-1">
+              Track and manage your payment history
+            </p>
           </div>
         </div>
-      </div>
 
-      {/* Payments List */}
-      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-blue-600" />
-            Payment History
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {filteredPayments.length === 0 ? (
-              <div className="text-center py-8">
-                <Wallet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No Payments Found
-                </h3>
-                <p className="text-gray-600">
-                  {searchQuery
-                    ? 'No payments match your search criteria'
-                    : 'You have no payment history yet'}
-                </p>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                  <p className="text-sm text-gray-600">Total Payments</p>
+                </div>
               </div>
-            ) : (
-              filteredPayments.map(payment => (
-                <div
-                  key={payment.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`p-2 rounded-full ${
-                        payment.status === 'paid'
-                          ? 'bg-green-100'
-                          : payment.status === 'pending'
-                          ? 'bg-yellow-100'
-                          : 'bg-red-100'
-                      }`}>
-                      <CreditCard
-                        className={`w-4 h-4 ${
-                          payment.status === 'paid'
-                            ? 'text-green-600'
-                            : payment.status === 'pending'
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {payment.description}
-                      </p>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="w-3 h-3" />
-                        <span>
-                          Due: {new Date(payment.due_date).toLocaleDateString()}
-                        </span>
-                        {payment.paid_date && (
-                          <>
-                            <ArrowRight className="w-3 h-3" />
-                            <span>
-                              Paid:{' '}
-                              {new Date(payment.paid_date).toLocaleDateString()}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <p className="font-semibold text-gray-900">
-                      ₱{payment.amount.toLocaleString()}
-                    </p>
-                    <Badge
-                      className={`${
-                        payment.status === 'paid'
-                          ? 'bg-green-100 text-green-700'
-                          : payment.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-red-100 text-red-700'
-                      } border-0`}>
-                      {payment.status.charAt(0).toUpperCase() +
-                        payment.status.slice(1)}
-                    </Badge>
-                    {payment.status === 'pending' && (
-                      <Button
-                        size="sm"
-                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-                        onClick={() => {
-                          setSelectedPayment(payment);
-                          setShowPaymentDialog(true);
-                        }}>
-                        Pay Now
-                      </Button>
-                    )}
-                    {payment.status === 'paid' && payment.receipt_url && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                        onClick={() => handleDownloadReceipt(payment)}>
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Make Payment</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {selectedPayment && (
-              <>
-                <div className="space-y-2">
-                  <Label>Amount Due</Label>
-                  <p className="text-2xl font-bold text-gray-900">
-                    ₱{selectedPayment.amount.toLocaleString()}
-                  </p>
+          <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-white" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Due Date</Label>
-                  <p className="text-gray-900">
-                    {new Date(selectedPayment.due_date).toLocaleDateString()}
-                  </p>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+                  <p className="text-sm text-gray-600">Pending</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Payment Method</Label>
-                  <Select defaultValue="card">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="card">Credit/Debit Card</SelectItem>
-                      <SelectItem value="gcash">GCash</SelectItem>
-                      <SelectItem value="maya">Maya</SelectItem>
-                      <SelectItem value="bank">Bank Transfer</SelectItem>
-                    </SelectContent>
-                  </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-white" />
                 </div>
-                <Button
-                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-                  onClick={() => handleMakePayment(selectedPayment.id)}
-                  disabled={processingPayment}>
-                  {processingPayment ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Confirm Payment'
-                  )}
-                </Button>
-              </>
-            )}
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{stats.paid}</p>
+                  <p className="text-sm text-gray-600">Paid</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{stats.overdue}</p>
+                  <p className="text-sm text-gray-600">Overdue</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Amount Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+            <CardContent className="p-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600">
+                  ₱{stats.totalAmount.toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-600">Total Amount</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg">
+            <CardContent className="p-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-yellow-600">
+                  ₱{stats.pendingAmount.toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-600">Pending Amount</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg">
+            <CardContent className="p-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600">
+                  ₱{stats.paidAmount.toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-600">Paid Amount</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <PaymentFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterStatus={filterStatus}
+          onStatusChange={setFilterStatus}
+          filterType={filterType}
+          onTypeChange={setFilterType}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+
+        {/* Results Count */}
+        <div className="flex items-center justify-between">
+          <p className="text-gray-600">
+            Showing {filteredPayments.length} of {payments.length} payments
+          </p>
+        </div>
+
+        {/* Table View */}
+        {viewMode === 'table' && (
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-blue-50/50">
+                    <TableHead className="text-blue-700 font-semibold">Payment</TableHead>
+                    <TableHead className="text-blue-700 font-semibold">Property</TableHead>
+                    <TableHead className="text-blue-700 font-semibold">Type</TableHead>
+                    <TableHead className="text-blue-700 font-semibold">Status</TableHead>
+                    <TableHead className="text-blue-700 font-semibold">Amount</TableHead>
+                    <TableHead className="text-blue-700 font-semibold">Due Date</TableHead>
+                    <TableHead className="text-blue-700 font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPayments.map(payment => (
+                    <TableRow
+                      key={payment.id}
+                      className="hover:bg-blue-50/30 transition-colors"
+                    >
+                      <TableCell>
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {payment.payment_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </p>
+                          {payment.reference_number && (
+                            <p className="text-sm text-gray-600">
+                              Ref: {payment.reference_number}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {payment.property.name}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {payment.property.city}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getPaymentTypeBadge(payment.payment_type)}>
+                          {payment.payment_type.replace('_', ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusBadge(payment.payment_status)}>
+                          {payment.payment_status.replace('_', ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            ₱{Number(payment.amount).toLocaleString()}
+                          </p>
+                          {payment.late_fee && payment.late_fee > 0 && (
+                            <p className="text-sm text-red-600">
+                              +₱{Number(payment.late_fee).toLocaleString()} late fee
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="text-sm text-gray-900">
+                            {new Date(payment.due_date).toLocaleDateString()}
+                          </p>
+                          {payment.paid_date && (
+                            <p className="text-xs text-green-600">
+                              Paid: {new Date(payment.paid_date).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewPayment(payment)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {payment.payment_status === 'paid' && payment.receipt_url && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownloadReceipt(payment)}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Grid View */}
+        {viewMode === 'grid' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPayments.map(payment => (
+              <PaymentCard
+                key={payment.id}
+                payment={payment}
+                role="tenant"
+                onView={handleViewPayment}
+              />
+            ))}
           </div>
-        </DialogContent>
-      </Dialog>
+        )}
+
+        {/* Empty State */}
+        {filteredPayments.length === 0 && (
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+            <CardContent className="p-12 text-center">
+              <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                No payments found
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {searchTerm || filterStatus !== 'all' || filterType !== 'all'
+                  ? 'Try adjusting your search or filter criteria.'
+                  : 'No payments have been created for your account yet.'}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
-

@@ -914,18 +914,7 @@ export class TenantAPI {
       // Get all maintenance requests
       const { data: requests, error: requestsError } = await supabase
         .from('maintenance_requests')
-        .select(
-          `
-          *,
-          comments:maintenance_comments(
-            id,
-            user_id,
-            message,
-            created_at,
-            users(first_name, last_name)
-          )
-        `
-        )
+        .select('*')
         .eq('tenant_id', tenant.id)
         .order('created_at', { ascending: false });
 
@@ -1081,48 +1070,12 @@ export class TenantAPI {
     data?: any;
     message?: string;
   }> {
-    try {
-      const { data: comment, error: commentError } = await supabase
-        .from('maintenance_comments')
-        .insert({
-          maintenance_request_id: requestId,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          message,
-          created_at: new Date().toISOString()
-        })
-        .select(
-          `
-          id,
-          user_id,
-          message,
-          created_at,
-          users(first_name, last_name)
-        `
-        )
-        .single();
-
-      if (commentError) throw commentError;
-
-      return {
-        success: true,
-        data: {
-          id: comment.id,
-          user_id: comment.user_id,
-          user_name: `${(comment.users as any).first_name} ${
-            (comment.users as any).last_name
-          }`,
-          message: comment.message,
-          created_at: comment.created_at
-        }
-      };
-    } catch (error) {
-      console.error('Add maintenance comment error:', error);
-      return {
-        success: false,
-        message:
-          error instanceof Error ? error.message : 'Failed to add comment'
-      };
-    }
+    // Maintenance comments functionality is not implemented yet
+    // This would require a maintenance_comments table in the database
+    return {
+      success: false,
+      message: 'Maintenance comments functionality is not available yet'
+    };
   }
 
   static async getMessages(userId: string): Promise<{

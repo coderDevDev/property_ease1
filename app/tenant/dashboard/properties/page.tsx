@@ -38,12 +38,12 @@ import {
   Filter,
   SlidersHorizontal,
   Building,
-  DollarSign,
   Calendar,
   CheckCircle,
   Phone,
   Mail,
-  MessageSquare
+  MessageSquare,
+  PhilippinePeso
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TenantAPI, type PropertyListing } from '@/lib/api/tenant';
@@ -604,7 +604,7 @@ export default function TenantPropertiesPage() {
           <div className="space-y-4">
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-4 h-4 text-blue-600" />
+                <PhilippinePeso className="w-4 h-4 text-blue-600" />
                 <span className="font-medium text-blue-800">Monthly Rent</span>
               </div>
               <p className="text-2xl font-bold text-blue-900">

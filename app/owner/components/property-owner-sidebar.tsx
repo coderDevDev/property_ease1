@@ -19,11 +19,11 @@ import {
   LogOut,
   ChevronRight,
   X,
-  DollarSign,
   FileText,
   BarChart3,
   Calendar,
-  ClipboardList
+  ClipboardList,
+  PhilippinePeso
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { PropertiesAPI } from '@/lib/api/properties';
@@ -225,7 +225,7 @@ export function PropertyOwnerSidebar() {
       section: 'operations'
     },
     {
-      icon: DollarSign,
+      icon: PhilippinePeso,
       label: 'Payments',
       route: '/owner/dashboard/payments',
       description: 'Payment tracking',
@@ -240,13 +240,13 @@ export function PropertyOwnerSidebar() {
           : 'bg-green-100 text-green-700',
       section: 'financial'
     },
-    {
-      icon: History,
-      label: 'Transactions',
-      route: '/owner/dashboard/transactions',
-      description: 'Payment history',
-      section: 'financial'
-    },
+    // {
+    //   icon: History,
+    //   label: 'Transactions',
+    //   route: '/owner/dashboard/transactions',
+    //   description: 'Payment history',
+    //   section: 'financial'
+    // },
     {
       icon: MessageSquare,
       label: 'Messages',
@@ -460,7 +460,7 @@ export function PropertyOwnerSidebar() {
                           <Wrench className="w-3 h-3" />
                         )}
                         {sectionKey === 'financial' && (
-                          <DollarSign className="w-3 h-3" />
+                          <PhilippinePeso className="w-3 h-3" />
                         )}
                         {sectionKey === 'communication' && (
                           <MessageSquare className="w-3 h-3" />

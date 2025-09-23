@@ -10,7 +10,6 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   Users,
   MapPin,
-  PhilippinePeso,
   Edit,
   ArrowLeft,
   Calendar,
@@ -35,7 +34,8 @@ import {
   Upload,
   Trash2,
   Image,
-  File
+  File,
+  PhilippinePeso
 } from 'lucide-react';
 import {
   DropdownMenu,

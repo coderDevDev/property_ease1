@@ -11,7 +11,6 @@ import {
   Building,
   MapPin,
   Users,
-  DollarSign,
   Edit,
   Trash2,
   ArrowLeft,
@@ -33,7 +32,8 @@ import {
   Navigation,
   Home,
   Maximize2,
-  X
+  X,
+  PhilippinePeso
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -409,7 +409,7 @@ export default function PropertyDetailsPage() {
                       {formatCurrency(property.monthly_rent)}
                     </p>
                   </div>
-                  <DollarSign className="w-10 h-10 opacity-80" />
+                  <PhilippinePeso className="w-10 h-10 opacity-80" />
                 </div>
               </CardContent>
             </Card>
@@ -751,7 +751,7 @@ export default function PropertyDetailsPage() {
                               {activity.type === 'maintenance' ? (
                                 <Wrench className="w-4 h-4 text-white" />
                               ) : (
-                                <DollarSign className="w-4 h-4 text-white" />
+                                <PhilippinePeso className="w-4 h-4 text-white" />
                               )}
                             </div>
                             <div className="flex-1">

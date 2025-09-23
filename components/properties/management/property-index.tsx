@@ -2,14 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Building,
-  Plus,
-  TrendingUp,
-  Users,
-  DollarSign,
-  ArrowRight
-} from 'lucide-react';
+import { Building, Plus, TrendingUp, Users, ArrowRight } from 'lucide-react';
 
 export function PropertyIndex({
   onAddProperty
@@ -62,7 +55,7 @@ export function PropertyIndex({
         </Card>
         <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg border-0">
           <CardContent className="p-6 flex flex-col items-center">
-            <DollarSign className="w-8 h-8 mb-2 opacity-90" />
+            <PhilippinePeso className="w-8 h-8 mb-2 opacity-90" />
             <div className="text-2xl font-bold">₱847K</div>
             <div className="text-orange-100 text-sm">Monthly Revenue</div>
           </CardContent>

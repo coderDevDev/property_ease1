@@ -18,7 +18,6 @@ import {
   BarChart3,
   Users,
   Building2,
-  DollarSign,
   Wrench,
   Settings,
   Shield,
@@ -29,7 +28,8 @@ import {
   LogOut,
   ChevronDown,
   Menu,
-  X
+  X,
+  PhilippinePeso
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthAPI } from '@/lib/api/auth';
@@ -66,7 +66,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
     {
       name: 'Payments',
       route: '/dashboard/payments',
-      icon: DollarSign,
+      icon: PhilippinePeso,
       description: 'Payment tracking and analytics'
     },
     {

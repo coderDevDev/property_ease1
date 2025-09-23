@@ -15,7 +15,6 @@ import {
   MessageSquare,
   Bell,
   Calendar,
-  DollarSign,
   AlertCircle,
   Clock,
   MapPin,
@@ -23,7 +22,8 @@ import {
   FileText,
   TrendingUp,
   Search,
-  Plus
+  Plus,
+  PhilippinePeso
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TenantAPI, type TenantDashboardStats } from '@/lib/api/tenant';
@@ -309,7 +309,7 @@ export default function TenantDashboardPage() {
                 <Button
                   className="w-full mt-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                   onClick={() => router.push('/tenant/dashboard/payments')}>
-                  <DollarSign className="w-4 h-4 mr-2" />
+                  <PhilippinePeso className="w-4 h-4 mr-2" />
                   View All Payments
                 </Button>
               </div>

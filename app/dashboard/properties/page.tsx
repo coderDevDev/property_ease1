@@ -26,11 +26,11 @@ import {
   Search,
   MapPin,
   Users,
-  DollarSign,
   Calendar,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  PhilippinePeso
 } from 'lucide-react';
 import { AdminAPI } from '@/lib/api/admin';
 import { toast } from 'sonner';
@@ -228,7 +228,7 @@ export default function PropertiesPage() {
             <CardTitle className="text-sm font-medium text-gray-600">
               Monthly Revenue
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-blue-600" />
+            <PhilippinePeso className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900">

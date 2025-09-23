@@ -13,14 +13,14 @@ import {
   Users,
   Wrench,
   TrendingUp,
-  DollarSign,
   BarChart3,
   Plus,
   Activity,
   AlertTriangle,
   CheckCircle,
   Clock,
-  MapPin
+  MapPin,
+  PhilippinePeso
 } from 'lucide-react';
 import { PropertiesAPI } from '@/lib/api/properties';
 import { TenantsAPI } from '@/lib/api/tenants';
@@ -263,7 +263,7 @@ export default function OwnerDashboard() {
       description: 'Pending requests'
     },
     {
-      icon: DollarSign,
+      icon: PhilippinePeso,
       label: 'Payments',
       color: 'from-green-500 to-green-600',
       route: '/owner/dashboard/payments',
@@ -438,7 +438,7 @@ export default function OwnerDashboard() {
                     </span>
                   </div>
                 </div>
-                <DollarSign className="w-10 h-10 opacity-80" />
+                <PhilippinePeso className="w-10 h-10 opacity-80" />
               </div>
             </CardContent>
           </Card>
@@ -502,7 +502,7 @@ export default function OwnerDashboard() {
                       {activity.type === 'maintenance' ? (
                         <Wrench className="w-5 h-5 text-white" />
                       ) : activity.type === 'payment' ? (
-                        <DollarSign className="w-5 h-5 text-white" />
+                        <PhilippinePeso className="w-5 h-5 text-white" />
                       ) : (
                         <Activity className="w-5 h-5 text-white" />
                       )}

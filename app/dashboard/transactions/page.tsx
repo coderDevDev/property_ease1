@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, History, TrendingUp, DollarSign } from 'lucide-react';
+import { ArrowLeft, History, TrendingUp, PhilippinePeso } from 'lucide-react';
 
 export default function TransactionsPage() {
   const { authState } = useAuth();
@@ -92,7 +92,7 @@ export default function TransactionsPage() {
             <Button
               variant="outline"
               className="border-indigo-200 text-indigo-700 hover:bg-indigo-50">
-              <DollarSign className="w-4 h-4 mr-2" />
+              <PhilippinePeso className="w-4 h-4 mr-2" />
               Export Data
             </Button>
           </div>

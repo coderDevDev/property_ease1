@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Users,
   Building2,
-  DollarSign,
   Wrench,
   BarChart3,
   Settings,
@@ -177,7 +176,7 @@ export function AdminDashboard() {
                   <CardTitle className="text-sm font-medium text-gray-600">
                     Monthly Revenue
                   </CardTitle>
-                  <DollarSign className="h-4 w-4 text-blue-600" />
+                  <PhilippinePeso className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900">

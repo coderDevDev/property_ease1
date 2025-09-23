@@ -26,7 +26,8 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  Calendar
+  Calendar,
+  Megaphone
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -160,10 +161,10 @@ export function TenantSidebar() {
       count: stats.notifications
     },
     {
-      id: 'community',
-      label: 'Community',
-      icon: Users,
-      href: '/tenant/dashboard/community',
+      id: 'announcements',
+      label: 'Announcements',
+      icon: Megaphone,
+      href: '/tenant/dashboard/announcements',
       count: stats.announcements
     },
     {

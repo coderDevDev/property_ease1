@@ -16,9 +16,11 @@ export class MaintenanceAPI {
         .select(
           `
           *,
-          tenant:tenants(*),
-          property:properties(*),
-          assigned_user:users(*)
+          tenant:tenants(
+            *,
+            user:users(*)
+          ),
+          property:properties(*)
         `
         )
         .order('created_at', { ascending: false });
@@ -57,9 +59,11 @@ export class MaintenanceAPI {
         .select(
           `
           *,
-          tenant:tenants(*),
-          property:properties(*),
-          assigned_user:users(*)
+          tenant:tenants(
+            *,
+            user:users(*)
+          ),
+          property:properties(*)
         `
         )
         .eq('id', id)
@@ -93,7 +97,10 @@ export class MaintenanceAPI {
         .select(
           `
           *,
-          tenant:tenants(*),
+          tenant:tenants(
+            *,
+            user:users(*)
+          ),
           property:properties(*)
         `
         )
@@ -138,7 +145,10 @@ export class MaintenanceAPI {
         .select(
           `
           *,
-          tenant:tenants(*),
+          tenant:tenants(
+            *,
+            user:users(*)
+          ),
           property:properties(*)
         `
         )
@@ -255,7 +265,10 @@ export class MaintenanceAPI {
         .select(
           `
           *,
-          tenant:tenants(*),
+          tenant:tenants(
+            *,
+            user:users(*)
+          ),
           property:properties(*)
         `
         )
@@ -338,6 +351,33 @@ export class MaintenanceAPI {
             ? error.message
             : 'Failed to fetch maintenance statistics',
         data: null
+      };
+    }
+  }
+
+  static async deleteMaintenanceRequest(id: string) {
+    try {
+      const { error } = await supabase
+        .from('maintenance_requests')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Maintenance request deleted successfully'
+      };
+    } catch (error) {
+      console.error('Delete maintenance request error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to delete maintenance request'
       };
     }
   }

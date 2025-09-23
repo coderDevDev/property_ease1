@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { TenantSidebar } from './components/tenant-sidebar';
+import { TopNavbar } from '@/components/layout/top-navbar';
 
 export default function TenantLayout({
   children
@@ -74,14 +75,16 @@ export default function TenantLayout({
       <div className="hidden lg:flex">
         <TenantSidebar />
         <div className="flex-1 lg:ml-64">
-          <main className="p-6">{children}</main>
+          <TopNavbar role="tenant" />
+          <main className="pt-16 p-6">{children}</main>
         </div>
       </div>
 
       {/* Mobile Layout */}
       <div className="lg:hidden">
         <TenantSidebar />
-        <main className="pt-4">{children}</main>
+        <TopNavbar role="tenant" />
+        <main className="pt-16">{children}</main>
       </div>
     </div>
   );
