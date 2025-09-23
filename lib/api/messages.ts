@@ -620,6 +620,84 @@ export class MessagesAPI {
     }
   }
 
+  // Get recent messages for a user (for navbar display) - grouped by conversation
+  static async getRecentMessages(
+    userId: string,
+    limit: number = 5
+  ): Promise<{
+    success: boolean;
+    data?: Message[];
+    message?: string;
+  }> {
+    try {
+      // Get conversations for the user
+      const { data: conversations, error: conversationsError } = await supabase
+        .from('conversations')
+        .select(`
+          id,
+          participants,
+          last_message_id,
+          last_message_at
+        `)
+        .contains('participants', [userId])
+        .eq('is_active', true)
+        .order('last_message_at', { ascending: false })
+        .limit(limit);
+
+      if (conversationsError) {
+        throw new Error(conversationsError.message);
+      }
+
+      if (!conversations || conversations.length === 0) {
+        return { success: true, data: [] };
+      }
+
+      // Get the latest message for each conversation
+      const conversationIds = conversations.map(c => c.id);
+      const { data: messages, error: messagesError } = await supabase
+        .from('messages')
+        .select(
+          `
+          *,
+          sender:users!messages_sender_id_fkey(id, first_name, last_name, email, avatar_url, role),
+          recipient:users!messages_recipient_id_fkey(id, first_name, last_name, email, avatar_url, role),
+          property:properties(id, name, address)
+        `
+        )
+        .in('conversation_id', conversationIds)
+        .order('created_at', { ascending: false });
+
+      if (messagesError) {
+        throw new Error(messagesError.message);
+      }
+
+      // Group messages by conversation and get the latest one for each
+      const latestMessagesByConversation = new Map();
+      
+      if (messages) {
+        messages.forEach(message => {
+          const conversationId = message.conversation_id;
+          if (!latestMessagesByConversation.has(conversationId)) {
+            latestMessagesByConversation.set(conversationId, message);
+          }
+        });
+      }
+
+      // Convert map to array and sort by creation time
+      const latestMessages = Array.from(latestMessagesByConversation.values())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, limit);
+
+      return { success: true, data: latestMessages };
+    } catch (error) {
+      console.error('Get recent messages error:', error);
+      return {
+        success: false,
+        message: 'Failed to get recent messages'
+      };
+    }
+  }
+
   // Delete a message
   static async deleteMessage(messageId: string): Promise<{
     success: boolean;

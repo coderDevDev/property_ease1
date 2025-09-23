@@ -85,6 +85,23 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
     }
   });
 
+  // Load recent messages
+  const loadRecentMessages = async () => {
+    if (!authState.user?.id) return;
+
+    setLoadingMessages(true);
+    try {
+      const result = await MessagesAPI.getRecentMessages(authState.user.id, 5);
+      if (result.success && result.data) {
+        setRecentMessages(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load recent messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
   const {
     unreadCount: messageUnreadCount,
     isConnected: messagesConnected,
@@ -105,8 +122,23 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
           }
         }
       });
+
+      // Refresh recent messages
+      loadRecentMessages();
     }
   });
+
+  // Load recent messages when component mounts
+  useEffect(() => {
+    loadRecentMessages();
+  }, [authState.user?.id]);
+
+  // Load messages when popover opens
+  useEffect(() => {
+    if (messagesOpen) {
+      loadRecentMessages();
+    }
+  }, [messagesOpen]);
 
   const handleLogout = () => {
     logout();
@@ -166,6 +198,28 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
     return date.toLocaleDateString();
+  };
+
+  const formatMessageTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60)
+    );
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  const handleMessageClick = async (message: Message) => {
+    if (!message.is_read) {
+      await markMessageAsRead(message.id);
+    }
+
+    router.push(getMessagesPath());
+    setMessagesOpen(false);
   };
 
   const getDashboardPath = () => {
@@ -254,20 +308,106 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="text-center py-8 text-gray-500">
-                      <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p>No new messages</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-3"
-                        onClick={() => {
-                          router.push(getMessagesPath());
-                          setMessagesOpen(false);
-                        }}>
-                        View All Messages
-                      </Button>
-                    </div>
+                    <ScrollArea className="h-96">
+                      {loadingMessages ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3" />
+                          <p>Loading messages...</p>
+                        </div>
+                      ) : recentMessages.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                          <p>No messages yet</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {recentMessages.map(message => {
+                            const isFromCurrentUser =
+                              message.sender_id === authState.user?.id;
+                            const otherUser = isFromCurrentUser
+                              ? message.recipient
+                              : message.sender;
+
+                            return (
+                              <div
+                                key={message.id}
+                                className={cn(
+                                  'p-3 hover:bg-gray-50 cursor-pointer transition-colors',
+                                  !message.is_read &&
+                                    !isFromCurrentUser &&
+                                    'bg-blue-50/50'
+                                )}
+                                onClick={() => handleMessageClick(message)}>
+                                <div className="flex items-start gap-3">
+                                  <div className="relative">
+                                    <Avatar className="w-8 h-8 flex-shrink-0">
+                                      <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
+                                        {otherUser?.first_name?.[0]}
+                                        {otherUser?.last_name?.[0]}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    {!message.is_read && !isFromCurrentUser && (
+                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between">
+                                      <h4
+                                        className={cn(
+                                          'text-sm font-medium text-gray-900',
+                                          !message.is_read &&
+                                            !isFromCurrentUser &&
+                                            'font-semibold'
+                                        )}>
+                                        {isFromCurrentUser
+                                          ? 'You'
+                                          : `${otherUser?.first_name} ${otherUser?.last_name}`}
+                                      </h4>
+                                      <span className="text-xs text-gray-400">
+                                        {formatMessageTime(message.created_at)}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                      {message.content}
+                                    </p>
+                                    {message.property && (
+                                      <p className="text-xs text-gray-400 mt-1">
+                                        {message.property.name}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </ScrollArea>
+                    {recentMessages.length > 0 && (
+                      <div className="border-t p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          {messageUnreadCount > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={markAllMessagesAsRead}
+                              className="text-xs">
+                              Mark all read
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              router.push(getMessagesPath());
+                              setMessagesOpen(false);
+                            }}>
+                            View All Messages
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </PopoverContent>

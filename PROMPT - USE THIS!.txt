@@ -1,0 +1,90 @@
+
+i see all of this is working and good almost complete 
+
+1./owner/dashboard/tenants
+2./owner/dashboard/tenants
+3./owner/dashboard/applications
+
+
+now can we create the components for /owner/dashboard/maintenance
+all the CRUD operation and ui follow our current design on those above
+we can create migration script if neccearrt for the table but you can check the create-tables-fixed.sql because i have it
+
+
+please make sure all the ui and CRUD operation will work with no errors
+
+No Linting Errors: All code passes linting checks
+Type Safety: Full TypeScript implementation
+Error Handling: Comprehensive error management
+Loading States: Proper loading indicators
+Responsive Design: Works on all devices
+Accessibility: Proper labels and keyboard navigation
+
+
+
+
+/owner/dashboard/maintenance - almost complete
+
+we need also the workflow avaialbe for tenants so please have it also on
+
+/tenant/dashboard/maintenance
+
+ofcoure the one who is creating now is the tenant role so please align the ui correctly
+
+
+/owner/dashboard/maintenance actions - view,edit,asign,delete request please complete the ui and workflow make sure its working
+
+
+
+
+
+
+
+1.how about in tenant actions? please make it also working  the edit request right
+2. maintenance request error: Error: invalid input syntax for type uuid: "rangel"
+    at MaintenanceAPI.updateMaintenanceRequest (C:\Users\ACER\Desktop\2025 Capstone Project\STI NAGA - PROPERTY EASE\client\lib\api\maintenance.ts:160:15)
+    at async handleStatusChange (C:\Users\ACER\Desktop\2025 Capstone Project\STI NAGA - PROPERTY EASE\client\app\owner\dashboard\maintenance\[id]\page.tsx:317:22)
+    at async handleStatusChange (C:\Users\ACER\Desktop\2025 Capstone Project\STI NAGA - PROPERTY EASE\client\components\ui\status-manager.tsx:130:7)  Change Status to In Progress  Assign To/Select Personnel since make it input text field so i can input please make sure also it will update we can create migraytion script if needed in the table  maintenance_requests
+
+
+
+
+
+
+i see all of this is working and good almost complete 
+
+1./owner/dashboard/tenants
+2./owner/dashboard/tenants
+3./owner/dashboard/applications
+4. /owner/dashboard/maintenance
+5. /owner/dashboard/messages and /tenant/dashboard/messages 
+
+
+
+now can we create the components for owner/dashboard/announcements and /tenant/dashboard/announcements maybe shared components for usability maybe pass parameters like role to distinnguish
+all the CRUD operation and ui follow our current design on those above
+we can create migration script if neccearrt for the table but you can check the create-tables-fixed.sql because i have it
+
+
+please make sure all the ui and CRUD operation To establish an in-app messaging feature that allows direct communication between tenants and property owner can we make it also real time to will work with no errors
+
+No Linting Errors: All code passes linting checks
+Type Safety: Full TypeScript implementation
+Error Handling: Comprehensive error management
+Loading States: Proper loading indicators
+Responsive Design: Works on all devices
+Accessibility: Proper labels and keyboard navigation
+
+
+i notice that when creating or editing announcement the property_id in announcement table is null i thinks its not included in the form i thnk we should have Property * selection just like we did in the Create New Payment moda form right and make sure it will be save also in the db during submit
+
+
+
+
+
+
+
+
+
+
+
