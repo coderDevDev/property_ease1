@@ -73,3 +73,4 @@ CREATE POLICY "Users can delete their conversations" ON public.conversations
 FOR DELETE USING (
   auth.uid() = ANY(participants)
 );
+

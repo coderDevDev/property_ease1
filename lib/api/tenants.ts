@@ -22,6 +22,7 @@ export interface TenantFormData {
   lease_start: string;
   lease_end: string;
   monthly_rent: number;
+  deposit: number;
   security_deposit: number;
   status: 'active' | 'pending' | 'terminated';
   lease_terms?: string;

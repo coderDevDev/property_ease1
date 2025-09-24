@@ -283,7 +283,7 @@ export default function EditMaintenancePage() {
             </p>
             <Button
               onClick={() => router.push('/tenant/dashboard/maintenance')}>
-              Back to Maintenance
+              Back
             </Button>
           </div>
         </div>

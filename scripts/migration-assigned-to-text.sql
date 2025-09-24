@@ -41,3 +41,4 @@ CREATE INDEX IF NOT EXISTS idx_maintenance_assigned_to ON public.maintenance_req
 
 -- Example of how to query the new field:
 -- SELECT id, title, assigned_to, status FROM maintenance_requests WHERE assigned_to IS NOT NULL;
+

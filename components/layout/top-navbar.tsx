@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ProfileAPI, type UserProfile } from '@/lib/api/profile';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -57,6 +58,7 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [recentMessages, setRecentMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const {
     notifications,
@@ -84,6 +86,20 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
       }
     }
   });
+
+  // Load user profile
+  const loadUserProfile = async () => {
+    if (!authState.user?.id) return;
+
+    try {
+      const result = await ProfileAPI.getProfile(authState.user.id);
+      if (result.success && result.data) {
+        setUserProfile(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+    }
+  };
 
   // Load recent messages
   const loadRecentMessages = async () => {
@@ -132,6 +148,25 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
   useEffect(() => {
     loadRecentMessages();
   }, [authState.user?.id]);
+
+  // Load user profile on mount
+  useEffect(() => {
+    loadUserProfile();
+  }, [authState.user?.id]);
+
+  // Set up profile update listener
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      loadUserProfile();
+    };
+
+    // Listen for custom profile update events
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
+  }, []);
 
   // Load messages when popover opens
   useEffect(() => {
@@ -253,14 +288,14 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
               onClick={() => router.push(getDashboardPath())}
               className="flex items-center gap-2 text-lg font-bold text-blue-700 hover:text-blue-800">
               <Home className="w-6 h-6" />
-              PropertyEase
+              <span className="text-lg font-bold ml-4">PropertyEase</span>
             </Button>
           </div>
 
           {/* Navigation Items */}
           <div className="flex items-center gap-4">
             {/* Real-time Status Indicator */}
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <div
                 className={cn(
                   'w-2 h-2 rounded-full',
@@ -274,7 +309,7 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                   ? 'Live'
                   : 'Offline'}
               </span>
-            </div>
+            </div> */}
 
             {/* Messages */}
             <Popover open={messagesOpen} onOpenChange={setMessagesOpen}>
@@ -291,7 +326,10 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end">
+              <PopoverContent
+                className="w-80 max-w-[calc(100vw-2rem)] p-0"
+                align="end"
+                side="bottom">
                 <Card className="border-0 shadow-lg">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -432,7 +470,10 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-96 p-0" align="end">
+              <PopoverContent
+                className="w-96 max-w-[calc(100vw-2rem)] p-0"
+                align="end"
+                side="bottom">
                 <Card className="border-0 shadow-lg">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -567,14 +608,25 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2">
                   <Avatar className="w-8 h-8">
-                    <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-semibold">
-                      {authState.user?.firstName?.[0]}
-                      {authState.user?.lastName?.[0]}
-                    </AvatarFallback>
+                    {userProfile?.avatar_url ? (
+                      <img
+                        src={userProfile.avatar_url}
+                        alt="Profile"
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-semibold">
+                        {userProfile?.first_name?.[0] ||
+                          authState.user?.firstName?.[0]}
+                        {userProfile?.last_name?.[0] ||
+                          authState.user?.lastName?.[0]}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-medium text-gray-900">
-                      {authState.user?.firstName} {authState.user?.lastName}
+                      {userProfile?.first_name || authState.user?.firstName}{' '}
+                      {userProfile?.last_name || authState.user?.lastName}
                     </p>
                     <p className="text-xs text-gray-500 capitalize">{role}</p>
                   </div>
@@ -596,11 +648,11 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                   <User className="w-4 h-4 mr-2" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem
+                {/* <DropdownMenuItem
                   onClick={() => router.push('/dashboard/settings')}>
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleLogout}

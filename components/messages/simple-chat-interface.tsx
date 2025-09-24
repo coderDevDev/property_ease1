@@ -200,7 +200,7 @@ export function SimpleChatInterface({
         setNewMessage('');
         setReplyingTo(null);
         onMessageSent?.(result.data);
-        toast.success('Message sent');
+        // toast.success('Message sent');
       } else {
         console.error('Failed to send message:', result.message);
         toast.error(result.message || 'Failed to send message');

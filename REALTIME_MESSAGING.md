@@ -262,3 +262,4 @@ console.log('Conversation change received:', payload);
 ---
 
 The real-time messaging system provides a modern, responsive chat experience that keeps users engaged and provides instant communication between property owners and tenants.
+

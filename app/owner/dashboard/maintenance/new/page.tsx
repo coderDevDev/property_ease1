@@ -219,8 +219,7 @@ export default function NewMaintenancePage() {
             variant="ghost"
             onClick={() => router.back()}
             className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            <ArrowLeft className="w-4 h-4 mr-0" />
           </Button>
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">

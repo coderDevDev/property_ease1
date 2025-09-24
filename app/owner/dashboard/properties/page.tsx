@@ -126,10 +126,12 @@ export default function PropertiesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-blue-600 font-medium">Loading properties...</p>
+          <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium text-sm sm:text-base">
+            Loading properties...
+          </p>
         </div>
       </div>
     );
@@ -139,19 +141,19 @@ export default function PropertiesPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
       {/* Header */}
       <div className="bg-gradient-to-r from-white to-blue-50/50 shadow-sm border-b border-blue-100">
-        <div className="px-6 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
                 Properties
               </h1>
-              <p className="text-blue-600/80 font-medium">
+              <p className="text-blue-600/80 font-medium text-sm sm:text-base">
                 Manage your property portfolio
               </p>
             </div>
             <Button
               onClick={() => router.push('/owner/dashboard/properties/new')}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200">
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base">
               <Plus className="w-4 h-4 mr-2" />
               Add Property
             </Button>
@@ -159,9 +161,9 @@ export default function PropertiesPage() {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-3 sm:p-4 lg:p-6">
         {/* Controls */}
-        <div className="flex flex-col lg:flex-row gap-4 mb-6">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -169,7 +171,7 @@ export default function PropertiesPage() {
               placeholder="Search properties..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm"
+              className="w-full pl-10 pr-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-sm sm:text-base"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -177,7 +179,7 @@ export default function PropertiesPage() {
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm">
+              className="px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-sm sm:text-base">
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -188,13 +190,13 @@ export default function PropertiesPage() {
 
         {/* Properties Grid */}
         {filteredProperties.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {filteredProperties.map(property => (
               <Card
                 key={property.id}
                 className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100 hover:shadow-xl transition-all duration-200 hover:scale-[1.02] overflow-hidden">
                 {/* Property Image */}
-                <div className="relative h-48 bg-gradient-to-br from-blue-50 to-blue-100">
+                <div className="relative h-40 sm:h-48 bg-gradient-to-br from-blue-50 to-blue-100">
                   {property.thumbnail ||
                   (property.images && property.images.length > 0) ? (
                     <img
@@ -209,24 +211,24 @@ export default function PropertiesPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-blue-400">
-                      <Building className="w-16 h-16" />
+                      <Building className="w-12 h-12 sm:w-16 sm:h-16" />
                     </div>
                   )}
 
                   {/* Status Badge Overlay */}
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
                     {getStatusBadge(property.status)}
                   </div>
 
                   {/* Quick Actions Overlay */}
-                  <div className="absolute top-3 right-3">
+                  <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 bg-white/80 backdrop-blur-sm hover:bg-white/90 border border-white/20">
-                          <MoreVertical className="w-4 h-4" />
+                          className="h-7 w-7 sm:h-8 sm:w-8 p-0 bg-white/80 backdrop-blur-sm hover:bg-white/90 border border-white/20">
+                          <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -257,8 +259,8 @@ export default function PropertiesPage() {
                   </div>
 
                   {/* Occupancy Rate Indicator */}
-                  <div className="absolute bottom-3 left-3">
-                    <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
+                  <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
+                    <div className="bg-white/90 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1">
                       <span className="text-xs font-semibold text-gray-800">
                         {Math.round(getOccupancyRate(property))}% occupied
                       </span>
@@ -266,36 +268,36 @@ export default function PropertiesPage() {
                   </div>
                 </div>
 
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 p-3 sm:p-6">
                   <div className="space-y-2">
-                    <CardTitle className="text-lg font-bold text-gray-900">
+                    <CardTitle className="text-base sm:text-lg font-bold text-gray-900">
                       {property.name}
                     </CardTitle>
-                    <div className="flex items-center text-gray-600 text-sm">
-                      <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
+                    <div className="flex items-center text-gray-600 text-xs sm:text-sm">
+                      <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                       <span className="truncate">
                         {property.address}, {property.city}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 capitalize">
+                      <span className="text-xs sm:text-sm text-gray-600 capitalize">
                         {property.type}
                       </span>
-                      <span className="text-lg font-bold text-blue-600">
+                      <span className="text-sm sm:text-lg font-bold text-blue-600">
                         {formatCurrency(property.monthly_rent)}
-                        <span className="text-sm font-normal text-gray-500">
+                        <span className="text-xs sm:text-sm font-normal text-gray-500">
                           /month
                         </span>
                       </span>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-2">
+                <CardContent className="pt-2 p-3 sm:p-6">
                   <div className="space-y-3">
                     {/* Unit Information */}
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-blue-500" />
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
                         <span className="text-gray-600">Units</span>
                       </div>
                       <span className="font-medium text-gray-900">
@@ -324,7 +326,7 @@ export default function PropertiesPage() {
                     {property.amenities && property.amenities.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {property.amenities
-                          .slice(0, 3)
+                          .slice(0, 2)
                           .map((amenity, index) => (
                             <Badge
                               key={index}
@@ -333,11 +335,11 @@ export default function PropertiesPage() {
                               {amenity}
                             </Badge>
                           ))}
-                        {property.amenities.length > 3 && (
+                        {property.amenities.length > 2 && (
                           <Badge
                             variant="secondary"
                             className="bg-gray-50 text-gray-600 text-xs px-2 py-0.5">
-                            +{property.amenities.length - 3} more
+                            +{property.amenities.length - 2} more
                           </Badge>
                         )}
                       </div>
@@ -348,13 +350,13 @@ export default function PropertiesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                        className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-colors text-xs sm:text-sm"
                         onClick={() =>
                           router.push(
                             `/owner/dashboard/properties/${property.id}`
                           )
                         }>
-                        <Eye className="w-4 h-4 mr-2" />
+                        <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         View Details
                       </Button>
                     </div>
@@ -365,14 +367,14 @@ export default function PropertiesPage() {
           </div>
         ) : (
           <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-            <CardContent className="text-center py-12">
-              <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <CardContent className="text-center py-8 sm:py-12">
+              <Building className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                 {searchTerm || filterStatus !== 'all'
                   ? 'No properties found'
                   : 'No properties yet'}
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-6 text-sm sm:text-base">
                 {searchTerm || filterStatus !== 'all'
                   ? 'Try adjusting your search or filter criteria.'
                   : 'Start by adding your first property to the portfolio.'}
@@ -380,7 +382,7 @@ export default function PropertiesPage() {
               {!searchTerm && filterStatus === 'all' && (
                 <Button
                   onClick={() => router.push('/owner/dashboard/properties/new')}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white">
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm sm:text-base">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Your First Property
                 </Button>

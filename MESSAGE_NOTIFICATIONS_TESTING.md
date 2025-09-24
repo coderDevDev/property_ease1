@@ -165,3 +165,4 @@ Ensure your `messages` table has these columns:
 - Real-time works best with stable internet connection
 - Console logs help debug any issues
 - Both sender and receiver should see appropriate updates
+

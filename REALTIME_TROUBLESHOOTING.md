@@ -189,3 +189,4 @@ ALTER TABLE public.conversations DISABLE ROW LEVEL SECURITY;
 ---
 
 **Note**: The debug component should be removed before production deployment.
+

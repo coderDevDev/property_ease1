@@ -29,7 +29,7 @@ export function ImageUpload({
     if (!files || files.length === 0) return;
 
     const newFiles = Array.from(files);
-    const totalImages = images.length + newFiles.length;
+    const totalImages = (images || []).length + newFiles.length;
 
     if (totalImages > maxImages) {
       toast.error(`Maximum ${maxImages} images allowed`);
@@ -133,7 +133,7 @@ export function ImageUpload({
       </Card>
 
       {/* Image Preview Grid */}
-      {images.length > 0 && (
+      {(images || []).length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-gray-700">

@@ -391,10 +391,12 @@ export default function OwnerApplicationsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading applications...</p>
+          <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium text-sm sm:text-base">
+            Loading applications...
+          </p>
         </div>
       </div>
     );
@@ -404,13 +406,13 @@ export default function OwnerApplicationsPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
       {/* Header */}
       <div className="bg-gradient-to-r from-white to-blue-50/50 shadow-sm border-b border-blue-100">
-        <div className="px-6 py-6">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
                 Applications
               </h1>
-              <p className="text-blue-600/80 font-medium">
+              <p className="text-blue-600/80 font-medium text-sm sm:text-base">
                 Review and manage rental applications
               </p>
             </div>
@@ -418,77 +420,89 @@ export default function OwnerApplicationsPage() {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-3 sm:p-4 lg:p-6">
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-xl border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
                 <div>
-                  <p className="text-blue-100 text-sm mb-1">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     Total Applications
                   </p>
-                  <p className="text-3xl font-bold">{applications.length}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                    {applications.length}
+                  </p>
                 </div>
-                <ClipboardList className="w-10 h-10 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-xl border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+          <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
                 <div>
-                  <p className="text-yellow-100 text-sm mb-1">Pending Review</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Pending Review
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {
                       applications.filter(app => app.status === 'pending')
                         .length
                     }
                   </p>
                 </div>
-                <Clock className="w-10 h-10 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-xl border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+          <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
                 <div>
-                  <p className="text-green-100 text-sm mb-1">Approved</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-xs sm:text-sm text-gray-600">Approved</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {
                       applications.filter(app => app.status === 'approved')
                         .length
                     }
                   </p>
                 </div>
-                <CheckCircle className="w-10 h-10 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white shadow-xl border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+          <Card className="bg-white/70 backdrop-blur-sm border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
                 <div>
-                  <p className="text-red-100 text-sm mb-1">Rejected</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-xs sm:text-sm text-gray-600">Rejected</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {
                       applications.filter(app => app.status === 'rejected')
                         .length
                     }
                   </p>
                 </div>
-                <XCircle className="w-10 h-10 opacity-80" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters and Search */}
-        <div className="flex flex-col lg:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -496,16 +510,16 @@ export default function OwnerApplicationsPage() {
               placeholder="Search applications, properties, or units..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm"
+              className="w-full pl-10 pr-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-sm sm:text-base"
             />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-400" />
+              <Filter className="w-4 h-4 text-gray-400 hidden sm:block" />
               <select
                 value={filter}
                 onChange={e => setFilter(e.target.value)}
-                className="px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm">
+                className="px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-sm sm:text-base">
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
@@ -540,12 +554,12 @@ export default function OwnerApplicationsPage() {
 
         {filteredApplications.length === 0 ? (
           <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-            <CardContent className="text-center py-12">
-              <ClipboardList className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <CardContent className="text-center py-8 sm:py-12">
+              <ClipboardList className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                 No Applications Found
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-6 text-sm sm:text-base">
                 {searchQuery
                   ? 'Try adjusting your search or filter criteria.'
                   : 'You have no rental applications yet.'}
@@ -558,28 +572,28 @@ export default function OwnerApplicationsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-blue-100">
-                    <th className="text-left p-4 text-sm font-medium text-gray-600">
+                    <th className="text-left p-3 sm:p-4 text-xs sm:text-sm font-medium text-gray-600">
                       Applicant
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-600">
+                    <th className="text-left p-3 sm:p-4 text-xs sm:text-sm font-medium text-gray-600">
                       Property
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-600">
+                    <th className="text-left p-3 sm:p-4 text-xs sm:text-sm font-medium text-gray-600">
                       Unit
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-600">
+                    <th className="text-left p-3 sm:p-4 text-xs sm:text-sm font-medium text-gray-600 hidden sm:table-cell">
                       Move-in Date
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-600">
+                    <th className="text-left p-3 sm:p-4 text-xs sm:text-sm font-medium text-gray-600">
                       Monthly Rent
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-600">
+                    <th className="text-left p-3 sm:p-4 text-xs sm:text-sm font-medium text-gray-600">
                       Status
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-600">
+                    <th className="text-left p-3 sm:p-4 text-xs sm:text-sm font-medium text-gray-600 hidden md:table-cell">
                       Submitted
                     </th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">
+                    <th className="text-right p-3 sm:p-4 text-xs sm:text-sm font-medium text-gray-600">
                       Actions
                     </th>
                   </tr>
@@ -589,68 +603,68 @@ export default function OwnerApplicationsPage() {
                     <tr
                       key={application.id}
                       className="border-b border-blue-50 hover:bg-blue-50/50 transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      <td className="p-3 sm:p-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-medium">
                             {application.user_name
                               .split(' ')
                               .map(n => n[0])
                               .join('')}
                           </div>
-                          <div>
-                            <p className="font-medium text-gray-900">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                               {application.user_name}
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-xs sm:text-sm text-gray-500 truncate">
                               {application.user_email}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="p-4">
-                        <p className="font-medium text-gray-900">
+                      <td className="p-3 sm:p-4">
+                        <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                           {application.property_name}
                         </p>
                       </td>
-                      <td className="p-4">
-                        <p className="font-medium text-gray-900">
+                      <td className="p-3 sm:p-4">
+                        <p className="font-medium text-gray-900 text-xs sm:text-sm">
                           {application.unit_number}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs sm:text-sm text-gray-500">
                           {application.unit_type}
                         </p>
                       </td>
-                      <td className="p-4">
-                        <p className="text-gray-900">
+                      <td className="p-3 sm:p-4 hidden sm:table-cell">
+                        <p className="text-gray-900 text-xs sm:text-sm">
                           {format(new Date(application.move_in_date), 'PPP')}
                         </p>
                       </td>
-                      <td className="p-4">
-                        <p className="font-medium text-blue-600">
+                      <td className="p-3 sm:p-4">
+                        <p className="font-medium text-blue-600 text-xs sm:text-sm">
                           ₱{application.monthly_rent.toLocaleString()}
                         </p>
                       </td>
-                      <td className="p-4">
+                      <td className="p-3 sm:p-4">
                         {getStatusBadge(application.status)}
                       </td>
-                      <td className="p-4">
-                        <p className="text-gray-900">
+                      <td className="p-3 sm:p-4 hidden md:table-cell">
+                        <p className="text-gray-900 text-xs sm:text-sm">
                           {format(
                             new Date(application.submitted_at),
                             'MMM d, yyyy'
                           )}
                         </p>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-3 sm:p-4 text-right">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-7 w-7 sm:h-8 sm:w-8"
                           onClick={() => {
                             setSelectedApplication(application);
                             setShowDetailsDialog(true);
                           }}>
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                       </td>
                     </tr>
@@ -660,7 +674,7 @@ export default function OwnerApplicationsPage() {
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {filteredApplications.map(application => (
               <Card
                 key={application.id}
@@ -669,17 +683,17 @@ export default function OwnerApplicationsPage() {
                   setSelectedApplication(application);
                   setShowDetailsDialog(true);
                 }}>
-                <CardHeader className="pb-3">
+                <CardHeader className="pb-3 p-3 sm:p-6">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base">
                         {application.user_name
                           .split(' ')
                           .map(n => n[0])
                           .join('')}
                       </div>
                       <div>
-                        <CardTitle className="text-lg font-bold text-gray-900">
+                        <CardTitle className="text-base sm:text-lg font-bold text-gray-900">
                           {application.user_name}
                         </CardTitle>
                         <div className="flex items-center gap-2 mt-1">
@@ -703,27 +717,27 @@ export default function OwnerApplicationsPage() {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 p-3 sm:p-6">
                   <div className="space-y-3">
                     {/* Property Information */}
-                    <div className="flex items-center gap-2 text-sm">
-                      <Building className="w-4 h-4 text-blue-500" />
+                    <div className="flex items-center gap-2 text-xs sm:text-sm">
+                      <Building className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
                       <span className="text-gray-600">Property:</span>
                       <span className="font-medium text-gray-900 truncate">
                         {application.property_name}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm">
-                      <Home className="w-4 h-4 text-blue-500" />
+                    <div className="flex items-center gap-2 text-xs sm:text-sm">
+                      <Home className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
                       <span className="text-gray-600">Unit:</span>
                       <span className="font-medium text-gray-900">
                         {application.unit_number} ({application.unit_type})
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="w-4 h-4 text-blue-500" />
+                    <div className="flex items-center gap-2 text-xs sm:text-sm">
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
                       <span className="text-gray-600">Move-in:</span>
                       <span className="font-medium text-gray-900">
                         {format(new Date(application.move_in_date), 'PPP')}
@@ -734,13 +748,13 @@ export default function OwnerApplicationsPage() {
                     <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                       <div>
                         <p className="text-xs text-gray-500">Monthly Rent</p>
-                        <p className="font-bold text-lg text-blue-600">
+                        <p className="font-bold text-base sm:text-lg text-blue-600">
                           ₱{application.monthly_rent.toLocaleString()}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-500">Documents</p>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-xs sm:text-sm font-medium text-gray-900">
                           {application.documents.length} attached
                         </p>
                       </div>
@@ -751,8 +765,8 @@ export default function OwnerApplicationsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                        <Eye className="w-4 h-4 mr-2" />
+                        className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-colors text-xs sm:text-sm">
+                        <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         View Details
                       </Button>
                     </div>
@@ -766,9 +780,11 @@ export default function OwnerApplicationsPage() {
 
       {/* Application Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto max-w-[calc(100vw-2rem)]">
           <DialogHeader>
-            <DialogTitle>Application Details</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
+              Application Details
+            </DialogTitle>
           </DialogHeader>
           {selectedApplication ? (
             <div className="space-y-6 py-4">
@@ -946,14 +962,14 @@ export default function OwnerApplicationsPage() {
 
       {/* Action Dialog */}
       <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto max-w-[calc(100vw-2rem)]">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
               {actionType === 'approve'
                 ? 'Approve Application'
                 : 'Reject Application'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm sm:text-base">
               {actionType === 'approve'
                 ? 'Are you sure you want to approve this application? This will create a new tenant record.'
                 : 'Please provide a reason for rejecting this application.'}

@@ -94,63 +94,69 @@ export default function OwnerDashboard() {
         ] = await Promise.all([
           PropertiesAPI.getProperties(authState.user.id),
           TenantsAPI.getTenants(authState.user.id),
-          PaymentsAPI.getPayments(),
-          MaintenanceAPI.getMaintenanceRequests(),
-          MessagesAPI.getUnreadCount(authState.user.id)
+          PaymentsAPI.getOwnerPayments(authState.user.id),
+          MaintenanceAPI.getMaintenanceRequests(authState.user.id),
+          MessagesAPI.getUnreadMessagesCount(authState.user.id)
         ]);
 
         const properties = propertiesResult.success
-          ? propertiesResult.data
+          ? propertiesResult.data || []
           : [];
-        const tenants = tenantsResult.success ? tenantsResult.data : [];
-        const payments = paymentsResult.success ? paymentsResult.data : [];
+        const tenants = tenantsResult.success ? tenantsResult.data || [] : [];
+        const payments = paymentsResult.success
+          ? paymentsResult.data || []
+          : [];
         const maintenance = maintenanceResult.success
-          ? maintenanceResult.data
+          ? maintenanceResult.data || []
           : [];
         const unreadMessages = messagesResult.success
-          ? (messagesResult.data as any)?.count || 0
+          ? typeof messagesResult.data === 'number'
+            ? messagesResult.data
+            : messagesResult.data?.count || 0
           : 0;
 
         // Calculate statistics
         const activeProperties = properties.filter(
-          p => p.status === 'active'
+          (p: any) => p.status === 'active'
         ).length;
-        const activeTenants = tenants.filter(t => t.status === 'active').length;
+        const activeTenants = tenants.filter(
+          (t: any) => t.status === 'active'
+        ).length;
         const pendingMaintenance = maintenance.filter(
-          m => m.status === 'pending' || m.status === 'in_progress'
+          (m: any) => m.status === 'pending' || m.status === 'in_progress'
         ).length;
 
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
 
         const monthlyRevenue = payments
-          .filter(p => {
-            const paymentDate = new Date(p.created_at);
+          .filter((p: any) => {
+            const paymentDate = new Date(p.paid_date || p.created_at);
             return (
               p.payment_status === 'paid' &&
               paymentDate.getMonth() === currentMonth &&
               paymentDate.getFullYear() === currentYear
             );
           })
-          .reduce((sum, p) => sum + p.amount, 0);
+          .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
 
         const totalRevenue = payments
-          .filter(p => p.payment_status === 'paid')
-          .reduce((sum, p) => sum + p.amount, 0);
+          .filter((p: any) => p.payment_status === 'paid')
+          .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
 
         const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
         const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
         const previousMonthRevenue = payments
-          .filter(p => {
-            const paymentDate = new Date(p.created_at);
+          .filter((p: any) => {
+            const paymentDate = new Date(p.paid_date || p.created_at);
             return (
               p.payment_status === 'paid' &&
               paymentDate.getMonth() === previousMonth &&
               paymentDate.getFullYear() === previousYear
             );
           })
-          .reduce((sum, p) => sum + p.amount, 0);
+          .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
 
         const revenueGrowth =
           previousMonthRevenue > 0
@@ -159,7 +165,7 @@ export default function OwnerDashboard() {
             : 0;
 
         const totalUnits = properties.reduce(
-          (sum, p) => sum + (p.total_units || 1),
+          (sum: number, p: any) => sum + (p.total_units || 1),
           0
         );
         const occupancyRate =
@@ -167,7 +173,7 @@ export default function OwnerDashboard() {
 
         // Create recent activity
         const recentActivity = [
-          ...maintenance.slice(0, 2).map(m => ({
+          ...maintenance.slice(0, 2).map((m: any) => ({
             type: 'maintenance',
             title: 'Maintenance Request',
             description: m.description || 'New maintenance request',
@@ -175,7 +181,7 @@ export default function OwnerDashboard() {
             status: m.status,
             priority: m.priority
           })),
-          ...payments.slice(0, 2).map(p => ({
+          ...payments.slice(0, 2).map((p: any) => ({
             type: 'payment',
             title: 'Payment Received',
             description: `Payment of ${formatCurrency(p.amount)}`,
@@ -286,150 +292,142 @@ export default function OwnerDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-blue-600 font-medium">Loading your dashboard...</p>
+          <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium text-sm sm:text-base">
+            Loading your dashboard...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
-      {/* Desktop Header */}
-      <div className="hidden lg:block bg-gradient-to-r from-white to-blue-50/50 shadow-sm border-b border-blue-100">
-        <div className="px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
-                Property Dashboard
-              </h1>
-              <p className="text-blue-600/80 font-medium">
-                Welcome back, {authState.user?.firstName}! 👋
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-blue-600/70 text-sm font-medium bg-blue-50 px-3 py-1 rounded-full">
-                {currentTime}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="relative hover:bg-blue-50 text-blue-600"
-                onClick={() => router.push('/owner/dashboard/notifications')}>
-                <Bell className="w-5 h-5" />
-                {dashboardData.stats.unreadMessages > 0 && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {dashboardData.stats.unreadMessages}
-                  </div>
-                )}
-              </Button>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              Dashboard
+            </h1>
+            <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
+              Welcome back, {authState.user?.firstName}! Here's your property
+              overview.
+            </p>
+          </div>
+          <div className="text-xs sm:text-sm text-gray-600">
+            Last updated: {currentTime}
           </div>
         </div>
-      </div>
-
-      {/* Content Area */}
-      <div className="p-4 lg:p-8">
-        {/* Desktop Stats Grid */}
-        <div className="hidden lg:grid grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-xl border-0 hover:shadow-2xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm mb-1 font-medium">
-                    Active Properties
-                  </p>
-                  <p className="text-3xl font-bold">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Building className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {dashboardData.stats.activeProperties}
                   </p>
-                  <div className="flex items-center mt-2">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    <span className="text-xs text-blue-200">
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Active Properties
+                  </p>
+                  <div className="flex items-center mt-1">
+                    <MapPin className="w-3 h-3 mr-1 text-blue-500 flex-shrink-0" />
+                    <span className="text-xs text-blue-600 truncate">
                       {Math.round(dashboardData.stats.occupancyRate)}% occupied
                     </span>
                   </div>
                 </div>
-                <Building className="w-10 h-10 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-xl border-0 hover:shadow-2xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm mb-1 font-medium">
-                    Active Tenants
-                  </p>
-                  <p className="text-3xl font-bold">
+          <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {dashboardData.stats.activeTenants}
                   </p>
-                  <div className="flex items-center mt-2">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    <span className="text-xs text-green-200">
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Active Tenants
+                  </p>
+                  <div className="flex items-center mt-1">
+                    <CheckCircle className="w-3 h-3 mr-1 text-green-500 flex-shrink-0" />
+                    <span className="text-xs text-green-600 truncate">
                       {dashboardData.tenants.length} total
                     </span>
                   </div>
                 </div>
-                <Users className="w-10 h-10 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-xl border-0 hover:shadow-2xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-sm mb-1 font-medium">
-                    Maintenance
-                  </p>
-                  <p className="text-3xl font-bold">
+          <Card className="bg-white/70 backdrop-blur-sm border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {dashboardData.stats.pendingMaintenance}
                   </p>
-                  <div className="flex items-center mt-2">
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Maintenance
+                  </p>
+                  <div className="flex items-center mt-1">
                     {dashboardData.stats.pendingMaintenance > 0 ? (
                       <>
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        <span className="text-xs text-orange-200">
+                        <AlertTriangle className="w-3 h-3 mr-1 text-orange-500 flex-shrink-0" />
+                        <span className="text-xs text-orange-600 truncate">
                           Pending requests
                         </span>
                       </>
                     ) : (
                       <>
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        <span className="text-xs text-orange-200">
+                        <CheckCircle className="w-3 h-3 mr-1 text-green-500 flex-shrink-0" />
+                        <span className="text-xs text-green-600 truncate">
                           All up to date
                         </span>
                       </>
                     )}
                   </div>
                 </div>
-                <Wrench className="w-10 h-10 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-xl border-0 hover:shadow-2xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm mb-1 font-medium">
-                    Monthly Revenue
-                  </p>
-                  <p className="text-3xl font-bold">
+          <Card className="bg-white/70 backdrop-blur-sm border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <PhilippinePeso className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
                     {formatCurrency(dashboardData.stats.monthlyRevenue)}
                   </p>
-                  <div className="flex items-center mt-2">
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Monthly Revenue
+                  </p>
+                  <div className="flex items-center mt-1">
                     {getGrowthIcon(dashboardData.stats.revenueGrowth)}
                     <span
-                      className={`text-xs ml-1 ${
+                      className={`text-xs ml-1 truncate ${
                         dashboardData.stats.revenueGrowth > 0
-                          ? 'text-green-200'
+                          ? 'text-green-600'
                           : dashboardData.stats.revenueGrowth < 0
-                          ? 'text-red-200'
-                          : 'text-purple-200'
+                          ? 'text-red-600'
+                          : 'text-gray-600'
                       }`}>
                       {dashboardData.stats.revenueGrowth > 0 ? '+' : ''}
                       {Math.round(dashboardData.stats.revenueGrowth * 100) /
@@ -438,37 +436,36 @@ export default function OwnerDashboard() {
                     </span>
                   </div>
                 </div>
-                <PhilippinePeso className="w-10 h-10 opacity-80" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {quickActions.map((action, index) => (
             <Card
               key={index}
-              className="bg-white/80 backdrop-blur-sm hover:bg-white hover:shadow-lg transition-all duration-200 active:scale-95 cursor-pointer border border-blue-100 shadow-md"
+              className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 cursor-pointer"
               onClick={() => handleActionClick(action.route)}>
-              <CardContent className="p-4 text-center">
-                <div className="relative mb-3">
+              <CardContent className="p-3 sm:p-4 text-center">
+                <div className="relative mb-2 sm:mb-3">
                   <div
-                    className={`w-12 h-12 bg-gradient-to-r ${action.color} rounded-xl flex items-center justify-center mx-auto shadow-md`}>
-                    <action.icon className="w-6 h-6 text-white" />
+                    className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r ${action.color} rounded-xl flex items-center justify-center mx-auto shadow-md`}>
+                    <action.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
                   {action.count && parseInt(action.count) > 0 && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                    <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs font-bold">
                         {action.count}
                       </span>
                     </div>
                   )}
                 </div>
-                <p className="text-gray-800 text-sm font-semibold leading-tight">
+                <p className="text-gray-800 text-xs sm:text-sm font-semibold leading-tight">
                   {action.label}
                 </p>
-                <p className="text-gray-500 text-xs mt-1">
+                <p className="text-gray-500 text-xs mt-1 hidden sm:block">
                   {action.description}
                 </p>
               </CardContent>
@@ -477,38 +474,38 @@ export default function OwnerDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-blue-500" />
+        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-blue-700 flex items-center gap-2 text-lg sm:text-xl">
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
               Recent Activity
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0">
             {dashboardData.recentActivity.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {dashboardData.recentActivity.map((activity, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-blue-50/50 hover:bg-blue-100/50 transition-colors">
+                    className="flex items-center gap-3 p-3 sm:p-4 rounded-lg bg-blue-50/50 border border-blue-200/50 hover:bg-blue-50 transition-colors">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md flex-shrink-0 ${
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shadow-md flex-shrink-0 ${
                         activity.type === 'maintenance'
-                          ? 'bg-orange-500'
+                          ? 'bg-gradient-to-r from-orange-500 to-orange-600'
                           : activity.type === 'payment'
-                          ? 'bg-green-500'
-                          : 'bg-blue-500'
+                          ? 'bg-gradient-to-r from-green-500 to-green-600'
+                          : 'bg-gradient-to-r from-blue-500 to-blue-600'
                       }`}>
                       {activity.type === 'maintenance' ? (
-                        <Wrench className="w-5 h-5 text-white" />
+                        <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       ) : activity.type === 'payment' ? (
-                        <PhilippinePeso className="w-5 h-5 text-white" />
+                        <PhilippinePeso className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       ) : (
-                        <Activity className="w-5 h-5 text-white" />
+                        <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-gray-900 font-semibold text-sm">
+                      <p className="text-gray-900 font-semibold text-xs sm:text-sm">
                         {activity.title}
                       </p>
                       <p className="text-gray-600 text-xs truncate">
@@ -519,7 +516,7 @@ export default function OwnerDashboard() {
                       </p>
                     </div>
                     <Badge
-                      className={`text-xs border-0 ${
+                      className={`text-xs border-0 flex-shrink-0 ${
                         activity.status === 'completed' ||
                         activity.status === 'paid'
                           ? 'bg-green-100 text-green-700'
@@ -535,8 +532,8 @@ export default function OwnerDashboard() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <div className="text-center py-6 sm:py-8">
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-gray-500 text-sm">No recent activity</p>
                 <p className="text-gray-400 text-xs">
                   Check back later for updates

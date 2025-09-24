@@ -518,7 +518,7 @@ export default function MaintenanceDetailsPage() {
               The maintenance request you're looking for doesn't exist.
             </p>
             <Button onClick={() => router.push('/owner/dashboard/maintenance')}>
-              Back to Maintenance
+              Back
             </Button>
           </div>
         </div>
@@ -536,8 +536,7 @@ export default function MaintenanceDetailsPage() {
               variant="ghost"
               onClick={() => router.push('/owner/dashboard/maintenance')}
               className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Maintenance
+              <ArrowLeft className="w-4 h-4 mr-0" />
             </Button>
             <div className="flex-1">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">

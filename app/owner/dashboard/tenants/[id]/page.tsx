@@ -108,13 +108,13 @@ interface Tenant {
 
 interface Payment {
   id: string;
-  amount: number;
+  amount?: number;
   due_date: string;
   payment_date?: string;
   payment_status: string;
   payment_method?: string;
-  description: string;
-  late_fee: number;
+  description?: string;
+  late_fee?: number;
   created_at: string;
   reference_number?: string; // Added for Xendit link
 }
@@ -208,7 +208,7 @@ export default function TenantDetailsPage() {
           setAnalytics(analyticsResult.data);
         }
 
-        if (paymentsResult.success) {
+        if (paymentsResult.success && paymentsResult.data) {
           setPayments(paymentsResult.data);
         }
 
@@ -564,7 +564,7 @@ export default function TenantDetailsPage() {
         }</b></p>
         <hr style="margin: 16px 0; border: none; border-top: 1px solid #e3e8f0;" />
         <p style="margin: 0 0 8px 0; color: #1F2937;">Amount: <b>₱${formatCurrency(
-          payment.amount
+          payment.amount || 0
         )}</b></p>
         <p style="margin: 0 0 8px 0; color: #1F2937;">Late Fee: <b>₱${formatCurrency(
           payment.late_fee || 0
@@ -591,8 +591,10 @@ export default function TenantDetailsPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-blue-600 font-medium">Loading tenant details...</p>
+          <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium text-sm sm:text-base">
+            Loading tenant details...
+          </p>
         </div>
       </div>
     );
@@ -602,14 +604,16 @@ export default function TenantDetailsPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
         <div className="text-center">
-          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <Users className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
             Tenant not found
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-6 text-sm sm:text-base">
             The tenant you're looking for doesn't exist or has been removed.
           </p>
-          <Button onClick={() => router.push('/owner/dashboard/tenants')}>
+          <Button
+            onClick={() => router.push('/owner/dashboard/tenants')}
+            className="text-sm sm:text-base">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tenants
           </Button>
@@ -622,31 +626,33 @@ export default function TenantDetailsPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
       {/* Header */}
       <div className="bg-gradient-to-r from-white to-blue-50/50 shadow-sm border-b border-blue-100">
-        <div className="px-6 py-6">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => router.back()}
-                className="text-blue-600 hover:bg-blue-50">
+                className="text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <div className="flex items-center gap-3">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg sm:text-xl">
                   {tenant.user.first_name[0]}
                   {tenant.user.last_name[0]}
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
                     {tenant.user.first_name} {tenant.user.last_name}
                   </h1>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Home className="w-4 h-4 text-blue-600" />
-                    <p className="text-blue-600/80 font-medium">
-                      {tenant.property.name} - Unit {tenant.unit_number}
-                    </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1">
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <Home className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                      <p className="text-blue-600/80 font-medium text-xs sm:text-sm">
+                        {tenant.property.name} - Unit {tenant.unit_number}
+                      </p>
+                    </div>
                     {getStatusBadge(tenant.status)}
                   </div>
                 </div>
@@ -655,7 +661,7 @@ export default function TenantDetailsPage() {
             <div className="flex items-center gap-2">
               <Button
                 onClick={handleEdit}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white">
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm sm:text-base">
                 <Edit className="w-4 h-4 mr-2" />
                 Edit Tenant
               </Button>
@@ -669,11 +675,11 @@ export default function TenantDetailsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleRenewLease}>
+                  {/* <DropdownMenuItem onClick={handleRenewLease}>
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Renew Lease
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  </DropdownMenuItem> */}
+                  {/* <DropdownMenuItem>
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Send Message
                   </DropdownMenuItem>
@@ -684,7 +690,7 @@ export default function TenantDetailsPage() {
                   <DropdownMenuItem>
                     <Download className="w-4 h-4 mr-2" />
                     Export Data
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> */}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -692,53 +698,62 @@ export default function TenantDetailsPage() {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-3 sm:p-4 lg:p-6">
         <div className="max-w-7xl mx-auto">
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-xl border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <PhilippinePeso className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
                   <div>
-                    <p className="text-blue-100 text-sm mb-1">Monthly Rent</p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Monthly Rent
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {formatCurrency(tenant.monthly_rent)}
                     </p>
                   </div>
-                  <PhilippinePeso className="w-10 h-10 opacity-80" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-xl border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
                   <div>
-                    <p className="text-green-100 text-sm mb-1">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       Lease Days Left
                     </p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {Math.max(0, getDaysUntilLeaseExpiry())}
                     </p>
-                    <p className="text-green-200 text-xs">
+                    <p className="text-xs text-gray-500">
                       {getDaysUntilLeaseExpiry() <= 30
                         ? 'Expires soon!'
                         : 'Active lease'}
                     </p>
                   </div>
-                  <Calendar className="w-10 h-10 opacity-80" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-xl border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className="bg-white/70 backdrop-blur-sm border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
                   <div>
-                    <p className="text-purple-100 text-sm mb-1">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       Payment Score
                     </p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {analytics
                         ? Math.round(
                             (analytics.paidOnTime /
@@ -748,24 +763,27 @@ export default function TenantDetailsPage() {
                         : 0}
                       %
                     </p>
-                    <p className="text-purple-200 text-xs">On-time payments</p>
+                    <p className="text-xs text-gray-500">On-time payments</p>
                   </div>
-                  <TrendingUp className="w-10 h-10 opacity-80" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-xl border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className="bg-white/70 backdrop-blur-sm border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                    <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
                   <div>
-                    <p className="text-orange-100 text-sm mb-1">Maintenance</p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Maintenance
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {analytics?.maintenanceRequests || 0}
                     </p>
-                    <p className="text-orange-200 text-xs">Total requests</p>
+                    <p className="text-xs text-gray-500">Total requests</p>
                   </div>
-                  <Wrench className="w-10 h-10 opacity-80" />
                 </div>
               </CardContent>
             </Card>
@@ -776,74 +794,90 @@ export default function TenantDetailsPage() {
             value={activeTab}
             onValueChange={setActiveTab}
             className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-white/80 backdrop-blur-sm border border-blue-100">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 bg-white/80 backdrop-blur-sm border border-blue-100">
               <TabsTrigger
                 value="overview"
-                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs sm:text-sm">
                 Overview
               </TabsTrigger>
               <TabsTrigger
                 value="payments"
-                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs sm:text-sm">
                 Payments
               </TabsTrigger>
               <TabsTrigger
                 value="maintenance"
-                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                Maintenance ({maintenanceRequests.length})
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs sm:text-sm">
+                <span className="hidden sm:inline">Maintenance</span>
+                <span className="sm:hidden">Maint.</span> (
+                {maintenanceRequests.length})
               </TabsTrigger>
               <TabsTrigger
                 value="documents"
-                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs sm:text-sm">
                 Documents
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="mt-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TabsContent value="overview" className="mt-4 sm:mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {/* Personal Information */}
                 <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <UserCheck className="w-5 h-5 text-blue-600" />
+                  <CardHeader className="p-3 sm:p-6">
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <UserCheck className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                       Personal Information
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <p className="text-sm text-gray-600">First Name</p>
-                        <p className="font-semibold">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          First Name
+                        </p>
+                        <p className="font-semibold text-sm sm:text-base">
                           {tenant.user.first_name}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Last Name</p>
-                        <p className="font-semibold">{tenant.user.last_name}</p>
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Last Name
+                        </p>
+                        <p className="font-semibold text-sm sm:text-base">
+                          {tenant.user.last_name}
+                        </p>
                       </div>
-                      <div className="col-span-2">
-                        <p className="text-sm text-gray-600">Email</p>
-                        <p className="font-semibold">{tenant.user.email}</p>
+                      <div className="sm:col-span-2">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Email
+                        </p>
+                        <p className="font-semibold text-sm sm:text-base">
+                          {tenant.user.email}
+                        </p>
                       </div>
-                      <div className="col-span-2">
-                        <p className="text-sm text-gray-600">Phone</p>
-                        <p className="font-semibold">{tenant.user.phone}</p>
+                      <div className="sm:col-span-2">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Phone
+                        </p>
+                        <p className="font-semibold text-sm sm:text-base">
+                          {tenant.user.phone}
+                        </p>
                       </div>
                     </div>
 
                     {(tenant.emergency_contact_name ||
                       tenant.emergency_contact_phone) && (
-                      <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600 mb-2">
+                      <div className="border-t pt-3 sm:pt-4">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-2">
                           Emergency Contact
                         </p>
                         {tenant.emergency_contact_name && (
-                          <p className="font-semibold">
+                          <p className="font-semibold text-sm sm:text-base">
                             {tenant.emergency_contact_name}
                           </p>
                         )}
                         {tenant.emergency_contact_phone && (
-                          <p className="text-gray-700">
+                          <p className="text-gray-700 text-sm sm:text-base">
                             {tenant.emergency_contact_phone}
                           </p>
                         )}
@@ -854,62 +888,72 @@ export default function TenantDetailsPage() {
 
                 {/* Lease Information */}
                 <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-blue-600" />
+                  <CardHeader className="p-3 sm:p-6">
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                       Lease Information
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <p className="text-sm text-gray-600">Lease Start</p>
-                        <p className="font-semibold">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Lease Start
+                        </p>
+                        <p className="font-semibold text-sm sm:text-base">
                           {formatDate(tenant.lease_start)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Lease End</p>
-                        <p className="font-semibold">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Lease End
+                        </p>
+                        <p className="font-semibold text-sm sm:text-base">
                           {formatDate(tenant.lease_end)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Monthly Rent</p>
-                        <p className="font-semibold">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Monthly Rent
+                        </p>
+                        <p className="font-semibold text-sm sm:text-base">
                           {formatCurrency(tenant.monthly_rent)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-600">
                           Security Deposit
                         </p>
-                        <p className="font-semibold">
+                        <p className="font-semibold text-sm sm:text-base">
                           {formatCurrency(tenant.security_deposit)}
                         </p>
                       </div>
                     </div>
 
-                    <div className="border-t pt-4">
-                      <p className="text-sm text-gray-600 mb-2">
+                    <div className="border-t pt-3 sm:pt-4">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-2">
                         Property Details
                       </p>
-                      <p className="font-semibold">{tenant.property.name}</p>
-                      <p className="text-gray-700">{tenant.property.address}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-semibold text-sm sm:text-base">
+                        {tenant.property.name}
+                      </p>
+                      <p className="text-gray-700 text-sm sm:text-base">
+                        {tenant.property.address}
+                      </p>
+                      <p className="text-xs sm:text-sm text-gray-500">
                         {tenant.property.city}, {tenant.property.province}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-xs sm:text-sm text-gray-500 mt-1">
                         Unit {tenant.unit_number} • {tenant.property.type}
                       </p>
                     </div>
 
                     {tenant.lease_terms && (
-                      <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600 mb-2">
+                      <div className="border-t pt-3 sm:pt-4">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-2">
                           Lease Terms
                         </p>
-                        <p className="text-gray-900 whitespace-pre-wrap">
+                        <p className="text-gray-900 whitespace-pre-wrap text-sm sm:text-base">
                           {tenant.lease_terms}
                         </p>
                       </div>
@@ -920,47 +964,51 @@ export default function TenantDetailsPage() {
                 {/* Analytics Summary */}
                 {analytics && (
                   <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100 lg:col-span-2">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-blue-600" />
+                    <CardHeader className="p-3 sm:p-6">
+                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                         Tenant Analytics
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <CardContent className="p-3 sm:p-6 pt-0">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                         <div className="text-center">
-                          <p className="text-2xl font-bold text-blue-600">
+                          <p className="text-xl sm:text-2xl font-bold text-blue-600">
                             {analytics.totalPayments}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs sm:text-sm text-gray-600">
                             Total Payments
                           </p>
                         </div>
                         <div className="text-center">
-                          <p className="text-2xl font-bold text-green-600">
+                          <p className="text-xl sm:text-2xl font-bold text-green-600">
                             {analytics.paidOnTime}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs sm:text-sm text-gray-600">
                             On-Time Payments
                           </p>
                         </div>
                         <div className="text-center">
-                          <p className="text-2xl font-bold text-orange-600">
+                          <p className="text-xl sm:text-2xl font-bold text-orange-600">
                             {analytics.latePayments}
                           </p>
-                          <p className="text-sm text-gray-600">Late Payments</p>
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            Late Payments
+                          </p>
                         </div>
                         <div className="text-center">
-                          <p className="text-2xl font-bold text-purple-600">
+                          <p className="text-xl sm:text-2xl font-bold text-purple-600">
                             {analytics.tenancyDuration}
                           </p>
-                          <p className="text-sm text-gray-600">Months Tenure</p>
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            Months Tenure
+                          </p>
                         </div>
                       </div>
                       {analytics.averagePaymentDelay > 0 && (
-                        <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                          <p className="text-sm text-orange-700">
-                            <AlertTriangle className="w-4 h-4 inline mr-1" />
+                        <div className="mt-3 sm:mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                          <p className="text-xs sm:text-sm text-orange-700">
+                            <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                             Average payment delay:{' '}
                             {Math.round(analytics.averagePaymentDelay)} days
                           </p>
@@ -972,14 +1020,14 @@ export default function TenantDetailsPage() {
 
                 {tenant.notes && (
                   <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100 lg:col-span-2">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                    <CardHeader className="p-3 sm:p-6">
+                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                         Notes
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-900 whitespace-pre-wrap">
+                    <CardContent className="p-3 sm:p-6 pt-0">
+                      <p className="text-gray-900 whitespace-pre-wrap text-sm sm:text-base">
                         {tenant.notes}
                       </p>
                     </CardContent>
@@ -988,46 +1036,46 @@ export default function TenantDetailsPage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="payments" className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <TabsContent value="payments" className="mt-4 sm:mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 <Card className="bg-blue-50/60 border border-blue-100 shadow-md rounded-xl">
-                  <CardContent className="p-7">
+                  <CardContent className="p-4 sm:p-6 lg:p-7">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-blue-600 text-sm mb-1 font-medium">
+                        <p className="text-blue-600 text-xs sm:text-sm mb-1 font-medium">
                           Current Bill
                         </p>
-                        <p className="text-3xl font-bold text-blue-900">
+                        <p className="text-2xl sm:text-3xl font-bold text-blue-900">
                           {formatCurrency(getCurrentBill())}
                         </p>
                       </div>
-                      <PhilippinePeso className="w-10 h-10 opacity-80 text-blue-400" />
+                      <PhilippinePeso className="w-8 h-8 sm:w-10 sm:h-10 opacity-80 text-blue-400" />
                     </div>
                   </CardContent>
                 </Card>
                 <Card className="bg-red-50/60 border border-red-100 shadow-md rounded-xl">
-                  <CardContent className="p-7">
+                  <CardContent className="p-4 sm:p-6 lg:p-7">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-red-600 text-sm mb-1 font-medium">
+                        <p className="text-red-600 text-xs sm:text-sm mb-1 font-medium">
                           Outstanding Balance
                         </p>
-                        <p className="text-3xl font-bold text-red-900">
+                        <p className="text-2xl sm:text-3xl font-bold text-red-900">
                           {formatCurrency(getOutstandingBalance())}
                         </p>
                       </div>
-                      <PhilippinePeso className="w-10 h-10 opacity-80 text-red-400" />
+                      <PhilippinePeso className="w-8 h-8 sm:w-10 sm:h-10 opacity-80 text-red-400" />
                     </div>
                   </CardContent>
                 </Card>
                 <Card className="bg-green-50/60 border border-green-100 shadow-md rounded-xl">
-                  <CardContent className="p-7">
+                  <CardContent className="p-4 sm:p-6 lg:p-7">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-green-600 text-sm mb-1 font-medium">
+                        <p className="text-green-600 text-xs sm:text-sm mb-1 font-medium">
                           Future Payments
                         </p>
-                        <p className="text-3xl font-bold text-green-900">
+                        <p className="text-2xl sm:text-3xl font-bold text-green-900">
                           {formatCurrency(
                             futurePayments.reduce(
                               (sum, p) =>
@@ -1037,7 +1085,7 @@ export default function TenantDetailsPage() {
                           )}
                         </p>
                       </div>
-                      <PhilippinePeso className="w-10 h-10 opacity-80 text-green-400" />
+                      <PhilippinePeso className="w-8 h-8 sm:w-10 sm:h-10 opacity-80 text-green-400" />
                     </div>
                   </CardContent>
                 </Card>
@@ -1045,22 +1093,22 @@ export default function TenantDetailsPage() {
 
               {/* Payments Sub-Tabs */}
               <Tabs defaultValue="schedule" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm border border-blue-100 mb-6">
+                <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm border border-blue-100 mb-4 sm:mb-6">
                   <TabsTrigger
                     value="schedule"
-                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-l-xl">
+                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-l-xl text-xs sm:text-sm">
                     Payment Schedule
                   </TabsTrigger>
                   <TabsTrigger
                     value="history"
-                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-r-xl">
+                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-r-xl text-xs sm:text-sm">
                     Payment History
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="schedule">
-                  <div className="flex justify-end mb-4">
+                  <div className="flex justify-end mb-3 sm:mb-4">
                     <Button
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg"
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg text-sm sm:text-base"
                       onClick={() => setShowAddPayment(true)}>
                       + Add Payment
                     </Button>
@@ -1183,7 +1231,10 @@ export default function TenantDetailsPage() {
                                 // Refresh payments
                                 const paymentsResult =
                                   await PaymentsAPI.getPayments(tenant.id);
-                                if (paymentsResult.success)
+                                if (
+                                  paymentsResult.success &&
+                                  paymentsResult.data
+                                )
                                   setPayments(paymentsResult.data);
                               } else {
                                 toast.error(
@@ -1206,19 +1257,31 @@ export default function TenantDetailsPage() {
                     </DialogContent>
                   </Dialog>
                   <Card className="bg-white/95 border border-blue-100 shadow-lg rounded-xl">
-                    <CardHeader>
-                      <CardTitle>Payment Schedule</CardTitle>
+                    <CardHeader className="p-3 sm:p-6">
+                      <CardTitle className="text-base sm:text-lg">
+                        Payment Schedule
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 sm:p-6 pt-0">
                       <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Due Date</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Paid Date</TableHead>
-                              <TableHead>Receipt</TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Due Date
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Amount
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Status
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Paid Date
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Receipt
+                              </TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1323,17 +1386,23 @@ export default function TenantDetailsPage() {
                                   return (
                                     <TableRow
                                       key={due_date.toISOString() + idx}>
-                                      <TableCell>
+                                      <TableCell className="text-xs sm:text-sm">
                                         {formatShortDate(
                                           due_date.toISOString()
                                         )}
                                       </TableCell>
-                                      <TableCell>
+                                      <TableCell className="text-xs sm:text-sm">
                                         {formatCurrency(amount)}
                                       </TableCell>
-                                      <TableCell>{badge}</TableCell>
-                                      <TableCell>{paidDate}</TableCell>
-                                      <TableCell>{receipt}</TableCell>
+                                      <TableCell className="text-xs sm:text-sm">
+                                        {badge}
+                                      </TableCell>
+                                      <TableCell className="text-xs sm:text-sm">
+                                        {paidDate}
+                                      </TableCell>
+                                      <TableCell className="text-xs sm:text-sm">
+                                        {receipt}
+                                      </TableCell>
                                     </TableRow>
                                   );
                                 }
@@ -1347,94 +1416,124 @@ export default function TenantDetailsPage() {
                 </TabsContent>
                 <TabsContent value="history">
                   <Card className="bg-white/95 border border-blue-100 shadow-lg rounded-xl">
-                    <CardHeader>
-                      <CardTitle>Payment History</CardTitle>
+                    <CardHeader className="p-3 sm:p-6">
+                      <CardTitle className="text-base sm:text-lg">
+                        Payment History
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Due Date</TableHead>
-                            <TableHead>Paid Date</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Late Fee</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead>Method</TableHead>
-                            <TableHead>Receipt</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {payments.map(payment => (
-                            <TableRow key={payment.id}>
-                              <TableCell>
-                                {getPaymentStatusBadge(payment.payment_status)}
-                              </TableCell>
-                              <TableCell>
-                                {formatShortDate(payment.due_date)}
-                              </TableCell>
-                              <TableCell>
-                                {payment.payment_date
-                                  ? formatShortDate(payment.payment_date)
-                                  : '-'}
-                              </TableCell>
-                              <TableCell>
-                                ₱{formatCurrency(payment.amount)}
-                              </TableCell>
-                              <TableCell>
-                                ₱{formatCurrency(payment.late_fee || 0)}
-                              </TableCell>
-                              <TableCell>
-                                ₱
-                                {formatCurrency(
-                                  (payment.amount || 0) +
-                                    (payment.late_fee || 0)
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {payment.payment_method || '-'}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-blue-200 text-blue-600"
-                                  onClick={() => {
-                                    const html = generateReceiptHTML(payment);
-                                    const blob = new Blob([html], {
-                                      type: 'text/html'
-                                    });
-                                    saveAs(blob, `receipt-${payment.id}.html`);
-                                  }}>
-                                  <Download className="w-4 h-4" />
-                                  Receipt
-                                </Button>
-                                {payment.reference_number &&
-                                  payment.reference_number.startsWith(
-                                    'http'
-                                  ) && (
+                    <CardContent className="p-3 sm:p-6 pt-0">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs sm:text-sm">
+                                Status
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Due Date
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Paid Date
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Amount
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Late Fee
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Total
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Method
+                              </TableHead>
+                              <TableHead className="text-xs sm:text-sm">
+                                Receipt
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {payments.map(payment => (
+                              <TableRow key={payment.id}>
+                                <TableCell className="text-xs sm:text-sm">
+                                  {getPaymentStatusBadge(
+                                    payment.payment_status
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm">
+                                  {formatShortDate(payment.due_date)}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm">
+                                  {payment.payment_date
+                                    ? formatShortDate(payment.payment_date)
+                                    : '-'}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm">
+                                  ₱{formatCurrency(payment.amount || 0)}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm">
+                                  ₱{formatCurrency(payment.late_fee || 0)}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm">
+                                  ₱
+                                  {formatCurrency(
+                                    (payment.amount || 0) +
+                                      (payment.late_fee || 0)
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm">
+                                  {payment.payment_method || '-'}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm">
+                                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="border-blue-200 text-blue-600 ml-2"
-                                      onClick={() =>
-                                        window.open(
-                                          payment.reference_number,
-                                          '_blank'
-                                        )
-                                      }>
-                                      Pay Now
+                                      className="border-blue-200 text-blue-600 text-xs sm:text-sm"
+                                      onClick={() => {
+                                        const html =
+                                          generateReceiptHTML(payment);
+                                        const blob = new Blob([html], {
+                                          type: 'text/html'
+                                        });
+                                        saveAs(
+                                          blob,
+                                          `receipt-${payment.id}.html`
+                                        );
+                                      }}>
+                                      <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                                      <span className="hidden sm:inline ml-1">
+                                        Receipt
+                                      </span>
                                     </Button>
-                                  )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                                    {payment.reference_number &&
+                                      payment.reference_number.startsWith(
+                                        'http'
+                                      ) && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="border-blue-200 text-blue-600 text-xs sm:text-sm"
+                                          onClick={() =>
+                                            window.open(
+                                              payment.reference_number,
+                                              '_blank'
+                                            )
+                                          }>
+                                          Pay Now
+                                        </Button>
+                                      )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                       {payments.length === 0 && (
-                        <div className="text-center py-8">
-                          <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-500">
+                        <div className="text-center py-6 sm:py-8">
+                          <CreditCard className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-500 text-sm sm:text-base">
                             No payment history yet
                           </p>
                         </div>
@@ -1445,33 +1544,35 @@ export default function TenantDetailsPage() {
               </Tabs>
             </TabsContent>
 
-            <TabsContent value="maintenance" className="mt-6">
+            <TabsContent value="maintenance" className="mt-4 sm:mt-6">
               <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-                <CardHeader>
-                  <CardTitle>Maintenance Requests</CardTitle>
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">
+                    Maintenance Requests
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6 pt-0">
                   {maintenanceRequests.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {maintenanceRequests.map(request => (
                         <div
                           key={request.id}
-                          className="flex items-start justify-between p-4 border border-blue-100 rounded-lg bg-blue-50/50">
-                          <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white">
-                              <Wrench className="w-6 h-6" />
+                          className="flex flex-col sm:flex-row sm:items-start sm:justify-between p-3 sm:p-4 border border-blue-100 rounded-lg bg-blue-50/50 gap-3 sm:gap-4">
+                          <div className="flex items-start gap-3 sm:gap-4">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white">
+                              <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <p className="font-semibold text-gray-900">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
+                                <p className="font-semibold text-gray-900 text-sm sm:text-base">
                                   {request.title}
                                 </p>
                                 {getPriorityBadge(request.priority)}
                               </div>
-                              <p className="text-sm text-gray-600 mb-2">
+                              <p className="text-xs sm:text-sm text-gray-600 mb-2">
                                 {request.description}
                               </p>
-                              <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-500">
                                 <span>
                                   Created: {formatShortDate(request.created_at)}
                                 </span>
@@ -1484,7 +1585,7 @@ export default function TenantDetailsPage() {
                               </div>
                               {(request.estimated_cost ||
                                 request.actual_cost) && (
-                                <div className="flex items-center gap-4 text-xs text-gray-600 mt-1">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-600 mt-1">
                                   {request.estimated_cost && (
                                     <span>
                                       Est. Cost:{' '}
@@ -1501,16 +1602,16 @@ export default function TenantDetailsPage() {
                               )}
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-left sm:text-right">
                             {getMaintenanceStatusBadge(request.status)}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8">
-                      <Wrench className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">
+                    <div className="text-center py-6 sm:py-8">
+                      <Wrench className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500 text-sm sm:text-base">
                         No maintenance requests yet
                       </p>
                     </div>
@@ -1519,14 +1620,16 @@ export default function TenantDetailsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="documents" className="mt-6">
+            <TabsContent value="documents" className="mt-4 sm:mt-6">
               <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-                <CardHeader>
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <CardTitle>Documents & Files</CardTitle>
-                    <div className="flex flex-col md:flex-row gap-2 items-center">
+                <CardHeader className="p-3 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                    <CardTitle className="text-base sm:text-lg">
+                      Documents & Files
+                    </CardTitle>
+                    <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                       <select
-                        className="rounded-lg border border-blue-200 px-3 py-2 bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="rounded-lg border border-blue-200 px-3 py-2 bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                         value={selectedCategory}
                         onChange={e =>
                           setSelectedCategory(e.target.value as any)
@@ -1556,22 +1659,22 @@ export default function TenantDetailsPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-blue-200 text-blue-600"
+                        className="border-blue-200 text-blue-600 text-sm sm:text-base"
                         onClick={() =>
                           document.getElementById('document-upload')?.click()
                         }
                         disabled={uploading}>
-                        <Upload className="w-4 h-4 mr-2" />
+                        <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Add Files
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6 pt-0">
                   {/* Drag-and-drop area and file preview */}
                   <div
                     className={
-                      'mb-6 rounded-lg border-2 border-dashed ' +
+                      'mb-4 sm:mb-6 rounded-lg border-2 border-dashed ' +
                       (uploadFiles.length === 0
                         ? 'border-blue-200 hover:border-blue-400 bg-blue-50/50'
                         : 'border-blue-100 bg-white')
@@ -1591,23 +1694,23 @@ export default function TenantDetailsPage() {
                     }}>
                     {uploadFiles.length === 0 ? (
                       <div
-                        className="p-8 text-center cursor-pointer"
+                        className="p-4 sm:p-6 lg:p-8 text-center cursor-pointer"
                         onClick={() =>
                           document.getElementById('document-upload')?.click()
                         }>
-                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Upload className="w-8 h-8 text-blue-600" />
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                          <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                         </div>
-                        <h4 className="text-lg font-medium text-gray-900 mb-2">
+                        <h4 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
                           Drop your files here
                         </h4>
-                        <p className="text-sm text-gray-500 mb-4">
+                        <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
                           or{' '}
                           <span className="text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
                             browse from your computer
                           </span>
                         </p>
-                        <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
+                        <div className="flex flex-wrap justify-center gap-1 sm:gap-2 text-xs text-gray-500">
                           <span className="px-2 py-1 bg-gray-100 rounded-full">
                             Images (JPG, PNG)
                           </span>
@@ -1623,26 +1726,26 @@ export default function TenantDetailsPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 space-y-4">
-                        <div className="flex flex-wrap gap-4">
+                      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+                        <div className="flex flex-wrap gap-3 sm:gap-4">
                           {uploadFiles.map((file, idx) => (
                             <div
                               key={file.name + idx}
-                              className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                              <div className="h-10 w-10 flex items-center justify-center bg-white rounded-lg border border-gray-200">
+                              className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-100">
+                              <div className="h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center bg-white rounded-lg border border-gray-200">
                                 {file.type.includes('image') ? (
-                                  <Image className="w-5 h-5 text-blue-600" />
+                                  <Image className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                                 ) : file.type.includes('pdf') ? (
-                                  <FileText className="w-5 h-5 text-blue-600" />
+                                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                                 ) : (
-                                  <File className="w-5 h-5 text-blue-600" />
+                                  <File className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                                 )}
                               </div>
-                              <div className="min-w-0">
-                                <p className="font-medium text-gray-900 truncate">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-gray-900 truncate text-xs sm:text-sm">
                                   {file.name}
                                 </p>
-                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-500">
                                   <span>
                                     {(file.size / 1024 / 1024).toFixed(2)} MB
                                   </span>
@@ -1656,20 +1759,20 @@ export default function TenantDetailsPage() {
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 h-6 w-6 sm:h-8 sm:w-8"
                                 onClick={() =>
                                   setUploadFiles(prev =>
                                     prev.filter((_, i) => i !== idx)
                                   )
                                 }
                                 disabled={uploading}>
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                               {uploading && (
-                                <div className="ml-2 w-24">
-                                  <div className="h-2 rounded-full bg-blue-100 overflow-hidden">
+                                <div className="ml-1 sm:ml-2 w-16 sm:w-24">
+                                  <div className="h-1 sm:h-2 rounded-full bg-blue-100 overflow-hidden">
                                     <div
-                                      className="h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all"
+                                      className="h-1 sm:h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all"
                                       style={{
                                         width: `${
                                           uploadProgress[file.name] || 0
@@ -1681,18 +1784,18 @@ export default function TenantDetailsPage() {
                             </div>
                           ))}
                         </div>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-col sm:flex-row justify-end gap-2">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-blue-200 text-blue-600"
+                            className="border-blue-200 text-blue-600 text-sm sm:text-base"
                             onClick={() => setUploadFiles([])}
                             disabled={uploading}>
                             Clear
                           </Button>
                           <Button
                             size="sm"
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm sm:text-base"
                             disabled={uploading || uploadFiles.length === 0}
                             onClick={async () => {
                               setUploading(true);
@@ -1744,36 +1847,36 @@ export default function TenantDetailsPage() {
                   </div>
                   {/* Document List */}
                   {documents.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {documents.map(doc => (
                         <div
                           key={doc.id}
-                          className="flex items-center justify-between p-4 border border-blue-100 rounded-lg bg-blue-50/50 hover:bg-blue-50 transition-colors">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white">
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border border-blue-100 rounded-lg bg-blue-50/50 hover:bg-blue-50 transition-colors gap-3 sm:gap-4">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white">
                               {doc.type.includes('image') ? (
-                                <Image className="w-6 h-6" />
+                                <Image className="w-5 h-5 sm:w-6 sm:h-6" />
                               ) : (
-                                <File className="w-6 h-6" />
+                                <File className="w-5 h-5 sm:w-6 sm:h-6" />
                               )}
                             </div>
-                            <div>
-                              <p className="font-semibold text-gray-900">
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900 text-sm sm:text-base">
                                 {doc.name}
                               </p>
-                              <div className="flex items-center gap-3 text-sm text-gray-500">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs sm:text-sm text-gray-500">
                                 <span>
                                   {(doc.size / 1024 / 1024).toFixed(2)} MB
                                 </span>
-                                <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                <span className="hidden sm:inline w-1 h-1 rounded-full bg-gray-300" />
                                 <span>
                                   {doc.type.split('/')[1]?.toUpperCase() ||
                                     'Unknown'}
                                 </span>
-                                <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                <span className="hidden sm:inline w-1 h-1 rounded-full bg-gray-300" />
                                 <span>{formatShortDate(doc.uploaded_at)}</span>
-                                <span className="w-1 h-1 rounded-full bg-gray-300" />
-                                <Badge className="bg-blue-100 text-blue-700 border-0">
+                                <span className="hidden sm:inline w-1 h-1 rounded-full bg-gray-300" />
+                                <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">
                                   {doc.category === 'lease'
                                     ? 'Lease Agreement'
                                     : doc.category === 'id'
@@ -1789,14 +1892,17 @@ export default function TenantDetailsPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs sm:text-sm"
                               onClick={() => window.open(doc.url, '_blank')}>
-                              <Download className="w-4 h-4" />
+                              <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="hidden sm:inline ml-1">
+                                Download
+                              </span>
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs sm:text-sm"
                               onClick={async () => {
                                 if (
                                   !confirm(
@@ -1825,17 +1931,22 @@ export default function TenantDetailsPage() {
                                   toast.error('Failed to delete document');
                                 }
                               }}>
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="hidden sm:inline ml-1">
+                                Delete
+                              </span>
                             </Button>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8">
-                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">No documents uploaded yet</p>
-                      <p className="text-sm text-gray-400 mt-2">
+                    <div className="text-center py-6 sm:py-8">
+                      <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500 text-sm sm:text-base">
+                        No documents uploaded yet
+                      </p>
+                      <p className="text-xs sm:text-sm text-gray-400 mt-2">
                         Upload lease agreements, ID copies, and other important
                         documents
                       </p>

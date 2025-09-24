@@ -17,7 +17,8 @@ import {
   Shield,
   Phone,
   Save,
-  User
+  User,
+  PhilippinePeso
 } from 'lucide-react';
 import { TenantsAPI, type TenantFormData } from '@/lib/api/tenants';
 import { PropertiesAPI } from '@/lib/api/properties';
@@ -57,6 +58,7 @@ export default function NewTenantPage() {
     lease_start: '',
     lease_end: '',
     monthly_rent: 0,
+    deposit: 0,
     security_deposit: 0,
     status: 'pending',
     lease_terms: '',
@@ -171,10 +173,12 @@ export default function NewTenantPage() {
 
   if (loadingData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-blue-600 font-medium">Loading form data...</p>
+          <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium text-sm sm:text-base">
+            Loading form data...
+          </p>
         </div>
       </div>
     );
@@ -184,21 +188,21 @@ export default function NewTenantPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
       {/* Header */}
       <div className="bg-gradient-to-r from-white to-blue-50/50 shadow-sm border-b border-blue-100">
-        <div className="px-6 py-6">
-          <div className="flex items-center gap-4">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
-              className="text-blue-600 hover:bg-blue-50">
+              className="text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
                 Add New Tenant
               </h1>
-              <p className="text-blue-600/80 font-medium">
+              <p className="text-blue-600/80 font-medium text-sm sm:text-base">
                 Create a new tenant lease agreement
               </p>
             </div>
@@ -206,18 +210,18 @@ export default function NewTenantPage() {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-3 sm:p-4 lg:p-6">
         <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
             {/* Tenant Selection */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Tenant Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
                 <div>
                   <Label
                     htmlFor="user_id"
@@ -228,7 +232,7 @@ export default function NewTenantPage() {
                     id="user_id"
                     value={formData.user_id}
                     onChange={e => handleInputChange('user_id', e.target.value)}
-                    className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm sm:text-base"
                     required>
                     <option value="">Choose a registered user...</option>
                     {availableUsers.map(user => (
@@ -246,11 +250,11 @@ export default function NewTenantPage() {
                 </div>
 
                 {getSelectedUser() && (
-                  <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-200">
-                    <h4 className="font-semibold text-gray-900 mb-2">
+                  <div className="p-3 sm:p-4 bg-blue-50/50 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">
                       Selected Tenant Details
                     </h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                       <div>
                         <span className="text-gray-600">Name:</span>
                         <span className="ml-2 font-medium">
@@ -286,13 +290,13 @@ export default function NewTenantPage() {
 
             {/* Property Selection */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Home className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Home className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Property & Unit Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
                 <div>
                   <Label
                     htmlFor="property_id"
@@ -305,7 +309,7 @@ export default function NewTenantPage() {
                     onChange={e =>
                       handleInputChange('property_id', e.target.value)
                     }
-                    className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm sm:text-base"
                     required>
                     <option value="">Choose a property...</option>
                     {properties.map(property => (
@@ -319,11 +323,11 @@ export default function NewTenantPage() {
                 </div>
 
                 {getSelectedProperty() && (
-                  <div className="p-4 bg-green-50/50 rounded-lg border border-green-200">
-                    <h4 className="font-semibold text-gray-900 mb-2">
+                  <div className="p-3 sm:p-4 bg-green-50/50 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">
                       Selected Property Details
                     </h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                       <div>
                         <span className="text-gray-600">Name:</span>
                         <span className="ml-2 font-medium">
@@ -368,7 +372,7 @@ export default function NewTenantPage() {
                       handleInputChange('unit_number', e.target.value)
                     }
                     placeholder="e.g., 101, A-1, Suite 5"
-                    className="mt-1"
+                    className="mt-1 text-sm sm:text-base"
                     required
                   />
                 </div>
@@ -388,7 +392,7 @@ export default function NewTenantPage() {
                         e.target.value as 'active' | 'pending' | 'terminated'
                       )
                     }
-                    className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                    className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm sm:text-base">
                     <option value="pending">Pending (Awaiting move-in)</option>
                     <option value="active">Active (Currently occupied)</option>
                   </select>
@@ -398,14 +402,14 @@ export default function NewTenantPage() {
 
             {/* Lease Terms */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Lease Terms
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <Label
                       htmlFor="lease_start"
@@ -419,7 +423,7 @@ export default function NewTenantPage() {
                       onChange={e =>
                         handleInputChange('lease_start', e.target.value)
                       }
-                      className="mt-1"
+                      className="mt-1 text-sm sm:text-base"
                       required
                     />
                   </div>
@@ -436,7 +440,7 @@ export default function NewTenantPage() {
                       onChange={e =>
                         handleInputChange('lease_end', e.target.value)
                       }
-                      className="mt-1"
+                      className="mt-1 text-sm sm:text-base"
                       required
                     />
                   </div>
@@ -455,7 +459,7 @@ export default function NewTenantPage() {
                       handleInputChange('lease_terms', e.target.value)
                     }
                     placeholder="Enter specific lease terms, conditions, and agreements..."
-                    className="mt-1"
+                    className="mt-1 text-sm sm:text-base"
                     rows={4}
                   />
                 </div>
@@ -464,14 +468,14 @@ export default function NewTenantPage() {
 
             {/* Financial Details */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PhilippinePeso className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <PhilippinePeso className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Financial Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <Label
                       htmlFor="monthly_rent"
@@ -489,7 +493,7 @@ export default function NewTenantPage() {
                         )
                       }
                       placeholder="15000"
-                      className="mt-1"
+                      className="mt-1 text-sm sm:text-base"
                       min="0"
                       step="0.01"
                       required
@@ -512,7 +516,7 @@ export default function NewTenantPage() {
                         )
                       }
                       placeholder="30000"
-                      className="mt-1"
+                      className="mt-1 text-sm sm:text-base"
                       min="0"
                       step="0.01"
                     />
@@ -523,14 +527,14 @@ export default function NewTenantPage() {
 
             {/* Emergency Contact */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Emergency Contact (Optional)
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <Label
                       htmlFor="emergency_contact_name"
@@ -548,7 +552,7 @@ export default function NewTenantPage() {
                         )
                       }
                       placeholder="Juan Dela Cruz"
-                      className="mt-1"
+                      className="mt-1 text-sm sm:text-base"
                     />
                   </div>
                   <div>
@@ -568,7 +572,7 @@ export default function NewTenantPage() {
                         )
                       }
                       placeholder="+63 912 345 6789"
-                      className="mt-1"
+                      className="mt-1 text-sm sm:text-base"
                     />
                   </div>
                 </div>
@@ -577,13 +581,13 @@ export default function NewTenantPage() {
 
             {/* Additional Notes */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Additional Notes
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6 pt-0">
                 <div>
                   <Label
                     htmlFor="notes"
@@ -595,7 +599,7 @@ export default function NewTenantPage() {
                     value={formData.notes}
                     onChange={e => handleInputChange('notes', e.target.value)}
                     placeholder="Any additional notes, special arrangements, or important information about this tenant..."
-                    className="mt-1"
+                    className="mt-1 text-sm sm:text-base"
                     rows={3}
                   />
                 </div>
@@ -603,18 +607,18 @@ export default function NewTenantPage() {
             </Card>
 
             {/* Form Actions */}
-            <div className="flex items-center justify-end gap-4 pt-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4 pt-4 sm:pt-6">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                className="px-6">
+                className="px-4 sm:px-6 text-sm sm:text-base">
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6">
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 sm:px-6 text-sm sm:text-base">
                 {isLoading ? (
                   <>
                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>

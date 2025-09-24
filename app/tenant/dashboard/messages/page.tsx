@@ -168,7 +168,7 @@ export default function TenantMessagesPage() {
 
   // Handle message sent
   const handleMessageSent = (message: any) => {
-    toast.success('Message sent successfully');
+    // toast.success('Message sent successfully');
     setShowNewMessageForm(false);
 
     // Refresh conversations

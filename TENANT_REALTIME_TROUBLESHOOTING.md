@@ -187,3 +187,4 @@ DEBUG: Successfully subscribed to real-time updates
 ---
 
 **Note**: The debug component should be removed before production deployment.
+

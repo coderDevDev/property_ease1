@@ -27,7 +27,8 @@ import {
   ChevronDown,
   ChevronRight,
   Calendar,
-  Megaphone
+  Megaphone,
+  BarChart3
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -166,6 +167,12 @@ export function TenantSidebar() {
       icon: Megaphone,
       href: '/tenant/dashboard/announcements',
       count: stats.announcements
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: BarChart3,
+      href: '/tenant/dashboard/analytics'
     },
     {
       id: 'support',

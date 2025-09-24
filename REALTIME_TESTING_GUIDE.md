@@ -160,3 +160,4 @@ If real-time is not working, check:
 ---
 
 **Note**: The debug component should be removed before production deployment.
+

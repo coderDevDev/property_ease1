@@ -43,7 +43,7 @@ export default function OwnerLayout({
       <PropertyOwnerSidebar />
       <div className="lg:ml-72">
         <TopNavbar role="owner" />
-        <main className="pt-16">{children}</main>
+        <main className="pt-0">{children}</main>
       </div>
     </div>
   );

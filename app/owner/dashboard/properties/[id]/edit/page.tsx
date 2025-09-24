@@ -234,10 +234,10 @@ export default function EditPropertyPage() {
 
   if (isLoadingData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-blue-600 font-medium">
+          <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium text-sm sm:text-base">
             Loading property details...
           </p>
         </div>
@@ -249,21 +249,21 @@ export default function EditPropertyPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
       {/* Header */}
       <div className="bg-gradient-to-r from-white to-blue-50/50 shadow-sm border-b border-blue-100">
-        <div className="px-6 py-6">
-          <div className="flex items-center gap-4">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
-              className="text-blue-600 hover:bg-blue-50">
+              className="text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
                 Edit Property
               </h1>
-              <p className="text-blue-600/80 font-medium">
+              <p className="text-blue-600/80 font-medium text-sm sm:text-base">
                 Update property information
               </p>
             </div>
@@ -271,19 +271,19 @@ export default function EditPropertyPage() {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-3 sm:p-4 lg:p-6">
         <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
             {/* Basic Information */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Building className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Basic Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="name">Property Name *</Label>
                     <Input
@@ -528,14 +528,14 @@ export default function EditPropertyPage() {
 
             {/* Amenities */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Amenities & Features
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                   {commonAmenities.map(amenity => (
                     <Button
                       key={amenity}
@@ -551,22 +551,22 @@ export default function EditPropertyPage() {
                           ? removeAmenity(amenity)
                           : addAmenity(amenity)
                       }
-                      className={
+                      className={`text-xs sm:text-sm ${
                         selectedAmenities.includes(amenity)
                           ? 'bg-blue-600 hover:bg-blue-700 text-white'
                           : 'border-blue-200 text-blue-600 hover:bg-blue-50'
-                      }>
+                      }`}>
                       {amenity}
                     </Button>
                   ))}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input
                     value={customAmenity}
                     onChange={e => setCustomAmenity(e.target.value)}
                     placeholder="Add custom amenity"
-                    className="border-blue-200 focus:ring-blue-500"
+                    className="border-blue-200 focus:ring-blue-500 text-sm sm:text-base"
                     onKeyPress={e =>
                       e.key === 'Enter' &&
                       (e.preventDefault(), addCustomAmenity())
@@ -576,8 +576,9 @@ export default function EditPropertyPage() {
                     type="button"
                     onClick={addCustomAmenity}
                     variant="outline"
-                    className="border-blue-200 text-blue-600">
-                    <Plus className="w-4 h-4" />
+                    className="border-blue-200 text-blue-600 text-sm sm:text-base">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add
                   </Button>
                 </div>
 
@@ -731,18 +732,18 @@ export default function EditPropertyPage() {
             </Card>
 
             {/* Submit Button */}
-            <div className="flex justify-end gap-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                className="border-blue-200 text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200">
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base">
                 {isLoading ? (
                   <>
                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>

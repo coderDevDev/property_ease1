@@ -44,3 +44,4 @@ SELECT
     'Installed' as status
 FROM pg_extension 
 WHERE extname = 'supabase_realtime';
+

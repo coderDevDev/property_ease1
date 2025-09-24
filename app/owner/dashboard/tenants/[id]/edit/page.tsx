@@ -16,7 +16,8 @@ import {
   FileText,
   Shield,
   Save,
-  User
+  User,
+  PhilippinePeso
 } from 'lucide-react';
 import { TenantsAPI, type TenantFormData } from '@/lib/api/tenants';
 import { PropertiesAPI } from '@/lib/api/properties';
@@ -193,10 +194,12 @@ export default function EditTenantPage() {
 
   if (loadingData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-blue-600 font-medium">Loading tenant data...</p>
+          <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium text-sm sm:text-base">
+            Loading tenant data...
+          </p>
         </div>
       </div>
     );
@@ -204,12 +207,14 @@ export default function EditTenantPage() {
 
   if (!tenant) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
             Tenant not found
           </h3>
-          <Button onClick={() => router.push('/owner/dashboard/tenants')}>
+          <Button
+            onClick={() => router.push('/owner/dashboard/tenants')}
+            className="text-sm sm:text-base">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tenants
           </Button>
@@ -222,21 +227,21 @@ export default function EditTenantPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
       {/* Header */}
       <div className="bg-gradient-to-r from-white to-blue-50/50 shadow-sm border-b border-blue-100">
-        <div className="px-6 py-6">
-          <div className="flex items-center gap-4">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
-              className="text-blue-600 hover:bg-blue-50">
+              className="text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
                 Edit Tenant
               </h1>
-              <p className="text-blue-600/80 font-medium">
+              <p className="text-blue-600/80 font-medium text-sm sm:text-base">
                 Update lease and tenant information for {tenant.user.first_name}{' '}
                 {tenant.user.last_name}
               </p>
@@ -245,20 +250,20 @@ export default function EditTenantPage() {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-3 sm:p-4 lg:p-6">
         <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
             {/* Tenant Information (Read-only) */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Tenant Information
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="p-4 bg-gray-50/50 rounded-lg border border-gray-200">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+              <CardContent className="p-3 sm:p-6 pt-0">
+                <div className="p-3 sm:p-4 bg-gray-50/50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                     <div>
                       <span className="text-gray-600">Name:</span>
                       <span className="ml-2 font-medium">
@@ -271,7 +276,7 @@ export default function EditTenantPage() {
                         {tenant.user.email}
                       </span>
                     </div>
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                       <span className="text-gray-600">Phone:</span>
                       <span className="ml-2 font-medium">
                         {tenant.user.phone}
@@ -288,13 +293,13 @@ export default function EditTenantPage() {
 
             {/* Property & Unit Details */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Home className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Home className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Property & Unit Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
                 <div>
                   <Label
                     htmlFor="property_id"
@@ -307,7 +312,7 @@ export default function EditTenantPage() {
                     onChange={e =>
                       handleInputChange('property_id', e.target.value)
                     }
-                    className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                    className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm sm:text-base">
                     {properties.map(property => (
                       <option key={property.id} value={property.id}>
                         {property.name} - {property.address}
@@ -317,11 +322,11 @@ export default function EditTenantPage() {
                 </div>
 
                 {getSelectedProperty() && (
-                  <div className="p-4 bg-green-50/50 rounded-lg border border-green-200">
-                    <h4 className="font-semibold text-gray-900 mb-2">
+                  <div className="p-3 sm:p-4 bg-green-50/50 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">
                       Property Details
                     </h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                       <div>
                         <span className="text-gray-600">Name:</span>
                         <span className="ml-2 font-medium">
@@ -334,7 +339,7 @@ export default function EditTenantPage() {
                           {getSelectedProperty()!.type}
                         </span>
                       </div>
-                      <div className="col-span-2">
+                      <div className="sm:col-span-2">
                         <span className="text-gray-600">Address:</span>
                         <span className="ml-2 font-medium">
                           {getSelectedProperty()!.address},{' '}
@@ -359,7 +364,7 @@ export default function EditTenantPage() {
                       handleInputChange('unit_number', e.target.value)
                     }
                     placeholder="e.g., 101, A-1, Suite 5"
-                    className="mt-1"
+                    className="mt-1 text-sm sm:text-base"
                     required
                   />
                 </div>
@@ -379,7 +384,7 @@ export default function EditTenantPage() {
                         e.target.value as 'active' | 'pending' | 'terminated'
                       )
                     }
-                    className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                    className="mt-1 w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm sm:text-base">
                     <option value="pending">Pending (Awaiting move-in)</option>
                     <option value="active">Active (Currently occupied)</option>
                     <option value="terminated">Terminated (Lease ended)</option>
@@ -390,14 +395,14 @@ export default function EditTenantPage() {
 
             {/* Lease Terms */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Lease Terms
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <Label
                       htmlFor="lease_start"
@@ -595,18 +600,18 @@ export default function EditTenantPage() {
             </Card>
 
             {/* Form Actions */}
-            <div className="flex items-center justify-end gap-4 pt-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4 pt-4 sm:pt-6">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                className="px-6">
+                className="px-4 sm:px-6 text-sm sm:text-base">
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6">
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 sm:px-6 text-sm sm:text-base">
                 {isLoading ? (
                   <>
                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>

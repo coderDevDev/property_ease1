@@ -364,11 +364,13 @@ export default function OwnerPaymentsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-blue-600 font-medium">Loading payments...</p>
+            <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-blue-600 font-medium text-sm sm:text-base">
+              Loading payments...
+            </p>
           </div>
         </div>
       </div>
@@ -376,15 +378,15 @@ export default function OwnerPaymentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
               Payment Management
             </h1>
-            <p className="text-blue-600/70 mt-1">
+            <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
               Track and manage all property payments
             </p>
           </div>
@@ -392,15 +394,17 @@ export default function OwnerPaymentsPage() {
             open={isCreateDialogOpen}
             onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200">
+              <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Payment
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Payment</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-base sm:text-lg">
+                  Create New Payment
+                </DialogTitle>
+                <DialogDescription className="text-sm sm:text-base">
                   Create a new payment record for a tenant.
                 </DialogDescription>
               </DialogHeader>
@@ -417,66 +421,68 @@ export default function OwnerPaymentsPage() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <PhilippinePeso className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <PhilippinePeso className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {stats.total}
                   </p>
-                  <p className="text-sm text-gray-600">Total Payments</p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Total Payments
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {stats.pending}
                   </p>
-                  <p className="text-sm text-gray-600">Pending</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Pending</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {stats.paid}
                   </p>
-                  <p className="text-sm text-gray-600">Paid</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Paid</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {stats.overdue}
                   </p>
-                  <p className="text-sm text-gray-600">Overdue</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Overdue</p>
                 </div>
               </div>
             </CardContent>
@@ -484,36 +490,38 @@ export default function OwnerPaymentsPage() {
         </div>
 
         {/* Amount Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">
                   ₱{stats.totalAmount.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">Total Amount</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Amount</p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-yellow-600">
+                <p className="text-xl sm:text-2xl font-bold text-yellow-600">
                   ₱{stats.pendingAmount.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">Pending Amount</p>
+                <p className="text-xs sm:text-sm text-gray-600">
+                  Pending Amount
+                </p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-xl sm:text-2xl font-bold text-green-600">
                   ₱{stats.paidAmount.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">Paid Amount</p>
+                <p className="text-xs sm:text-sm text-gray-600">Paid Amount</p>
               </div>
             </CardContent>
           </Card>
@@ -533,7 +541,7 @@ export default function OwnerPaymentsPage() {
 
         {/* Results Count */}
         <div className="flex items-center justify-between">
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base">
             Showing {filteredPayments.length} of {payments.length} payments
           </p>
         </div>
@@ -541,32 +549,32 @@ export default function OwnerPaymentsPage() {
         {/* Table View */}
         {viewMode === 'table' && (
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-blue-50/50">
-                    <TableHead className="text-blue-700 font-semibold">
+                    <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
                       Payment
                     </TableHead>
-                    <TableHead className="text-blue-700 font-semibold">
+                    <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden sm:table-cell">
                       Tenant
                     </TableHead>
-                    <TableHead className="text-blue-700 font-semibold">
+                    <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden md:table-cell">
                       Property
                     </TableHead>
-                    <TableHead className="text-blue-700 font-semibold">
+                    <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
                       Type
                     </TableHead>
-                    <TableHead className="text-blue-700 font-semibold">
+                    <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
                       Status
                     </TableHead>
-                    <TableHead className="text-blue-700 font-semibold">
+                    <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
                       Amount
                     </TableHead>
-                    <TableHead className="text-blue-700 font-semibold">
+                    <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden lg:table-cell">
                       Due Date
                     </TableHead>
-                    <TableHead className="text-blue-700 font-semibold">
+                    <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -576,69 +584,69 @@ export default function OwnerPaymentsPage() {
                     <TableRow
                       key={payment.id}
                       className="hover:bg-blue-50/30 transition-colors">
-                      <TableCell>
+                      <TableCell className="p-3 sm:p-4">
                         <div>
-                          <p className="font-semibold text-gray-900">
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm">
                             {payment.payment_type
                               .replace('_', ' ')
                               .replace(/\b\w/g, l => l.toUpperCase())}
                           </p>
                           {payment.reference_number && (
-                            <p className="text-sm text-gray-600">
+                            <p className="text-xs text-gray-600">
                               Ref: {payment.reference_number}
                             </p>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="p-3 sm:p-4 hidden sm:table-cell">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 text-xs sm:text-sm">
                             {payment.tenant.user.first_name}{' '}
                             {payment.tenant.user.last_name}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs text-gray-600">
                             Unit {payment.tenant.unit_number}
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="p-3 sm:p-4 hidden md:table-cell">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 text-xs sm:text-sm">
                             {payment.property.name}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs text-gray-600">
                             {payment.property.city}
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="p-3 sm:p-4">
                         <Badge
                           className={getPaymentTypeBadge(payment.payment_type)}>
                           {payment.payment_type.replace('_', ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="p-3 sm:p-4">
                         <Badge
                           className={getStatusBadge(payment.payment_status)}>
                           {payment.payment_status.replace('_', ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="p-3 sm:p-4">
                         <div>
-                          <p className="font-semibold text-gray-900">
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm">
                             ₱{Number(payment.amount).toLocaleString()}
                           </p>
                           {payment.late_fee && payment.late_fee > 0 && (
-                            <p className="text-sm text-red-600">
+                            <p className="text-xs text-red-600">
                               +₱{Number(payment.late_fee).toLocaleString()} late
                               fee
                             </p>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="p-3 sm:p-4 hidden lg:table-cell">
                         <div>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-xs text-gray-900">
                             {new Date(payment.due_date).toLocaleDateString()}
                           </p>
                           {payment.paid_date && (
@@ -649,35 +657,37 @@ export default function OwnerPaymentsPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
+                      <TableCell className="p-3 sm:p-4">
+                        <div className="flex gap-1 sm:gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-7 w-7 sm:h-8 sm:w-8"
                             onClick={() => handleViewPayment(payment)}>
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                           {payment.payment_status === 'pending' && (
                             <>
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="h-7 w-7 sm:h-8 sm:w-8"
                                 onClick={() => handleEditPayment(payment)}>
-                                <Edit className="w-4 h-4" />
+                                <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleMarkAsPaid(payment)}
-                                className="text-green-600 hover:text-green-700">
-                                <CheckCircle className="w-4 h-4" />
+                                className="h-7 w-7 sm:h-8 sm:w-8 text-green-600 hover:text-green-700"
+                                onClick={() => handleMarkAsPaid(payment)}>
+                                <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDeletePayment(payment)}
-                                className="text-red-600 hover:text-red-700">
-                                <Trash2 className="w-4 h-4" />
+                                className="h-7 w-7 sm:h-8 sm:w-8 text-red-600 hover:text-red-700"
+                                onClick={() => handleDeletePayment(payment)}>
+                                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                             </>
                           )}
@@ -693,7 +703,7 @@ export default function OwnerPaymentsPage() {
 
         {/* Grid View */}
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredPayments.map(payment => (
               <PaymentCard
                 key={payment.id}
@@ -711,19 +721,19 @@ export default function OwnerPaymentsPage() {
         {/* Empty State */}
         {filteredPayments.length === 0 && (
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
-            <CardContent className="p-12 text-center">
-              <PhilippinePeso className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <CardContent className="py-8 sm:py-12 text-center">
+              <PhilippinePeso className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                 No payments found
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-sm sm:text-base text-gray-600 mb-6">
                 {searchTerm || filterStatus !== 'all' || filterType !== 'all'
                   ? 'Try adjusting your search or filter criteria.'
                   : 'Get started by creating your first payment.'}
               </p>
               <Button
                 onClick={() => setIsCreateDialogOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm sm:text-base">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Payment
               </Button>
@@ -733,10 +743,14 @@ export default function OwnerPaymentsPage() {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Payment</DialogTitle>
-              <DialogDescription>Update the payment details.</DialogDescription>
+              <DialogTitle className="text-base sm:text-lg">
+                Edit Payment
+              </DialogTitle>
+              <DialogDescription className="text-sm sm:text-base">
+                Update the payment details.
+              </DialogDescription>
             </DialogHeader>
             {selectedPayment && (
               <PaymentForm

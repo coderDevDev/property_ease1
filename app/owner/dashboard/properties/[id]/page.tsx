@@ -275,10 +275,10 @@ export default function PropertyDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-blue-600 font-medium">
+          <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium text-sm sm:text-base">
             Loading property details...
           </p>
         </div>
@@ -288,16 +288,18 @@ export default function PropertyDetailsPage() {
 
   if (!property) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <Building className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
             Property not found
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-6 text-sm sm:text-base">
             The property you're looking for doesn't exist or has been removed.
           </p>
-          <Button onClick={() => router.push('/owner/dashboard/properties')}>
+          <Button
+            onClick={() => router.push('/owner/dashboard/properties')}
+            className="text-sm sm:text-base">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Properties
           </Button>
@@ -310,25 +312,27 @@ export default function PropertyDetailsPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
       {/* Header */}
       <div className="bg-gradient-to-r from-white to-blue-50/50 shadow-sm border-b border-blue-100">
-        <div className="px-6 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-4">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => router.back()}
-                className="text-blue-600 hover:bg-blue-50">
+                className="text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
                 <ArrowLeft className="w-4 h-4 mr-2" />
               </Button>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
                   {property.name}
                 </h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <MapPin className="w-4 h-4 text-blue-600" />
-                  <p className="text-blue-600/80 font-medium">
-                    {property.address}, {property.city}, {property.province}
-                  </p>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                    <p className="text-blue-600/80 font-medium text-xs sm:text-base">
+                      {property.address}, {property.city}, {property.province}
+                    </p>
+                  </div>
                   {getStatusBadge(property.status)}
                 </div>
               </div>
@@ -336,7 +340,7 @@ export default function PropertyDetailsPage() {
             <div className="flex items-center gap-2">
               <Button
                 onClick={handleEdit}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white">
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm sm:text-base">
                 <Edit className="w-4 h-4 mr-2" />
                 Edit Property
               </Button>
@@ -367,65 +371,76 @@ export default function PropertyDetailsPage() {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-3 sm:p-4 lg:p-6">
         <div className="max-w-7xl mx-auto">
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-xl border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm mb-1">Total Units</p>
-                    <p className="text-3xl font-bold">{property.total_units}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <Building className="w-5 h-5 text-white" />
                   </div>
-                  <Building className="w-10 h-10 opacity-80" />
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {property.total_units}
+                    </p>
+                    <p className="text-sm text-gray-600">Total Units</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-xl border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
                   <div>
-                    <p className="text-green-100 text-sm mb-1">Occupied</p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-2xl font-bold text-gray-900">
                       {property.occupied_units}
                     </p>
-                    <p className="text-green-200 text-xs">
-                      {Math.round(getOccupancyRate())}% occupancy
-                    </p>
+                    <p className="text-sm text-gray-600">Occupied Units</p>
+                    <div className="flex items-center mt-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                      <span className="text-xs text-green-600">
+                        {Math.round(getOccupancyRate())}% occupancy
+                      </span>
+                    </div>
                   </div>
-                  <Users className="w-10 h-10 opacity-80" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-xl border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className="bg-white/70 backdrop-blur-sm border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <PhilippinePeso className="w-5 h-5 text-white" />
+                  </div>
                   <div>
-                    <p className="text-purple-100 text-sm mb-1">Monthly Rent</p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-2xl font-bold text-gray-900">
                       {formatCurrency(property.monthly_rent)}
                     </p>
+                    <p className="text-sm text-gray-600">Monthly Rent</p>
                   </div>
-                  <PhilippinePeso className="w-10 h-10 opacity-80" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-xl border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className="bg-white/70 backdrop-blur-sm border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
                   <div>
-                    <p className="text-orange-100 text-sm mb-1">
-                      Total Revenue
-                    </p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-2xl font-bold text-gray-900">
                       {formatCurrency(analytics?.totalRevenue || 0)}
                     </p>
+                    <p className="text-sm text-gray-600">Total Revenue</p>
                   </div>
-                  <TrendingUp className="w-10 h-10 opacity-80" />
                 </div>
               </CardContent>
             </Card>
