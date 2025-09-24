@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
-import { RegisterScreen } from '@/components/register-screen';
+import { TabbedRegister } from '@/components/tabbed-register';
 import { RoleSelection } from '@/components/role-selection';
 
 function RegisterPageContent() {
@@ -25,29 +25,28 @@ function RegisterPageContent() {
   };
 
   const handleBack = () => {
-    router.push('/');
+    router.push('/login');
   };
 
   const handleLogin = () => {
     if (selectedRole) {
       router.push(`/login?role=${selectedRole}`);
+    } else {
+      router.push('/login');
     }
   };
 
   // If no role is selected, show role selection
-  if (!selectedRole) {
-    return (
-      <RoleSelection onRoleSelect={handleRoleSelect} onBack={handleBack} />
-    );
-  }
 
   // Show register screen with selected role
   return (
-    <RegisterScreen
-      selectedRole={selectedRole}
-      onBack={() => router.push(`/login?role=${selectedRole}`)}
-      onLogin={handleLogin}
-    />
+    !!selectedRole && (
+      <TabbedRegister
+        selectedRole={selectedRole}
+        onBack={handleBack}
+        onLogin={handleLogin}
+      />
+    )
   );
 }
 

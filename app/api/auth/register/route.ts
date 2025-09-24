@@ -45,8 +45,20 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       console.error('❌ Auth user creation failed:', authError);
+
+      // Provide more specific error messages
+      let errorMessage = authError.message;
+      if (
+        authError.message.includes('already registered') ||
+        authError.message.includes('already exists') ||
+        authError.message.includes('duplicate')
+      ) {
+        errorMessage =
+          'This email is already registered. Please use a different email or try signing in.';
+      }
+
       return NextResponse.json(
-        { success: false, message: authError.message },
+        { success: false, message: errorMessage },
         { status: 400 }
       );
     }
@@ -91,6 +103,7 @@ export async function POST(request: NextRequest) {
 
     if (userError) {
       console.error('❌ User record creation failed:', userError);
+
       // Try to clean up the auth user if profile creation failed
       try {
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
@@ -98,10 +111,21 @@ export async function POST(request: NextRequest) {
         console.error('Failed to cleanup auth user:', cleanupError);
       }
 
+      // Provide more specific error messages
+      let errorMessage = `Failed to create user profile: ${userError.message}`;
+      if (
+        userError.message.includes('duplicate') ||
+        userError.message.includes('already exists') ||
+        userError.message.includes('unique')
+      ) {
+        errorMessage =
+          'This email is already registered. Please use a different email or try signing in.';
+      }
+
       return NextResponse.json(
         {
           success: false,
-          message: `Failed to create user profile: ${userError.message}`
+          message: errorMessage
         },
         { status: 400 }
       );

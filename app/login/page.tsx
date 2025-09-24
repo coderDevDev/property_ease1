@@ -1,59 +1,24 @@
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
-import { LoginScreen } from '@/components/login-screen';
-import { RoleSelection } from '@/components/role-selection';
+import { useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { TabbedLogin } from '@/components/tabbed-login';
 
 function LoginPageContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState<
-    'owner' | 'tenant' | 'admin' | null
-  >(null);
 
-  const role = searchParams.get('role') as 'owner' | 'tenant' | 'admin' | null;
-
-  useEffect(() => {
-    if (role && (role === 'owner' || role === 'tenant' || role === 'admin')) {
-      setSelectedRole(role);
-    }
-  }, [role]);
-
-  const handleRoleSelect = (role: 'owner' | 'tenant' | 'admin') => {
-    router.push(`/login?role=${role}`);
-  };
-
-  const handleBack = () => {
-    router.push('/');
-  };
-
-  const handleRegister = () => {
-    if (selectedRole) {
-      router.push(`/register?role=${selectedRole}`);
-    }
+  const handleRegister = (role: 'owner' | 'tenant' | 'admin') => {
+    router.push(`/register?role=${role}`);
   };
 
   const handleForgotPassword = () => {
-    if (selectedRole) {
-      router.push(`/forgot-password?role=${selectedRole}`);
-    }
+    router.push('/forgot-password');
   };
 
-  // If no role is selected, show role selection
-  if (!selectedRole) {
-    return (
-      <RoleSelection onRoleSelect={handleRoleSelect} onBack={handleBack} />
-    );
-  }
-
-  // Show login screen with selected role
   return (
-    <LoginScreen
-      selectedRole={selectedRole}
-      onBack={() => router.push('/')}
-      onRegister={handleRegister}
+    <TabbedLogin
       onForgotPassword={handleForgotPassword}
+      onRegister={handleRegister}
     />
   );
 }

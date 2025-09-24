@@ -59,29 +59,29 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
       bgGradient: 'from-blue-50 to-blue-100',
       iconColor: 'text-blue-400',
       glowColor: 'shadow-blue-400/25'
-    },
-    {
-      id: 'admin' as const,
-      title: 'System Administrator',
-      subtitle: 'Admin',
-      description: 'Full system oversight and user management',
-      icon: Users,
-      features: [
-        'Manage all users and properties',
-        'System analytics and reporting',
-        'Content moderation',
-        'System configuration',
-        'Audit logs and monitoring'
-      ],
-      gradient: 'from-blue-600 to-blue-700',
-      bgGradient: 'from-blue-100 to-blue-200',
-      iconColor: 'text-blue-600',
-      glowColor: 'shadow-blue-600/25'
     }
+    // {
+    //   id: 'admin' as const,
+    //   title: 'System Administrator',
+    //   subtitle: 'Admin',
+    //   description: 'Full system oversight and user management',
+    //   icon: Users,
+    //   features: [
+    //     'Manage all users and properties',
+    //     'System analytics and reporting',
+    //     'Content moderation',
+    //     'System configuration',
+    //     'Audit logs and monitoring'
+    //   ],
+    //   gradient: 'from-blue-600 to-blue-700',
+    //   bgGradient: 'from-blue-100 to-blue-200',
+    //   iconColor: 'text-blue-600',
+    //   glowColor: 'shadow-blue-600/25'
+    // }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex flex-col p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex flex-col p-3 sm:p-4 relative overflow-hidden">
       {/* Background Decorations */}
       <div className="absolute inset-0">
         <div className="absolute top-10 left-10 w-32 h-32 bg-blue-200/30 rounded-full blur-2xl" />
@@ -93,24 +93,24 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
 
       <div className="flex-1 flex flex-col relative z-10 max-w-6xl mx-auto w-full">
         {/* Header */}
-        <div className="text-center mb-8 pt-8 lg:pt-12">
-          <div className="relative w-16 h-16 lg:w-20 lg:h-20 mx-auto mb-4">
+        <div className="text-center mb-6 sm:mb-8 pt-6 sm:pt-8 lg:pt-12">
+          <div className="relative w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 mx-auto mb-3 sm:mb-4">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl blur-lg opacity-75" />
-            <div className="relative w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-xl">
-              <Users className="w-8 h-8 lg:w-10 lg:h-10 text-white" />
+            <div className="relative w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-xl">
+              <Users className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 text-white" />
             </div>
-            <Sparkles className="absolute -top-1 -right-1 w-5 h-5 text-yellow-500 animate-bounce" />
+            <Sparkles className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 animate-bounce" />
           </div>
-          <h1 className="text-2xl lg:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-2">
             Choose Your Role
           </h1>
-          <p className="text-gray-600 text-sm lg:text-lg">
+          <p className="text-gray-600 text-sm sm:text-base lg:text-lg">
             Select how you'll be using PropertyEase
           </p>
         </div>
 
         {/* Role Cards - Mobile Layout */}
-        <div className="flex-1 space-y-4 mb-6 lg:hidden">
+        <div className="flex-1 space-y-3 sm:space-y-4 mb-4 sm:mb-6 lg:hidden">
           {roles.map(role => {
             const Icon = role.icon;
             const isSelected = selectedRole === role.id;
@@ -124,8 +124,8 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
                     : 'bg-white/80 backdrop-blur-sm border border-gray-200 hover:border-gray-300 hover:shadow-lg active:scale-95'
                 }`}
                 onClick={() => setSelectedRole(role.id)}>
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-start gap-3 sm:gap-4">
                     <div className="relative flex-shrink-0">
                       {isSelected && (
                         <div
@@ -133,42 +133,42 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
                         />
                       )}
                       <div
-                        className={`relative w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
+                        className={`relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-lg ${
                           isSelected
                             ? `bg-gradient-to-r ${role.gradient}`
                             : 'bg-gray-100'
                         }`}>
                         <Icon
-                          className={`w-6 h-6 ${
+                          className={`w-5 h-5 sm:w-6 sm:h-6 ${
                             isSelected ? 'text-white' : role.iconColor
                           }`}
                         />
                       </div>
                       {isSelected && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                          <Check className="w-3 h-3 text-white" />
+                        <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                          <Check className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
                         </div>
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="mb-2">
-                        <h3 className="text-lg font-bold text-gray-900">
+                        <h3 className="text-base sm:text-lg font-bold text-gray-900">
                           {role.title}
                         </h3>
-                        <p className="text-sm font-medium text-gray-600">
+                        <p className="text-xs sm:text-sm font-medium text-gray-600">
                           {role.subtitle}
                         </p>
                       </div>
-                      <p className="text-gray-600 text-sm leading-relaxed mb-3">
+                      <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3">
                         {role.description}
                       </p>
 
-                      <div className="space-y-2">
+                      <div className="space-y-1 sm:space-y-2">
                         {role.features.slice(0, 3).map((feature, index) => (
                           <div key={index} className="flex items-center gap-2">
                             <div
-                              className={`w-1.5 h-1.5 rounded-full ${
+                              className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
                                 isSelected
                                   ? `bg-gradient-to-r ${role.gradient}`
                                   : 'bg-gray-400'
@@ -187,7 +187,7 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
                         {role.features.length > 3 && (
                           <div className="flex items-center gap-2">
                             <div
-                              className={`w-1.5 h-1.5 rounded-full ${
+                              className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
                                 isSelected
                                   ? `bg-gradient-to-r ${role.gradient}`
                                   : 'bg-gray-400'
@@ -309,12 +309,12 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pb-safe lg:pb-8 lg:justify-center lg:gap-6">
+        <div className="flex gap-2 sm:gap-3 pb-safe lg:pb-8 lg:justify-center lg:gap-6">
           <Button
             variant="outline"
             onClick={onBack}
-            className="flex-1 lg:flex-none lg:px-10 bg-white/80 backdrop-blur-sm border-gray-300 hover:bg-white hover:shadow-lg hover:border-gray-400 transition-all duration-300 h-12 lg:h-16 lg:text-lg lg:font-semibold lg:rounded-xl">
-            <ArrowLeft className="w-4 h-4 lg:w-6 lg:h-6 mr-2" />
+            className="flex-1 lg:flex-none lg:px-10 bg-white/80 backdrop-blur-sm border-gray-300 hover:bg-white hover:shadow-lg hover:border-gray-400 transition-all duration-300 h-11 sm:h-12 lg:h-16 text-sm sm:text-base lg:text-lg lg:font-semibold lg:rounded-xl">
+            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 mr-2" />
             Back
           </Button>
           <Button
@@ -332,7 +332,7 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
               }
             }}
             disabled={!selectedRole}
-            className={`flex-1 lg:flex-none lg:px-16 text-white font-medium shadow-lg transition-all duration-300 h-12 lg:h-16 lg:text-lg lg:font-semibold lg:rounded-xl ${
+            className={`flex-1 lg:flex-none lg:px-16 text-white font-medium shadow-lg transition-all duration-300 h-11 sm:h-12 lg:h-16 text-sm sm:text-base lg:text-lg lg:font-semibold lg:rounded-xl ${
               selectedRole
                 ? `bg-gradient-to-r ${
                     roles.find(r => r.id === selectedRole)?.gradient
@@ -340,12 +340,12 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
                 : 'bg-gray-400 lg:cursor-not-allowed'
             }`}>
             Continue
-            <ArrowRight className="w-4 h-4 lg:w-6 lg:h-6 ml-2" />
+            <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 ml-2" />
           </Button>
         </div>
 
         {/* Help Text */}
-        <div className="text-center mt-4 pb-4 lg:pb-8">
+        <div className="text-center mt-3 sm:mt-4 pb-4 lg:pb-8">
           <p className="text-xs lg:text-sm text-gray-500">
             You can change your role later in settings
           </p>
