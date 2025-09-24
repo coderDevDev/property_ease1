@@ -374,7 +374,7 @@ export default function PropertyDetailsPage() {
       <div className="p-3 sm:p-4 lg:p-6">
         <div className="max-w-7xl mx-auto">
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center gap-3">

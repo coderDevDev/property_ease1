@@ -20,7 +20,8 @@ import {
   CheckCircle,
   Clock,
   MapPin,
-  PhilippinePeso
+  PhilippinePeso,
+  List
 } from 'lucide-react';
 import { PropertiesAPI } from '@/lib/api/properties';
 import { TenantsAPI } from '@/lib/api/tenants';
@@ -322,7 +323,7 @@ export default function OwnerDashboard() {
           </div>
         </div>
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-3">
@@ -442,6 +443,10 @@ export default function OwnerDashboard() {
         </div>
 
         {/* Quick Actions */}
+        <CardTitle className="text-blue-700 flex items-center gap-2 text-lg sm:text-xl">
+          <List className="w-4 h-4 sm:w-5 sm:h-5" />
+          Quick Actions
+        </CardTitle>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {quickActions.map((action, index) => (
             <Card

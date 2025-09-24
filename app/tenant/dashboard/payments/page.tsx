@@ -74,10 +74,14 @@ export default function TenantPaymentsPage() {
     const matchesSearch =
       payment.payment_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.reference_number?.toLowerCase().includes(searchTerm.toLowerCase());
+      payment.reference_number
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
-    const matchesStatus = filterStatus === 'all' || payment.payment_status === filterStatus;
-    const matchesType = filterType === 'all' || payment.payment_type === filterType;
+    const matchesStatus =
+      filterStatus === 'all' || payment.payment_status === filterStatus;
+    const matchesType =
+      filterType === 'all' || payment.payment_type === filterType;
 
     return matchesSearch && matchesStatus && matchesType;
   });
@@ -139,19 +143,27 @@ export default function TenantPaymentsPage() {
     total: payments.length,
     pending: payments.filter(p => p.payment_status === 'pending').length,
     paid: payments.filter(p => p.payment_status === 'paid').length,
-    overdue: payments.filter(p => p.payment_status === 'pending' && new Date(p.due_date) < new Date()).length,
+    overdue: payments.filter(
+      p => p.payment_status === 'pending' && new Date(p.due_date) < new Date()
+    ).length,
     totalAmount: payments.reduce((sum, p) => sum + Number(p.amount), 0),
-    pendingAmount: payments.filter(p => p.payment_status === 'pending').reduce((sum, p) => sum + Number(p.amount), 0),
-    paidAmount: payments.filter(p => p.payment_status === 'paid').reduce((sum, p) => sum + Number(p.amount), 0)
+    pendingAmount: payments
+      .filter(p => p.payment_status === 'pending')
+      .reduce((sum, p) => sum + Number(p.amount), 0),
+    paidAmount: payments
+      .filter(p => p.payment_status === 'paid')
+      .reduce((sum, p) => sum + Number(p.amount), 0)
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-blue-600 font-medium">Loading payments...</p>
+            <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-blue-600 font-medium text-sm sm:text-base">
+              Loading payments...
+            </p>
           </div>
         </div>
       </div>
@@ -159,73 +171,81 @@ export default function TenantPaymentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
               My Payments
             </h1>
-            <p className="text-blue-600/70 mt-1">
+            <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
               Track and manage your payment history
             </p>
           </div>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                  <p className="text-sm text-gray-600">Total Payments</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {stats.total}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-                  <p className="text-sm text-gray-600">Pending</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {stats.pending}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">Pending</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{stats.paid}</p>
-                  <p className="text-sm text-gray-600">Paid</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {stats.paid}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">Paid</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{stats.overdue}</p>
-                  <p className="text-sm text-gray-600">Overdue</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {stats.overdue}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">Overdue</p>
                 </div>
               </div>
             </CardContent>
@@ -233,36 +253,38 @@ export default function TenantPaymentsPage() {
         </div>
 
         {/* Amount Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-lg sm:text-2xl font-bold text-blue-600">
                   ₱{stats.totalAmount.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">Total Amount</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Amount</p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-yellow-600">
+                <p className="text-lg sm:text-2xl font-bold text-yellow-600">
                   ₱{stats.pendingAmount.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">Pending Amount</p>
+                <p className="text-xs sm:text-sm text-gray-600">
+                  Pending Amount
+                </p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-lg sm:text-2xl font-bold text-green-600">
                   ₱{stats.paidAmount.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">Paid Amount</p>
+                <p className="text-xs sm:text-sm text-gray-600">Paid Amount</p>
               </div>
             </CardContent>
           </Card>
@@ -282,7 +304,7 @@ export default function TenantPaymentsPage() {
 
         {/* Results Count */}
         <div className="flex items-center justify-between">
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base">
             Showing {filteredPayments.length} of {payments.length} payments
           </p>
         </div>
@@ -291,112 +313,144 @@ export default function TenantPaymentsPage() {
         {viewMode === 'table' && (
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-blue-50/50">
-                    <TableHead className="text-blue-700 font-semibold">Payment</TableHead>
-                    <TableHead className="text-blue-700 font-semibold">Property</TableHead>
-                    <TableHead className="text-blue-700 font-semibold">Type</TableHead>
-                    <TableHead className="text-blue-700 font-semibold">Status</TableHead>
-                    <TableHead className="text-blue-700 font-semibold">Amount</TableHead>
-                    <TableHead className="text-blue-700 font-semibold">Due Date</TableHead>
-                    <TableHead className="text-blue-700 font-semibold">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPayments.map(payment => (
-                    <TableRow
-                      key={payment.id}
-                      className="hover:bg-blue-50/30 transition-colors"
-                    >
-                      <TableCell>
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            {payment.payment_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                          </p>
-                          {payment.reference_number && (
-                            <p className="text-sm text-gray-600">
-                              Ref: {payment.reference_number}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-blue-50/50">
+                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
+                        Payment
+                      </TableHead>
+                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden sm:table-cell">
+                        Property
+                      </TableHead>
+                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden md:table-cell">
+                        Type
+                      </TableHead>
+                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
+                        Amount
+                      </TableHead>
+                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden lg:table-cell">
+                        Due Date
+                      </TableHead>
+                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPayments.map(payment => (
+                      <TableRow
+                        key={payment.id}
+                        className="hover:bg-blue-50/30 transition-colors">
+                        <TableCell>
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                              {payment.payment_type
+                                .replace('_', ' ')
+                                .replace(/\b\w/g, l => l.toUpperCase())}
                             </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {payment.property.name}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {payment.property.city}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getPaymentTypeBadge(payment.payment_type)}>
-                          {payment.payment_type.replace('_', ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusBadge(payment.payment_status)}>
-                          {payment.payment_status.replace('_', ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            ₱{Number(payment.amount).toLocaleString()}
-                          </p>
-                          {payment.late_fee && payment.late_fee > 0 && (
-                            <p className="text-sm text-red-600">
-                              +₱{Number(payment.late_fee).toLocaleString()} late fee
+                            {payment.reference_number && (
+                              <p className="text-xs sm:text-sm text-gray-600">
+                                Ref: {payment.reference_number}
+                              </p>
+                            )}
+                            <div className="sm:hidden mt-1">
+                              <p className="text-xs text-gray-500">
+                                {payment.property.name}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <div>
+                            <p className="font-medium text-gray-900 text-sm sm:text-base">
+                              {payment.property.name}
                             </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="text-sm text-gray-900">
-                            {new Date(payment.due_date).toLocaleDateString()}
-                          </p>
-                          {payment.paid_date && (
-                            <p className="text-xs text-green-600">
-                              Paid: {new Date(payment.paid_date).toLocaleDateString()}
+                            <p className="text-xs sm:text-sm text-gray-600">
+                              {payment.property.city}
                             </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewPayment(payment)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          {payment.payment_status === 'paid' && payment.receipt_url && (
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <Badge
+                            className={`${getPaymentTypeBadge(
+                              payment.payment_type
+                            )} text-xs sm:text-sm`}>
+                            {payment.payment_type.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={`${getStatusBadge(
+                              payment.payment_status
+                            )} text-xs sm:text-sm`}>
+                            {payment.payment_status.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                              ₱{Number(payment.amount).toLocaleString()}
+                            </p>
+                            {payment.late_fee && payment.late_fee > 0 && (
+                              <p className="text-xs sm:text-sm text-red-600">
+                                +₱{Number(payment.late_fee).toLocaleString()}{' '}
+                                late fee
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div>
+                            <p className="text-xs sm:text-sm text-gray-900">
+                              {new Date(payment.due_date).toLocaleDateString()}
+                            </p>
+                            {payment.paid_date && (
+                              <p className="text-xs text-green-600">
+                                Paid:{' '}
+                                {new Date(
+                                  payment.paid_date
+                                ).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1 sm:gap-2">
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDownloadReceipt(payment)}
-                              className="text-green-600 hover:text-green-700"
-                            >
-                              <Download className="w-4 h-4" />
+                              onClick={() => handleViewPayment(payment)}
+                              className="h-8 w-8 sm:h-9 sm:w-9">
+                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                            {payment.payment_status === 'paid' &&
+                              payment.receipt_url && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDownloadReceipt(payment)}
+                                  className="text-green-600 hover:text-green-700 h-8 w-8 sm:h-9 sm:w-9">
+                                  <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                                </Button>
+                              )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         )}
 
         {/* Grid View */}
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredPayments.map(payment => (
               <PaymentCard
                 key={payment.id}
@@ -411,12 +465,12 @@ export default function TenantPaymentsPage() {
         {/* Empty State */}
         {filteredPayments.length === 0 && (
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
-            <CardContent className="p-12 text-center">
-              <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <CardContent className="p-6 sm:p-12 text-center">
+              <DollarSign className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
                 No payments found
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-6 text-sm sm:text-base">
                 {searchTerm || filterStatus !== 'all' || filterType !== 'all'
                   ? 'Try adjusting your search or filter criteria.'
                   : 'No payments have been created for your account yet.'}

@@ -397,6 +397,13 @@ export class TenantAPI {
     }
   }
 
+  static async getPropertyDetails(
+    propertyId: string
+  ): Promise<{ success: boolean; data?: PropertyListing; message?: string }> {
+    // Alias for getProperty method for consistency
+    return this.getProperty(propertyId);
+  }
+
   private static async getUpcomingPayments(tenantId: string) {
     try {
       const { data: payments, error } = await supabase
@@ -2458,7 +2465,7 @@ export class TenantAPI {
   }> {
     try {
       const { data, error } = await supabase.rpc('get_available_unit_numbers', {
-        property_id: propertyId
+        p_property_id: propertyId
       });
 
       if (error) throw error;
@@ -2494,14 +2501,17 @@ export class TenantAPI {
   }> {
     try {
       // Create the application first
-      // Check if unit is available
+      // Check if unit is available using the simplified function
       const { data: isAvailable, error: availabilityError } =
-        await supabase.rpc('is_unit_available', {
+        await supabase.rpc('is_unit_available_simple', {
           p_property_id: data.propertyId,
           p_unit_number: data.unitNumber
         });
 
-      if (availabilityError) throw availabilityError;
+      if (availabilityError) {
+        throw availabilityError;
+      }
+
       if (!isAvailable) {
         return {
           success: false,

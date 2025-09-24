@@ -24,6 +24,11 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover';
+import {
   Search,
   MapPin,
   BedDouble,
@@ -43,7 +48,8 @@ import {
   Phone,
   Mail,
   MessageSquare,
-  PhilippinePeso
+  PhilippinePeso,
+  AlertTriangle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TenantAPI, type PropertyListing } from '@/lib/api/tenant';
@@ -74,6 +80,8 @@ export default function TenantPropertiesPage() {
   const [selectedProperty, setSelectedProperty] =
     useState<PropertyListing | null>(null);
   const [showApplicationDialog, setShowApplicationDialog] = useState(false);
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [showFiltersPopover, setShowFiltersPopover] = useState(false);
 
   const [filters, setFilters] = useState<SearchFilters>({
     query: '',
@@ -200,9 +208,10 @@ export default function TenantPropertiesPage() {
       property.id
     );
     if (hasPending) {
-      toast.error(
-        "You already have a pending application for this property. Please wait for the owner's response or check your applications page."
+      toast.info(
+        'You already have a pending application for this property. Redirecting to your applications...'
       );
+      router.push('/tenant/dashboard/applications');
       return;
     }
 
@@ -219,8 +228,12 @@ export default function TenantPropertiesPage() {
   };
 
   const handleContactOwner = (property: PropertyListing) => {
-    // TODO: Integrate with messaging system
-    router.push(`/tenant/dashboard/messages?owner=${property.owner_id}`);
+    setSelectedProperty(property);
+    setShowContactDialog(true);
+  };
+
+  const handleCallOwner = (phoneNumber: string) => {
+    window.open(`tel:${phoneNumber}`, '_self');
   };
 
   const cities = [...new Set(properties.map(p => p.city))];
@@ -228,424 +241,603 @@ export default function TenantPropertiesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading available properties...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">
+            <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-blue-600 font-medium text-sm sm:text-base">
+              Loading available properties...
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Find Your Perfect Home
-        </h1>
-        <p className="text-gray-600">
-          Discover amazing properties available for rent in your area
-        </p>
-      </div>
-
-      {/* Search and Filters */}
-      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-        <CardContent className="p-6">
-          <div className="grid lg:grid-cols-6 gap-4">
-            {/* Search Input */}
-            <div className="lg:col-span-2">
-              <Label
-                htmlFor="search"
-                className="text-sm font-medium text-gray-700 mb-2 block">
-                Search Properties
-              </Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  id="search"
-                  placeholder="Search by name, location, or description..."
-                  value={filters.query}
-                  onChange={e =>
-                    setFilters(prev => ({ ...prev, query: e.target.value }))
-                  }
-                  className="pl-10 focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            {/* City Filter */}
-            <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                City
-              </Label>
-              <Select
-                value={filters.city}
-                onValueChange={value =>
-                  setFilters(prev => ({ ...prev, city: value }))
-                }>
-                <SelectTrigger className="focus:border-blue-500">
-                  <SelectValue placeholder="All Cities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
-                  {cities.map(city => (
-                    <SelectItem key={city} value={city}>
-                      {city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Type Filter */}
-            <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                Type
-              </Label>
-              <Select
-                value={filters.type}
-                onValueChange={value =>
-                  setFilters(prev => ({ ...prev, type: value }))
-                }>
-                <SelectTrigger className="focus:border-blue-500">
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {propertyTypes.map(type => (
-                    <SelectItem key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Price Range */}
-            <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                Max Rent
-              </Label>
-              <Select
-                value={filters.maxRent.toString()}
-                onValueChange={value =>
-                  setFilters(prev => ({ ...prev, maxRent: parseInt(value) }))
-                }>
-                <SelectTrigger className="focus:border-blue-500">
-                  <SelectValue placeholder="Any Price" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="50000">Any Price</SelectItem>
-                  <SelectItem value="10000">₱10,000</SelectItem>
-                  <SelectItem value="15000">₱15,000</SelectItem>
-                  <SelectItem value="20000">₱20,000</SelectItem>
-                  <SelectItem value="30000">₱30,000</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Sort By */}
-            <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                Sort By
-              </Label>
-              <Select
-                value={filters.sortBy}
-                onValueChange={(value: any) =>
-                  setFilters(prev => ({ ...prev, sortBy: value }))
-                }>
-                <SelectTrigger className="focus:border-blue-500">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="rent_asc">Price: Low to High</SelectItem>
-                  <SelectItem value="rent_desc">Price: High to Low</SelectItem>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              Find Your Perfect Home
+            </h1>
+            <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
+              Discover amazing properties available for rent in your area
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Results Summary */}
-      <div className="flex items-center justify-between">
-        <p className="text-gray-600">
-          Showing {filteredProperties.length} of {properties.length} properties
-        </p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <SlidersHorizontal className="w-4 h-4 mr-2" />
-            Advanced Filters
-          </Button>
         </div>
-      </div>
 
-      {/* Property Grid */}
-      <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredProperties.map(property => (
-          <Card
-            key={property.id}
-            className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100 hover:shadow-xl transition-all duration-300 overflow-hidden">
-            {/* Property Image */}
-            <div className="relative h-48 overflow-hidden">
-              <img
-                src={
-                  property.thumbnail ||
-                  property.images?.[0] ||
-                  '/api/placeholder/400/300'
-                }
-                alt={property.name}
-                className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-              />
-              <div className="absolute top-3 left-3">
-                <Badge className="bg-blue-600 text-white">
-                  {property.type.charAt(0).toUpperCase() +
-                    property.type.slice(1)}
-                </Badge>
-              </div>
-              <div className="absolute top-3 right-3 flex gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="w-8 h-8 p-0 bg-white/90 hover:bg-white"
-                  onClick={() => handleToggleFavorite(property.id)}>
-                  <Heart
-                    className={`w-4 h-4 ${
-                      favorites.includes(property.id)
-                        ? 'text-red-500 fill-red-500'
-                        : 'text-gray-600'
-                    }`}
+        {/* Search and Filters */}
+        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              {/* Search Input */}
+              <div className="flex-1">
+                <Label
+                  htmlFor="search"
+                  className="text-sm font-medium text-gray-700 mb-2 block">
+                  Search Properties
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="search"
+                    placeholder="Search by name, location..."
+                    value={filters.query}
+                    onChange={e =>
+                      setFilters(prev => ({ ...prev, query: e.target.value }))
+                    }
+                    className="pl-10 focus:border-blue-500 text-sm sm:text-base"
                   />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="w-8 h-8 p-0 bg-white/90 hover:bg-white"
-                  onClick={() =>
-                    router.push(`/tenant/dashboard/properties/${property.id}`)
-                  }>
-                  <Eye className="w-4 h-4 text-gray-600" />
-                </Button>
+                </div>
               </div>
-              <div className="absolute bottom-3 left-3">
-                <Badge
-                  className={`${
-                    property.available_units > 0 ? 'bg-green-600' : 'bg-red-600'
-                  } text-white`}>
-                  {property.available_units > 0
-                    ? `${property.available_units} Available`
-                    : 'Fully Occupied'}
-                </Badge>
+
+              {/* Advanced Filters Button */}
+              <div className="flex items-end">
+                <Popover
+                  open={showFiltersPopover}
+                  onOpenChange={setShowFiltersPopover}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="border-blue-200 text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
+                      <Filter className="w-4 h-4 mr-2" />
+                      Filters
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-4" align="end">
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-gray-900">
+                        Advanced Filters
+                      </h4>
+
+                      {/* City Filter */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          City
+                        </Label>
+                        <Select
+                          value={filters.city}
+                          onValueChange={value =>
+                            setFilters(prev => ({ ...prev, city: value }))
+                          }>
+                          <SelectTrigger className="focus:border-blue-500 text-sm sm:text-base">
+                            <SelectValue placeholder="All Cities" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Cities</SelectItem>
+                            {cities.map(city => (
+                              <SelectItem key={city} value={city}>
+                                {city}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Type Filter */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Type
+                        </Label>
+                        <Select
+                          value={filters.type}
+                          onValueChange={value =>
+                            setFilters(prev => ({ ...prev, type: value }))
+                          }>
+                          <SelectTrigger className="focus:border-blue-500 text-sm sm:text-base">
+                            <SelectValue placeholder="All Types" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Types</SelectItem>
+                            {propertyTypes.map(type => (
+                              <SelectItem key={type} value={type}>
+                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Price Range */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Max Rent
+                        </Label>
+                        <Select
+                          value={filters.maxRent.toString()}
+                          onValueChange={value =>
+                            setFilters(prev => ({
+                              ...prev,
+                              maxRent: parseInt(value)
+                            }))
+                          }>
+                          <SelectTrigger className="focus:border-blue-500 text-sm sm:text-base">
+                            <SelectValue placeholder="Any Price" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="50000">Any Price</SelectItem>
+                            <SelectItem value="10000">₱10,000</SelectItem>
+                            <SelectItem value="15000">₱15,000</SelectItem>
+                            <SelectItem value="20000">₱20,000</SelectItem>
+                            <SelectItem value="30000">₱30,000</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Sort By */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Sort By
+                        </Label>
+                        <Select
+                          value={filters.sortBy}
+                          onValueChange={(value: any) =>
+                            setFilters(prev => ({ ...prev, sortBy: value }))
+                          }>
+                          <SelectTrigger className="focus:border-blue-500 text-sm sm:text-base">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="newest">Newest First</SelectItem>
+                            <SelectItem value="rent_asc">
+                              Price: Low to High
+                            </SelectItem>
+                            <SelectItem value="rent_desc">
+                              Price: High to Low
+                            </SelectItem>
+                            <SelectItem value="rating">
+                              Highest Rated
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Clear Filters */}
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setFilters({
+                            query: '',
+                            city: 'all',
+                            type: 'all',
+                            minRent: 0,
+                            maxRent: 50000,
+                            sortBy: 'newest'
+                          });
+                          setShowFiltersPopover(false);
+                        }}
+                        className="w-full border-gray-200 text-gray-600 hover:bg-gray-50 text-sm sm:text-base">
+                        Clear Filters
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            <CardContent className="p-6">
-              {/* Property Details */}
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                  {property.name}
-                </h3>
-                <div className="flex items-center gap-1 text-gray-600 mb-2">
-                  <MapPin className="w-4 h-4" />
-                  <span className="text-sm">
-                    {property.address}, {property.city}
-                  </span>
+        {/* Results Summary */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <p className="text-gray-600 text-sm sm:text-base">
+            Showing {filteredProperties.length} of {properties.length}{' '}
+            properties
+          </p>
+        </div>
+
+        {/* Property Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+          {filteredProperties.map(property => (
+            <Card
+              key={property.id}
+              className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden">
+              {/* Property Image */}
+              <div className="relative h-40 sm:h-48 overflow-hidden">
+                <img
+                  src={
+                    property.thumbnail ||
+                    property.images?.[0] ||
+                    '/api/placeholder/400/300'
+                  }
+                  alt={property.name}
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                />
+                <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
+                  <Badge className="bg-blue-600 text-white text-xs">
+                    {property.type.charAt(0).toUpperCase() +
+                      property.type.slice(1)}
+                  </Badge>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    <span className="text-sm font-medium">
-                      {property.rating}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      ({property.reviewCount})
+                <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex gap-1 sm:gap-2">
+                  {/* <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-6 h-6 sm:w-8 sm:h-8 p-0 bg-white/90 hover:bg-white"
+                    onClick={() => handleToggleFavorite(property.id)}>
+                    <Heart
+                      className={`w-3 h-3 sm:w-4 sm:h-4 ${
+                        favorites.includes(property.id)
+                          ? 'text-red-500 fill-red-500'
+                          : 'text-gray-600'
+                      }`}
+                    />
+                  </Button> */}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-6 h-6 sm:w-8 sm:h-8 p-0 bg-white/90 hover:bg-white"
+                    onClick={() =>
+                      router.push(`/tenant/dashboard/properties/${property.id}`)
+                    }>
+                    <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
+                  </Button>
+                </div>
+                <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
+                  <Badge
+                    className={`text-xs ${
+                      property.available_units > 0
+                        ? 'bg-green-600'
+                        : 'bg-red-600'
+                    } text-white`}>
+                    {property.available_units > 0
+                      ? `${property.available_units} Available`
+                      : 'Fully Occupied'}
+                  </Badge>
+                </div>
+              </div>
+
+              <CardContent className="p-3 sm:p-6">
+                {/* Property Details */}
+                <div className="mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
+                    {property.name}
+                  </h3>
+                  <div className="flex items-center gap-1 text-gray-600 mb-2">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="text-xs sm:text-sm">
+                      {property.address}, {property.city}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">
-                      {property.total_units} units
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 fill-yellow-500" />
+                      <span className="text-xs sm:text-sm font-medium">
+                        {property.rating?.toFixed(2) || '0.00'}
+                      </span>
+                      <span className="text-xs sm:text-sm text-gray-500">
+                        ({property.reviewCount || 0})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                      <span className="text-xs sm:text-sm text-gray-600">
+                        {property.total_units} units
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div className="mb-3 sm:mb-4">
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900">
+                    ₱{property.monthly_rent.toLocaleString()}
+                    <span className="text-xs sm:text-sm font-normal text-gray-600">
+                      /month
                     </span>
                   </div>
                 </div>
-              </div>
 
-              {/* Price */}
-              <div className="mb-4">
-                <div className="text-2xl font-bold text-gray-900">
-                  ₱{property.monthly_rent.toLocaleString()}
-                  <span className="text-sm font-normal text-gray-600">
-                    /month
+                {/* Amenities */}
+                <div className="mb-3 sm:mb-4">
+                  <div className="flex flex-wrap gap-1">
+                    {property.featured_amenities.slice(0, 3).map(amenity => (
+                      <Badge
+                        key={amenity}
+                        variant="secondary"
+                        className="text-xs">
+                        {amenity}
+                      </Badge>
+                    ))}
+                    {property.amenities.length > 3 && (
+                      <Badge variant="secondary" className="text-xs">
+                        +{property.amenities.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Owner Info */}
+                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 p-2 sm:p-3 bg-gray-50 rounded-lg">
+                  <Avatar className="w-6 h-6 sm:w-8 sm:h-8">
+                    <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
+                      {property.owner_name
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                      {property.owner_name}
+                    </p>
+                    <p className="text-xs text-gray-600">Property Owner</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-6 w-6 sm:h-8 sm:w-8 p-0"
+                    onClick={() => handleContactOwner(property)}>
+                    <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
+                  </Button>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    className={cn(
+                      'flex-1 text-xs sm:text-sm',
+                      pendingApplications.includes(property.id)
+                        ? 'bg-yellow-500 hover:bg-yellow-600'
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+                    )}
+                    onClick={() => handleApplyToProperty(property)}
+                    disabled={
+                      property.available_units === 0 ||
+                      pendingApplications.includes(property.id)
+                    }>
+                    {pendingApplications.includes(property.id)
+                      ? 'Application Pending'
+                      : property.available_units > 0
+                      ? 'Apply Now'
+                      : 'Fully Occupied'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      router.push(`/tenant/dashboard/properties/${property.id}`)
+                    }
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50 text-xs sm:text-sm">
+                    <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                    <span className=" sm:inline">View</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredProperties.length === 0 && (
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+            <CardContent className="py-8 sm:py-12 text-center">
+              <Building className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+                No Properties Found
+              </h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-6">
+                We couldn't find any properties matching your criteria. Try
+                adjusting your filters.
+              </p>
+              <Button
+                onClick={() =>
+                  setFilters({
+                    query: '',
+                    city: 'all',
+                    type: 'all',
+                    minRent: 0,
+                    maxRent: 50000,
+                    sortBy: 'newest'
+                  })
+                }
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-sm sm:text-base">
+                Clear Filters
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Application Dialog */}
+        <Dialog
+          open={showApplicationDialog}
+          onOpenChange={setShowApplicationDialog}>
+          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base sm:text-lg">
+                Apply to {selectedProperty?.name}
+              </DialogTitle>
+              <DialogDescription className="text-sm sm:text-base">
+                Submit your application to rent a unit at this property.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="bg-blue-50 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <PhilippinePeso className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                  <span className="font-medium text-blue-800 text-sm sm:text-base">
+                    Monthly Rent
                   </span>
                 </div>
+                <p className="text-xl sm:text-2xl font-bold text-blue-900">
+                  ₱{selectedProperty?.monthly_rent.toLocaleString()}/month
+                </p>
               </div>
-
-              {/* Amenities */}
-              <div className="mb-4">
-                <div className="flex flex-wrap gap-1">
-                  {property.featured_amenities.slice(0, 4).map(amenity => (
-                    <Badge
-                      key={amenity}
-                      variant="secondary"
-                      className="text-xs">
-                      {amenity}
-                    </Badge>
-                  ))}
-                  {property.amenities.length > 4 && (
-                    <Badge variant="secondary" className="text-xs">
-                      +{property.amenities.length - 4} more
-                    </Badge>
-                  )}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                  <span>Background check required</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                  <span>Employment verification needed</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                  <span>Security deposit: 2 months rent</span>
                 </div>
               </div>
+            </div>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowApplicationDialog(false)}
+                className="text-sm sm:text-base">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!selectedProperty) return;
+                  setShowApplicationDialog(false);
+                  router.push(
+                    `/tenant/dashboard/applications/new?propertyId=${selectedProperty.id}`
+                  );
+                }}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-sm sm:text-base">
+                Continue Application
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-              {/* Owner Info */}
-              <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
-                    {property.owner_name
+        {/* Contact Owner Dialog */}
+        <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
+          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base sm:text-lg">
+                Contact Property Owner
+              </DialogTitle>
+              <DialogDescription className="text-sm sm:text-base">
+                Get in touch with {selectedProperty?.owner_name} about{' '}
+                {selectedProperty?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="bg-blue-50 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base">
+                    {selectedProperty?.owner_name
                       .split(' ')
                       .map(n => n[0])
                       .join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {property.owner_name}
-                  </p>
-                  <p className="text-xs text-gray-600">Property Owner</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm sm:text-base">
+                      {selectedProperty?.owner_name}
+                    </p>
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Property Owner
+                    </p>
+                  </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                  onClick={() => handleContactOwner(property)}>
-                  <MessageSquare className="w-4 h-4" />
-                </Button>
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2">
-                <Button
-                  className={cn(
-                    'flex-1',
-                    pendingApplications.includes(property.id)
-                      ? 'bg-yellow-500 hover:bg-yellow-600'
-                      : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+              <div className="space-y-3">
+                {/* Email */}
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Mail className="w-4 h-4 text-blue-600" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Email</p>
+                    <p className="text-sm sm:text-base font-medium">
+                      {selectedProperty?.owner_email}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      window.open(
+                        `mailto:${selectedProperty?.owner_email}`,
+                        '_self'
+                      );
+                    }}
+                    className="border-blue-200 text-blue-600 hover:bg-blue-50 text-xs sm:text-sm">
+                    Send Email
+                  </Button>
+                </div>
+
+                {/* Phone */}
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Phone className="w-4 h-4 text-green-600" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Phone</p>
+                    <p className="text-sm sm:text-base font-medium">
+                      {selectedProperty?.owner_phone || 'Not available'}
+                    </p>
+                  </div>
+                  {selectedProperty?.owner_phone && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        handleCallOwner(selectedProperty.owner_phone)
+                      }
+                      className="border-green-200 text-green-600 hover:bg-green-50 text-xs sm:text-sm">
+                      Call Now
+                    </Button>
                   )}
-                  onClick={() => handleApplyToProperty(property)}
-                  disabled={
-                    property.available_units === 0 ||
-                    pendingApplications.includes(property.id)
-                  }>
-                  {pendingApplications.includes(property.id)
-                    ? 'Application Pending'
-                    : property.available_units > 0
-                    ? 'Apply Now'
-                    : 'Fully Occupied'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    router.push(`/tenant/dashboard/properties/${property.id}`)
-                  }
-                  className="border-blue-200 text-blue-700 hover:bg-blue-50">
-                  <Eye className="w-4 h-4" />
-                </Button>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                  <div>
+                    <p className="text-xs sm:text-sm font-medium text-yellow-800">
+                      Contact Guidelines
+                    </p>
+                    <p className="text-xs text-yellow-700 mt-1">
+                      Please be respectful when contacting property owners. Ask
+                      relevant questions about the property and your
+                      application.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowContactDialog(false)}
+                className="text-sm sm:text-base">
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!selectedProperty) return;
+                  setShowContactDialog(false);
+                  router.push(
+                    `/tenant/dashboard/messages?owner=${selectedProperty.owner_id}`
+                  );
+                }}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-sm sm:text-base">
+                <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                Send Message
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {filteredProperties.length === 0 && (
-        <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-          <CardContent className="p-12 text-center">
-            <Building className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No Properties Found
-            </h3>
-            <p className="text-gray-600 mb-4">
-              We couldn't find any properties matching your criteria. Try
-              adjusting your filters.
-            </p>
-            <Button
-              onClick={() =>
-                setFilters({
-                  query: '',
-                  city: 'all',
-                  type: 'all',
-                  minRent: 0,
-                  maxRent: 50000,
-                  sortBy: 'newest'
-                })
-              }
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-              Clear Filters
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Application Dialog */}
-      <Dialog
-        open={showApplicationDialog}
-        onOpenChange={setShowApplicationDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Apply to {selectedProperty?.name}</DialogTitle>
-            <DialogDescription>
-              Submit your application to rent a unit at this property.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <PhilippinePeso className="w-4 h-4 text-blue-600" />
-                <span className="font-medium text-blue-800">Monthly Rent</span>
-              </div>
-              <p className="text-2xl font-bold text-blue-900">
-                ₱{selectedProperty?.monthly_rent.toLocaleString()}/month
-              </p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>Background check required</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>Employment verification needed</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>Security deposit: 2 months rent</span>
-              </div>
-            </div>
-          </div>
-          <DialogFooter className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowApplicationDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (!selectedProperty) return;
-                setShowApplicationDialog(false);
-                router.push(
-                  `/tenant/dashboard/applications/new?propertyId=${selectedProperty.id}`
-                );
-              }}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-              Continue Application
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -286,7 +286,9 @@ export default function OwnerMessagesPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
             <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-blue-600 font-medium text-sm sm:text-base">Loading messages...</p>
+            <p className="text-blue-600 font-medium text-sm sm:text-base">
+              Loading messages...
+            </p>
           </div>
         </div>
       </div>
@@ -315,7 +317,7 @@ export default function OwnerMessagesPage() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-3">
@@ -326,7 +328,9 @@ export default function OwnerMessagesPage() {
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {stats.total_conversations}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-600">Total Conversations</p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Total Conversations
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -342,7 +346,9 @@ export default function OwnerMessagesPage() {
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {stats.unread_messages}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-600">Unread Messages</p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Unread Messages
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -358,7 +364,9 @@ export default function OwnerMessagesPage() {
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {stats.total_messages}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-600">Total Messages</p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Total Messages
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -374,12 +382,14 @@ export default function OwnerMessagesPage() {
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {filteredConversations.length}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-600">Active Conversations</p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Active Conversations
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </div>
+        </div> */}
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">

@@ -118,52 +118,60 @@ export function AnnouncementCard({
         isExpired && 'opacity-60',
         className
       )}>
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
+      <CardHeader className="pb-3 sm:pb-4 p-3 sm:p-6">
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <Megaphone className="w-5 h-5 text-blue-600" />
-              <CardTitle className="text-lg text-gray-900 line-clamp-2">
+              <Megaphone className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+              <CardTitle className="text-base sm:text-lg text-gray-900 line-clamp-2">
                 {announcement.title}
               </CardTitle>
             </div>
 
-            <div className="flex flex-wrap gap-2 mb-3">
-              <Badge className={getPriorityBadge(announcement.priority)}>
+            <div className="flex flex-wrap gap-1 sm:gap-2 mb-3">
+              <Badge
+                className={`${getPriorityBadge(
+                  announcement.priority
+                )} text-xs sm:text-sm`}>
                 {announcement.priority}
               </Badge>
-              <Badge className={getTypeBadge(announcement.type)}>
+              <Badge
+                className={`${getTypeBadge(
+                  announcement.type
+                )} text-xs sm:text-sm`}>
                 {announcement.type}
               </Badge>
               {role === 'owner' && (
                 <Badge
-                  className={getStatusBadge(
+                  className={`${getStatusBadge(
                     announcement.is_published,
                     announcement.expires_at
-                  )}>
+                  )} text-xs sm:text-sm`}>
                   {announcement.is_published ? 'Published' : 'Draft'}
                   {isExpired && ' (Expired)'}
                 </Badge>
               )}
             </div>
 
-            <div className="flex items-center gap-4 text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
               <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                <span>{formatDate(announcement.created_at)}</span>
+                <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="truncate">
+                  {formatDate(announcement.created_at)}
+                </span>
               </div>
 
               {announcement.property && (
                 <div className="flex items-center gap-1">
-                  <Home className="w-4 h-4" />
-                  <span>{announcement.property.name}</span>
+                  <Home className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">{announcement.property.name}</span>
                 </div>
               )}
 
               {announcement.creator && (
                 <div className="flex items-center gap-1">
-                  <User className="w-4 h-4" />
-                  <span>
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">
                     {announcement.creator.first_name}{' '}
                     {announcement.creator.last_name}
                   </span>
@@ -172,8 +180,10 @@ export function AnnouncementCard({
 
               {announcement.expires_at && (
                 <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  <span>Expires: {formatDate(announcement.expires_at)}</span>
+                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">
+                    Expires: {formatDate(announcement.expires_at)}
+                  </span>
                 </div>
               )}
             </div>
@@ -181,20 +191,23 @@ export function AnnouncementCard({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreVertical className="w-4 h-4" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0">
+                <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {onView && (
                 <DropdownMenuItem onClick={() => onView(announcement)}>
-                  <Eye className="w-4 h-4 mr-2" />
+                  <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   View Details
                 </DropdownMenuItem>
               )}
               {role === 'owner' && onEdit && (
                 <DropdownMenuItem onClick={() => onEdit(announcement)}>
-                  <Edit className="w-4 h-4 mr-2" />
+                  <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
               )}
@@ -202,12 +215,12 @@ export function AnnouncementCard({
                 <DropdownMenuItem onClick={() => onTogglePublish(announcement)}>
                   {announcement.is_published ? (
                     <>
-                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Unpublish
                     </>
                   ) : (
                     <>
-                      <CheckCircle className="w-4 h-4 mr-2" />
+                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Publish
                     </>
                   )}
@@ -217,7 +230,7 @@ export function AnnouncementCard({
                 <DropdownMenuItem
                   onClick={() => onDelete(announcement)}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                  <Trash2 className="w-4 h-4 mr-2" />
+                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Delete
                 </DropdownMenuItem>
               )}
@@ -226,10 +239,10 @@ export function AnnouncementCard({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
-        <div className="space-y-4">
+      <CardContent className="pt-0 p-3 sm:p-6">
+        <div className="space-y-3 sm:space-y-4">
           {/* Content Preview */}
-          <div className="text-gray-700">
+          <div className="text-gray-700 text-sm sm:text-base">
             {isExpanded ? (
               <div className="whitespace-pre-wrap">{announcement.content}</div>
             ) : (
@@ -241,15 +254,15 @@ export function AnnouncementCard({
                 variant="link"
                 size="sm"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-0 h-auto text-blue-600 hover:text-blue-700">
+                className="p-0 h-auto text-blue-600 hover:text-blue-700 text-xs sm:text-sm">
                 {isExpanded ? 'Show less' : 'Read more'}
               </Button>
             )}
           </div>
 
           {/* Target Audience */}
-          <div className="flex items-center gap-2 text-sm">
-            <Target className="w-4 h-4 text-gray-400" />
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <Target className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
             <span className="text-gray-600">Target: </span>
             <Badge variant="outline" className="text-xs">
               {announcement.target_audience === 'all' && 'All Users'}
@@ -262,17 +275,17 @@ export function AnnouncementCard({
           {/* Attachments */}
           {announcement.attachments && announcement.attachments.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FileText className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                 <span>Attachments ({announcement.attachments.length})</span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1 sm:gap-2">
                 {announcement.attachments.map((attachment, index) => (
                   <Button
                     key={index}
                     variant="outline"
                     size="sm"
-                    className="text-xs"
+                    className="text-xs h-7 sm:h-8"
                     onClick={() => window.open(attachment, '_blank')}>
                     <Download className="w-3 h-3 mr-1" />
                     Attachment {index + 1}
@@ -286,25 +299,25 @@ export function AnnouncementCard({
           {announcement.target_audience === 'specific' &&
             announcement.target_users_data && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Users className="w-4 h-4" />
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                  <Users className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                   <span>
                     Targeted Users ({announcement.target_users_data.length})
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1 sm:gap-2">
                   {announcement.target_users_data.map(user => (
                     <div
                       key={user.id}
-                      className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                      <Avatar className="w-6 h-6">
+                      className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 sm:px-3 py-1 sm:py-2">
+                      <Avatar className="w-5 h-5 sm:w-6 sm:h-6">
                         <AvatarImage src={user.avatar_url} />
                         <AvatarFallback className="text-xs">
                           {user.first_name[0]}
                           {user.last_name[0]}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm text-gray-700">
+                      <span className="text-xs sm:text-sm text-gray-700 truncate">
                         {user.first_name} {user.last_name}
                       </span>
                     </div>
@@ -317,4 +330,3 @@ export function AnnouncementCard({
     </Card>
   );
 }
-

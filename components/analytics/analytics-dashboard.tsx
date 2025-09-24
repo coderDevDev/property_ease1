@@ -155,7 +155,9 @@ export function AnalyticsDashboard({
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
             <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-blue-600 font-medium text-sm sm:text-base">Loading analytics...</p>
+            <p className="text-blue-600 font-medium text-sm sm:text-base">
+              Loading analytics...
+            </p>
           </div>
         </div>
       </div>
@@ -373,7 +375,9 @@ export function AnalyticsDashboard({
                             <div className="font-semibold text-green-600 text-sm sm:text-base">
                               ₱{property.revenue.toLocaleString()}
                             </div>
-                            <div className="text-xs sm:text-sm text-gray-500">Revenue</div>
+                            <div className="text-xs sm:text-sm text-gray-500">
+                              Revenue
+                            </div>
                           </div>
                         </div>
                       )

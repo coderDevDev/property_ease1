@@ -279,12 +279,12 @@ export function ProfileDashboard({ role, className }: ProfileDashboardProps) {
                   </div>
 
                   {role === 'owner' && (
-                    <div className="flex items-center justify-between p-4 bg-green-50/50 rounded-lg border border-green-200/50">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-green-50/50 rounded-lg border border-green-200/50 gap-3 sm:gap-0">
                       <div>
-                        <h3 className="font-medium text-gray-900">
+                        <h3 className="font-medium text-gray-900 text-sm sm:text-base">
                           Business Information
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-600">
                           Manage your business details
                         </p>
                       </div>
@@ -292,20 +292,20 @@ export function ProfileDashboard({ role, className }: ProfileDashboardProps) {
                         onClick={() => setIsEditDialogOpen(true)}
                         variant="outline"
                         size="sm"
-                        className="border-green-200 text-green-600 hover:bg-green-50">
-                        <Edit className="w-4 h-4 mr-2" />
+                        className="border-green-200 text-green-600 hover:bg-green-50 text-xs sm:text-sm">
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                         Edit
                       </Button>
                     </div>
                   )}
 
                   {role === 'tenant' && (
-                    <div className="flex items-center justify-between p-4 bg-purple-50/50 rounded-lg border border-purple-200/50">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-purple-50/50 rounded-lg border border-purple-200/50 gap-3 sm:gap-0">
                       <div>
-                        <h3 className="font-medium text-gray-900">
+                        <h3 className="font-medium text-gray-900 text-sm sm:text-base">
                           Emergency Contact
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-600">
                           Update your emergency contact information
                         </p>
                       </div>
@@ -313,8 +313,8 @@ export function ProfileDashboard({ role, className }: ProfileDashboardProps) {
                         onClick={() => setIsEditDialogOpen(true)}
                         variant="outline"
                         size="sm"
-                        className="border-purple-200 text-purple-600 hover:bg-purple-50">
-                        <Edit className="w-4 h-4 mr-2" />
+                        className="border-purple-200 text-purple-600 hover:bg-purple-50 text-xs sm:text-sm">
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                         Edit
                       </Button>
                     </div>
@@ -325,20 +325,22 @@ export function ProfileDashboard({ role, className }: ProfileDashboardProps) {
           </TabsContent>
 
           {/* Security Tab */}
-          <TabsContent value="security" className="space-y-6">
+          <TabsContent value="security" className="space-y-4 sm:space-y-6">
             <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-blue-700 flex items-center gap-2">
-                  <Lock className="w-5 h-5" />
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="text-blue-700 flex items-center gap-2 text-base sm:text-lg">
+                  <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                   Security Settings
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-lg border border-blue-200/50">
+              <CardContent className="p-3 sm:p-6 pt-0">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-blue-50/50 rounded-lg border border-blue-200/50 gap-3 sm:gap-0">
                     <div>
-                      <h3 className="font-medium text-gray-900">Password</h3>
-                      <p className="text-sm text-gray-600">
+                      <h3 className="font-medium text-gray-900 text-sm sm:text-base">
+                        Password
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-600">
                         Change your account password
                       </p>
                     </div>
@@ -346,18 +348,18 @@ export function ProfileDashboard({ role, className }: ProfileDashboardProps) {
                       onClick={() => setIsPasswordDialogOpen(true)}
                       variant="outline"
                       size="sm"
-                      className="border-blue-200 text-blue-600 hover:bg-blue-50">
-                      <Key className="w-4 h-4 mr-2" />
+                      className="border-blue-200 text-blue-600 hover:bg-blue-50 text-xs sm:text-sm">
+                      <Key className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                       Change
                     </Button>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-yellow-50/50 rounded-lg border border-yellow-200/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-yellow-50/50 rounded-lg border border-yellow-200/50 gap-3 sm:gap-0">
                     <div>
-                      <h3 className="font-medium text-gray-900">
+                      <h3 className="font-medium text-gray-900 text-sm sm:text-base">
                         Email Verification
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600">
                         {profile.is_verified
                           ? 'Your email is verified'
                           : 'Verify your email address'}
@@ -368,19 +370,19 @@ export function ProfileDashboard({ role, className }: ProfileDashboardProps) {
                         onClick={handleVerifyEmail}
                         variant="outline"
                         size="sm"
-                        className="border-yellow-200 text-yellow-600 hover:bg-yellow-50">
-                        <CheckCircle className="w-4 h-4 mr-2" />
+                        className="border-yellow-200 text-yellow-600 hover:bg-yellow-50 text-xs sm:text-sm">
+                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                         Verify
                       </Button>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-red-50/50 rounded-lg border border-red-200/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-red-50/50 rounded-lg border border-red-200/50 gap-3 sm:gap-0">
                     <div>
-                      <h3 className="font-medium text-gray-900">
+                      <h3 className="font-medium text-gray-900 text-sm sm:text-base">
                         Account Deactivation
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600">
                         Deactivate your account (reversible)
                       </p>
                     </div>
@@ -388,8 +390,8 @@ export function ProfileDashboard({ role, className }: ProfileDashboardProps) {
                       onClick={handleDeactivateAccount}
                       variant="outline"
                       size="sm"
-                      className="border-red-200 text-red-600 hover:bg-red-50">
-                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      className="border-red-200 text-red-600 hover:bg-red-50 text-xs sm:text-sm">
+                      <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                       Deactivate
                     </Button>
                   </div>
@@ -401,9 +403,11 @@ export function ProfileDashboard({ role, className }: ProfileDashboardProps) {
 
         {/* Edit Profile Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Profile</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">
+                Edit Profile
+              </DialogTitle>
             </DialogHeader>
             {profile && (
               <ProfileForm
@@ -421,9 +425,11 @@ export function ProfileDashboard({ role, className }: ProfileDashboardProps) {
         <Dialog
           open={isPasswordDialogOpen}
           onOpenChange={setIsPasswordDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Change Password</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">
+                Change Password
+              </DialogTitle>
             </DialogHeader>
             <PasswordForm
               onCancel={() => setIsPasswordDialogOpen(false)}

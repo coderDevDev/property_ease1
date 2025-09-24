@@ -173,13 +173,13 @@ export function ProfileStats({ profile, role, onRefresh }: ProfileStatsProps) {
                 <Badge className={getRoleBadgeColor(profile.role)}>
                   {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
                 </Badge>
-                <Badge
+                {/* <Badge
                   className={getStatusBadgeColor(
                     profile.is_active,
                     profile.is_verified
                   )}>
                   {getStatusText(profile.is_active, profile.is_verified)}
-                </Badge>
+                </Badge> */}
               </div>
               <div className="space-y-1">
                 <p className="text-gray-600 flex items-center gap-2">
@@ -205,7 +205,7 @@ export function ProfileStats({ profile, role, onRefresh }: ProfileStatsProps) {
 
       {/* Statistics */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Account Age */}
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
             <CardContent className="p-4">

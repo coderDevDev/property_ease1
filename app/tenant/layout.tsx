@@ -76,7 +76,7 @@ export default function TenantLayout({
         <TenantSidebar />
         <div className="flex-1 lg:ml-64">
           <TopNavbar role="tenant" />
-          <main className="pt-16 p-6">{children}</main>
+          <main className="pt-0 p-6">{children}</main>
         </div>
       </div>
 
@@ -84,7 +84,7 @@ export default function TenantLayout({
       <div className="lg:hidden">
         <TenantSidebar />
         <TopNavbar role="tenant" />
-        <main className="pt-16">{children}</main>
+        <main className="pt-0">{children}</main>
       </div>
     </div>
   );

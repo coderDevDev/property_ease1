@@ -179,11 +179,11 @@ export default function TenantAnnouncementsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-blue-600 font-medium">
+            <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-blue-600 font-medium text-sm sm:text-base">
               Loading announcements...
             </p>
           </div>
@@ -193,88 +193,88 @@ export default function TenantAnnouncementsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
               Announcements
             </h1>
-            <p className="text-blue-600/70 mt-1">
+            <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
               Stay updated with important announcements from your property
             </p>
           </div>
           <Button
             onClick={handleRefresh}
             variant="outline"
-            className="border-blue-200 text-blue-600 hover:bg-blue-50">
-            <RefreshCw className="w-4 h-4 mr-2" />
+            className="border-blue-200 text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
+            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Refresh
           </Button>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <Megaphone className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <Megaphone className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
                     {stats.total}
                   </p>
-                  <p className="text-sm text-gray-600">Total</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
                     {stats.active}
                   </p>
-                  <p className="text-sm text-gray-600">Active</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Active</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
                     {stats.urgent}
                   </p>
-                  <p className="text-sm text-gray-600">Urgent</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Urgent</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
                     {stats.expired}
                   </p>
-                  <p className="text-sm text-gray-600">Expired</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Expired</p>
                 </div>
               </div>
             </CardContent>
@@ -297,22 +297,22 @@ export default function TenantAnnouncementsPage() {
 
         {/* Results Count */}
         <div className="flex items-center justify-between">
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base">
             Showing {filteredAnnouncements.length} of {announcements.length}{' '}
             announcements
           </p>
         </div>
 
         {/* Announcements List */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {filteredAnnouncements.length === 0 ? (
             <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
-              <CardContent className="p-12 text-center">
-                <Megaphone className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <CardContent className="p-6 sm:p-12 text-center">
+                <Megaphone className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
                   No announcements found
                 </h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-gray-600 mb-6 text-sm sm:text-base">
                   {searchTerm ||
                   filterType !== 'all' ||
                   filterPriority !== 'all' ||
@@ -323,8 +323,8 @@ export default function TenantAnnouncementsPage() {
                 <Button
                   onClick={handleRefresh}
                   variant="outline"
-                  className="border-blue-200 text-blue-600 hover:bg-blue-50">
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  className="border-blue-200 text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
+                  <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Refresh
                 </Button>
               </CardContent>

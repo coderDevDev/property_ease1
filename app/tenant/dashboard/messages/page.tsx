@@ -144,13 +144,13 @@ export default function TenantMessagesPage() {
   // Real-time messaging
   useRealtimeMessages({
     userId: authState.user?.id || '',
-    conversations,
-    selectedConversationId: selectedConversation?.id,
-    onConversationsUpdate: setConversations,
-    onMessagesUpdate: setMessages,
     onNewMessage: message => {
       // Handle new message notification
       console.log('New message received:', message);
+    },
+    onMessageUpdate: message => {
+      // Handle message updates
+      console.log('Message updated:', message);
     }
   });
 
@@ -275,11 +275,13 @@ export default function TenantMessagesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-blue-600 font-medium">Loading messages...</p>
+            <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-blue-600 font-medium text-sm sm:text-base">
+              Loading messages...
+            </p>
           </div>
         </div>
       </div>
@@ -287,87 +289,87 @@ export default function TenantMessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
               Messages
             </h1>
-            <p className="text-blue-600/70 mt-1">
+            <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
               Communicate with your property owner
             </p>
           </div>
           <Button
             onClick={handleNewMessage}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200">
-            <Plus className="w-4 h-4 mr-2" />
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base">
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             New Message
           </Button>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <MessageSquare className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
                     {stats.total_conversations}
                   </p>
-                  <p className="text-sm text-gray-600">Total Conversations</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                  <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
                     {stats.unread_messages}
                   </p>
-                  <p className="text-sm text-gray-600">Unread Messages</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Unread</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                  <Send className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
                     {stats.total_messages}
                   </p>
-                  <p className="text-sm text-gray-600">Total Messages</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Messages</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-sm border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Home className="w-5 h-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Home className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
                     {filteredConversations.length}
                   </p>
-                  <p className="text-sm text-gray-600">Active Conversations</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Active</p>
                 </div>
               </div>
             </CardContent>
@@ -375,7 +377,7 @@ export default function TenantMessagesPage() {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Conversations List */}
           <div className="lg:col-span-1">
             <ConversationList
@@ -407,20 +409,20 @@ export default function TenantMessagesPage() {
                 onMessageSent={handleMessageSent}
               />
             ) : (
-              <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg h-[600px]">
-                <CardContent className="flex items-center justify-center h-full">
+              <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg h-[400px] sm:h-[500px] lg:h-[600px]">
+                <CardContent className="flex items-center justify-center h-full p-3 sm:p-6">
                   <div className="text-center">
-                    <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    <MessageSquare className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
                       Select a conversation
                     </h3>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-600 mb-6 text-sm sm:text-base">
                       Choose a conversation from the list to view messages
                     </p>
                     <Button
                       onClick={handleNewMessage}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
-                      <Plus className="w-4 h-4 mr-2" />
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm sm:text-base">
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Start New Conversation
                     </Button>
                   </div>
