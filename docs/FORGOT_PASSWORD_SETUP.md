@@ -175,3 +175,5 @@ SELECT cleanup_expired_password_reset_tokens();
 3. **Audit Logging**: Track password reset attempts
 4. **Multi-factor Authentication**: Additional security layer
 5. **Account Lockout**: Temporary lockout after multiple failed attempts
+
+

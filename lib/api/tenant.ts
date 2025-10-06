@@ -609,28 +609,66 @@ export class TenantAPI {
     message?: string;
   }> {
     try {
-      // Get active lease details
-      const { data: tenant, error: tenantError } = await supabase
-        .from('tenants')
-        .select(
-          `
-          *,
-          properties(
-            name,
-            address,
-            type,
-            amenities,
-            users!properties_owner_id_fkey(
-              first_name,
-              last_name,
-              phone
+      // Get active lease details - handle PGRST116 error
+      let tenant: any = null;
+      let tenantError: any = null;
+
+      try {
+        const result = await supabase
+          .from('tenants')
+          .select(
+            `
+            *,
+            properties(
+              name,
+              address,
+              type,
+              amenities,
+              users!properties_owner_id_fkey(
+                first_name,
+                last_name,
+                phone
+              )
             )
+          `
           )
-        `
-        )
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .single();
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .single();
+
+        tenant = result.data;
+        tenantError = result.error;
+      } catch (error) {
+        // If PGRST116 error, try to get the first record
+        if (error && (error as any).code === 'PGRST116') {
+          const fallbackResult = await supabase
+            .from('tenants')
+            .select(
+              `
+              *,
+              properties(
+                name,
+                address,
+                type,
+                amenities,
+                users!properties_owner_id_fkey(
+                  first_name,
+                  last_name,
+                  phone
+                )
+              )
+            `
+            )
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .limit(1);
+
+          tenant = fallbackResult.data?.[0] || null;
+          tenantError = fallbackResult.error;
+        } else {
+          throw error;
+        }
+      }
 
       if (tenantError) throw tenantError;
       if (!tenant) return { success: false, message: 'No active lease found' };
@@ -751,13 +789,36 @@ export class TenantAPI {
     message?: string;
   }> {
     try {
-      // Get tenant ID first
-      const { data: tenant, error: tenantError } = await supabase
-        .from('tenants')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .single();
+      // Get tenant ID first - handle PGRST116 error
+      let tenant: any = null;
+      let tenantError: any = null;
+
+      try {
+        const result = await supabase
+          .from('tenants')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .single();
+
+        tenant = result.data;
+        tenantError = result.error;
+      } catch (error) {
+        // If PGRST116 error, try to get the first record
+        if (error && (error as any).code === 'PGRST116') {
+          const fallbackResult = await supabase
+            .from('tenants')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .limit(1);
+
+          tenant = fallbackResult.data?.[0] || null;
+          tenantError = fallbackResult.error;
+        } else {
+          throw error;
+        }
+      }
 
       if (tenantError) throw tenantError;
       if (!tenant) return { success: false, message: 'No active lease found' };
@@ -2454,6 +2515,201 @@ export class TenantAPI {
           error instanceof Error
             ? error.message
             : 'Failed to fetch applications'
+      };
+    }
+  }
+
+  static async getRentalApplicationDetails(applicationId: string): Promise<{
+    success: boolean;
+    data?: any;
+    message?: string;
+  }> {
+    try {
+      // Get application details with property information
+      const { data: application, error: applicationError } = await supabase
+        .from('rental_applications')
+        .select(
+          `
+          *,
+          properties(
+            id,
+            name,
+            address,
+            city,
+            province,
+            type,
+            amenities,
+            images,
+            thumbnail,
+            description,
+            users!properties_owner_id_fkey(
+              first_name,
+              last_name,
+              email,
+              phone
+            )
+          ),
+          documents:application_documents(
+            id,
+            name,
+            type,
+            url,
+            uploaded_at
+          )
+        `
+        )
+        .eq('id', applicationId)
+        .single();
+
+      if (applicationError) throw applicationError;
+      if (!application)
+        return { success: false, message: 'Application not found' };
+
+      // Get payments for this application (if it's approved and tenant exists)
+      let payments: any[] = [];
+      let maintenanceRequests: any[] = [];
+      let documents: any[] = [];
+
+      // Check if this application has been converted to a tenant record
+      const { data: tenant, error: tenantError } = await supabase
+        .from('tenants')
+        .select('id')
+        .eq('user_id', application.user_id)
+        .eq('property_id', application.property_id)
+        .eq('status', 'active')
+        .single();
+
+      if (!tenantError && tenant) {
+        // Get payments
+        const { data: paymentsData, error: paymentsError } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .order('due_date', { ascending: false });
+
+        if (!paymentsError) {
+          payments = paymentsData || [];
+        }
+
+        // Get maintenance requests
+        const { data: maintenanceData, error: maintenanceError } =
+          await supabase
+            .from('maintenance_requests')
+            .select('*')
+            .eq('tenant_id', tenant.id)
+            .order('created_at', { ascending: false });
+
+        if (!maintenanceError) {
+          maintenanceRequests = maintenanceData || [];
+        }
+
+        // Get documents
+        const { data: documentsData, error: documentsError } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .order('uploaded_at', { ascending: false });
+
+        if (!documentsError) {
+          documents = documentsData || [];
+        }
+      }
+
+      // Format the response
+      const property = application.properties;
+      const owner = property?.users;
+
+      return {
+        success: true,
+        data: {
+          // Application details
+          id: application.id,
+          user_id: application.user_id,
+          property_id: application.property_id,
+          unit_type: application.unit_type,
+          unit_number: application.unit_number,
+          move_in_date: application.move_in_date,
+          monthly_rent: parseFloat(application.monthly_rent),
+          status: application.status,
+          submitted_at: application.submitted_at,
+          updated_at: application.updated_at,
+          notes: application.notes,
+          rejection_reason: application.rejection_reason,
+
+          // Property details
+          property: {
+            id: property?.id,
+            name: property?.name,
+            address: property?.address,
+            city: property?.city,
+            province: property?.province,
+            type: property?.type,
+            amenities: property?.amenities || [],
+            images: property?.images || [],
+            thumbnail: property?.thumbnail,
+            description: property?.description
+          },
+
+          // Owner details
+          owner: {
+            name: owner ? `${owner.first_name} ${owner.last_name}` : '',
+            email: owner?.email || '',
+            phone: owner?.phone || ''
+          },
+
+          // Application documents
+          application_documents: application.documents || [],
+
+          // Tenant-related data (if application is approved)
+          payments: payments.map(payment => ({
+            id: payment.id,
+            amount: parseFloat(payment.amount),
+            due_date: payment.due_date,
+            payment_date: payment.payment_date,
+            payment_status: payment.payment_status,
+            payment_method: payment.payment_method,
+            description: payment.description,
+            late_fee: payment.late_fee,
+            created_at: payment.created_at,
+            reference_number: payment.reference_number
+          })),
+
+          maintenanceRequests: maintenanceRequests.map(request => ({
+            id: request.id,
+            title: request.title,
+            description: request.description,
+            status: request.status,
+            priority: request.priority,
+            created_at: request.created_at,
+            resolved_at: request.resolved_at,
+            estimated_cost: request.estimated_cost,
+            actual_cost: request.actual_cost
+          })),
+
+          documents: documents.map(doc => ({
+            id: doc.id,
+            name: doc.name,
+            type: doc.type,
+            size: doc.size,
+            uploaded_at: doc.uploaded_at,
+            category: doc.category,
+            description: doc.description,
+            file_url: doc.file_url
+          })),
+
+          // Additional info
+          is_tenant: !!tenant,
+          tenant_id: tenant?.id
+        }
+      };
+    } catch (error) {
+      console.error('Get rental application details error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch application details'
       };
     }
   }

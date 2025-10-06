@@ -15,27 +15,33 @@ export async function POST(request: NextRequest) {
     // Create a client-side Supabase client for password reset
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // Use Supabase's built-in password reset functionality
     // This will automatically send an email if the user exists
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password`
+      redirectTo: `${
+        process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      }/reset-password`
     });
 
     if (error) {
       console.error('Supabase password reset error:', error);
-      
+
       // Handle specific error cases
-      if (error.message.includes('User not found') || error.message.includes('Invalid email')) {
+      if (
+        error.message.includes('User not found') ||
+        error.message.includes('Invalid email')
+      ) {
         // For security, don't reveal if email exists or not
         return NextResponse.json({
           success: true,
-          message: 'If an account with that email exists, we have sent a password reset link.'
+          message:
+            'If an account with that email exists, we have sent a password reset link.'
         });
       }
-      
+
       return NextResponse.json(
         { success: false, message: 'Failed to process password reset request' },
         { status: 500 }
@@ -50,14 +56,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'If an account with that email exists, we have sent a password reset link.'
+      message:
+        'If an account with that email exists, we have sent a password reset link.'
     });
   } catch (error) {
     console.error('Forgot password API error:', error);
     return NextResponse.json(
       {
         success: false,
-        message: error instanceof Error ? error.message : 'An unknown error occurred'
+        message:
+          error instanceof Error ? error.message : 'An unknown error occurred'
       },
       { status: 500 }
     );

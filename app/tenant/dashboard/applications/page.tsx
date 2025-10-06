@@ -1,20 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -32,11 +25,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  FileText,
-  Upload,
-  X,
-  Filter,
-  Download
+  FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TenantAPI } from '@/lib/api/tenant';
@@ -63,14 +52,11 @@ interface Application {
 
 export default function ApplicationsPage() {
   const { authState } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState<Application[]>([]);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [selectedApplication, setSelectedApplication] =
-    useState<Application | null>(null);
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -95,68 +81,6 @@ export default function ApplicationsPage() {
 
     fetchApplications();
   }, [authState.user?.id]);
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    const newFiles = Array.from(files).filter(file => {
-      const isValid = file.size <= 10 * 1024 * 1024; // 10MB limit
-      if (!isValid) {
-        toast.error(`${file.name} is too large (max 10MB)`);
-      }
-      return isValid;
-    });
-
-    setUploadedFiles(prev => [...prev, ...newFiles]);
-  };
-
-  const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleUploadDocuments = async () => {
-    if (!selectedApplication || uploadedFiles.length === 0) return;
-
-    try {
-      const result = await TenantAPI.uploadApplicationDocuments(
-        selectedApplication.id,
-        uploadedFiles
-      );
-
-      if (result.success && result.data) {
-        setApplications(prev =>
-          prev.map(app =>
-            app.id === selectedApplication.id
-              ? {
-                  ...app,
-                  documents: [...app.documents, ...(result.data || [])]
-                }
-              : app
-          )
-        );
-        setUploadedFiles([]);
-        toast.success('Documents uploaded successfully');
-      } else {
-        toast.error(result.message || 'Failed to upload documents');
-      }
-    } catch (error) {
-      console.error('Failed to upload documents:', error);
-      toast.error('Failed to upload documents');
-    }
-  };
-
-  const handleDownloadDocument = async (document: {
-    id: string;
-    url: string;
-  }) => {
-    try {
-      window.open(document.url, '_blank');
-    } catch (error) {
-      console.error('Failed to download document:', error);
-      toast.error('Failed to download document');
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -282,8 +206,7 @@ export default function ApplicationsPage() {
                     key={application.id}
                     className="p-3 sm:p-4 hover:bg-blue-50/30 cursor-pointer transition-colors"
                     onClick={() => {
-                      setSelectedApplication(application);
-                      setShowDetailsDialog(true);
+                      router.push(`/tenant/dashboard/rental/${application.id}`);
                     }}>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-2">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -335,202 +258,6 @@ export default function ApplicationsPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Application Details Dialog */}
-        <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-base sm:text-lg">
-                Application Details
-              </DialogTitle>
-            </DialogHeader>
-            {selectedApplication && (
-              <div className="space-y-4 sm:space-y-6 py-4">
-                {/* Status */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-                  <Badge
-                    className={`${getStatusColor(
-                      selectedApplication.status
-                    )} text-sm sm:text-base`}>
-                    <span className="flex items-center gap-2">
-                      {getStatusIcon(selectedApplication.status)}
-                      {selectedApplication.status.charAt(0).toUpperCase() +
-                        selectedApplication.status.slice(1)}
-                    </span>
-                  </Badge>
-                  <span className="text-xs sm:text-sm text-gray-500">
-                    Submitted:{' '}
-                    {new Date(
-                      selectedApplication.submitted_at
-                    ).toLocaleDateString()}
-                  </span>
-                </div>
-
-                {/* Property Details */}
-                <div className="space-y-3 sm:space-y-4">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                    {selectedApplication.property_name}
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div>
-                      <Label className="text-xs sm:text-sm text-gray-600">
-                        Unit Type
-                      </Label>
-                      <p className="font-medium text-gray-900 text-sm sm:text-base">
-                        {selectedApplication.unit_type}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-xs sm:text-sm text-gray-600">
-                        Monthly Rent
-                      </Label>
-                      <p className="font-medium text-gray-900 text-sm sm:text-base">
-                        ₱{selectedApplication.monthly_rent.toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-xs sm:text-sm text-gray-600">
-                        Move-in Date
-                      </Label>
-                      <p className="font-medium text-gray-900 text-sm sm:text-base">
-                        {new Date(
-                          selectedApplication.move_in_date
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-xs sm:text-sm text-gray-600">
-                        Last Updated
-                      </Label>
-                      <p className="font-medium text-gray-900 text-sm sm:text-base">
-                        {new Date(
-                          selectedApplication.updated_at
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {selectedApplication.notes && (
-                  <div className="space-y-2">
-                    <Label className="text-xs sm:text-sm text-gray-600">
-                      Notes
-                    </Label>
-                    <p className="text-gray-700 whitespace-pre-wrap text-sm sm:text-base">
-                      {selectedApplication.notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* Rejection Reason */}
-                {selectedApplication.status === 'rejected' &&
-                  selectedApplication.rejection_reason && (
-                    <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <Label className="text-red-700 text-xs sm:text-sm">
-                        Rejection Reason
-                      </Label>
-                      <p className="text-red-700 mt-1 text-sm sm:text-base">
-                        {selectedApplication.rejection_reason}
-                      </p>
-                    </div>
-                  )}
-
-                {/* Documents */}
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-                    <Label className="text-xs sm:text-sm text-gray-600">
-                      Documents
-                    </Label>
-                    {selectedApplication.status === 'pending' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-blue-200 text-blue-700 hover:bg-blue-50 text-xs sm:text-sm"
-                        onClick={() =>
-                          document.getElementById('file-upload')?.click()
-                        }>
-                        <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                        Upload
-                      </Button>
-                    )}
-                    <input
-                      id="file-upload"
-                      type="file"
-                      className="hidden"
-                      multiple
-                      onChange={handleFileUpload}
-                    />
-                  </div>
-
-                  {/* Uploaded Files Preview */}
-                  {uploadedFiles.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-xs sm:text-sm text-gray-600">
-                        New Files
-                      </Label>
-                      <div className="space-y-2">
-                        {uploadedFiles.map((file, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                              <span className="text-xs sm:text-sm text-gray-700 truncate">
-                                {file.name}
-                              </span>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => removeFile(index)}>
-                              <X className="h-3 w-3 sm:h-4 sm:w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm sm:text-base"
-                          onClick={handleUploadDocuments}>
-                          Upload Files
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Existing Documents */}
-                  <div className="space-y-2">
-                    {selectedApplication.documents.length === 0 ? (
-                      <p className="text-xs sm:text-sm text-gray-600">
-                        No documents uploaded yet
-                      </p>
-                    ) : (
-                      selectedApplication.documents.map(document => (
-                        <div
-                          key={document.id}
-                          className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                            <span className="text-xs sm:text-sm text-gray-700 truncate">
-                              {document.name}
-                            </span>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={() => handleDownloadDocument(document)}>
-                            <Download className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );

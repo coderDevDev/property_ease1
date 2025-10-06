@@ -51,22 +51,27 @@ ofcoure the one who is creating now is the tenant role so please align the ui co
 
 
 
-i see all of this is working and good almost complete 
+i see all of this is working and good almost complete the mobile responsivebess  for the owner
 
-1./owner/dashboard/tenants
-2./owner/dashboard/tenants
-3./owner/dashboard/applications
-4. /owner/dashboard/maintenance
-5. /owner/dashboard/messages and /tenant/dashboard/messages 
+
+please make all of the components of following page mobile first and mobile friendly
 
 
 
-now can we create the components for owner/dashboard/announcements and /tenant/dashboard/announcements maybe shared components for usability maybe pass parameters like role to distinnguish
-all the CRUD operation and ui follow our current design on those above
+/tenant/dashboard
+
+
+if they shared shared components as in the tenant role please make it also mobile responsive to small screen size mobile first  
+
+please follow our design for consistency
+
+
+now can we create the components /owner/dashboard/profile and /tenant/dashboard/profile a maybe shared components for usability maybe pass parameters like role to distinnguish
+all the report operation and graphs follow our current design on those above
 we can create migration script if neccearrt for the table but you can check the create-tables-fixed.sql because i have it
 
 
-please make sure all the ui and CRUD operation To establish an in-app messaging feature that allows direct communication between tenants and property owner can we make it also real time to will work with no errors
+please make sure all the ui and CRUD operation To establish an profile management comprehensive
 
 No Linting Errors: All code passes linting checks
 Type Safety: Full TypeScript implementation
@@ -80,6 +85,15 @@ i notice that when creating or editing announcement the property_id in announcem
 
 
 
+
+i notice that the property-owner-sidebar is good and display in large screen desktop, but when i browse using my phone i cannot find the hamburger menu to open the sidebar, please make it responsive to small devices, also in the topnavbar the Popover message and Popover notification should be responsive to small devices / any screen size mobile first mobile friendly sidebar etc
+
+2. when we update profile managmen i think the avatar and name in the topnavbar should be updated also right
+
+
+
+
+now we will adjust the mobile friendly mobile responsive to any screen size and small screen mobile friendly lets start with the
 
 
 

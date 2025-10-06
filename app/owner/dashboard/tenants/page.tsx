@@ -569,6 +569,11 @@ export default function TenantsPage() {
                       {/* Action Button */}
                       <div className="pt-2">
                         <Button
+                          onClick={() => {
+                            router.push(
+                              `/owner/dashboard/tenants/${tenant.id}`
+                            );
+                          }}
                           variant="outline"
                           size="sm"
                           className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-colors text-xs sm:text-sm">

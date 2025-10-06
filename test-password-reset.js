@@ -5,12 +5,12 @@ const BASE_URL = 'http://localhost:3000';
 
 async function testForgotPassword() {
   console.log('🧪 Testing forgot password API...');
-  
+
   try {
     const response = await fetch(`${BASE_URL}/api/auth/forgot-password`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         email: 'test@example.com'
@@ -18,11 +18,11 @@ async function testForgotPassword() {
     });
 
     const data = await response.json();
-    
+
     if (data.success) {
       console.log('✅ Forgot password API working');
       console.log('Response:', data.message);
-      
+
       if (data.resetLink) {
         console.log('🔗 Reset link (development only):', data.resetLink);
       }
@@ -37,12 +37,12 @@ async function testForgotPassword() {
 
 async function testResetPassword() {
   console.log('🧪 Testing reset password API...');
-  
+
   try {
     const response = await fetch(`${BASE_URL}/api/auth/reset-password`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         token: 'invalid-token',
@@ -51,7 +51,7 @@ async function testResetPassword() {
     });
 
     const data = await response.json();
-    
+
     if (!data.success) {
       console.log('✅ Reset password API correctly rejected invalid token');
       console.log('Response:', data.message);
@@ -65,11 +65,11 @@ async function testResetPassword() {
 
 async function runTests() {
   console.log('🚀 Starting password reset API tests...\n');
-  
+
   await testForgotPassword();
   console.log('');
   await testResetPassword();
-  
+
   console.log('\n✨ Tests completed!');
   console.log('\n📝 Next steps:');
   console.log('1. Start your development server: npm run dev');
