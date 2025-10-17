@@ -70,7 +70,7 @@ export interface Payment {
     | 'utility'
     | 'penalty'
     | 'other';
-  paymentMethod: 'gcash' | 'maya' | 'bank_transfer' | 'cash' | 'check';
+  paymentMethod: 'gcash' | 'maya' | 'bank_transfer' | 'check';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded' | 'partial';
   dueDate: string;
   paidDate?: string;

@@ -62,8 +62,6 @@ export default function NewTenantPage() {
     security_deposit: 0,
     status: 'pending',
     lease_terms: '',
-    emergency_contact_name: '',
-    emergency_contact_phone: '',
     notes: ''
   });
 
@@ -519,60 +517,6 @@ export default function NewTenantPage() {
                       className="mt-1 text-sm sm:text-base"
                       min="0"
                       step="0.01"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Emergency Contact */}
-            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
-              <CardHeader className="p-3 sm:p-6">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                  Emergency Contact (Optional)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                  <div>
-                    <Label
-                      htmlFor="emergency_contact_name"
-                      className="text-sm font-medium text-gray-700">
-                      Contact Name
-                    </Label>
-                    <Input
-                      id="emergency_contact_name"
-                      type="text"
-                      value={formData.emergency_contact_name}
-                      onChange={e =>
-                        handleInputChange(
-                          'emergency_contact_name',
-                          e.target.value
-                        )
-                      }
-                      placeholder="Juan Dela Cruz"
-                      className="mt-1 text-sm sm:text-base"
-                    />
-                  </div>
-                  <div>
-                    <Label
-                      htmlFor="emergency_contact_phone"
-                      className="text-sm font-medium text-gray-700">
-                      Contact Phone
-                    </Label>
-                    <Input
-                      id="emergency_contact_phone"
-                      type="tel"
-                      value={formData.emergency_contact_phone}
-                      onChange={e =>
-                        handleInputChange(
-                          'emergency_contact_phone',
-                          e.target.value
-                        )
-                      }
-                      placeholder="+63 912 345 6789"
-                      className="mt-1 text-sm sm:text-base"
                     />
                   </div>
                 </div>

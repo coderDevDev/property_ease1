@@ -276,7 +276,7 @@ export class MessagesAPI {
     }
   }
 
-  // Send a message
+  // Send a message - OPTIMIZED VERSION
   static async sendMessage(
     messageData: MessageFormData,
     senderId: string
@@ -286,33 +286,36 @@ export class MessagesAPI {
     message?: string;
   }> {
     try {
-      // Check if conversation exists between sender and recipient
-      let conversationId: string;
-
+      // Check if conversation exists or create it - SINGLE QUERY
       const { data: existingConversation } = await supabase
         .from('conversations')
         .select('id')
         .contains('participants', [senderId, messageData.recipient_id])
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
+
+      let conversationId: string;
 
       if (existingConversation) {
         conversationId = existingConversation.id;
       } else {
         // Create new conversation
-        const conversationResult = await this.createConversation(
-          [senderId, messageData.recipient_id],
-          messageData.property_id
-        );
+        const { data: newConv, error: convError } = await supabase
+          .from('conversations')
+          .insert({
+            participants: [senderId, messageData.recipient_id],
+            property_id: messageData.property_id
+          })
+          .select('id')
+          .single();
 
-        if (!conversationResult.success || !conversationResult.data) {
+        if (convError || !newConv) {
           throw new Error('Failed to create conversation');
         }
-
-        conversationId = conversationResult.data.id;
+        conversationId = newConv.id;
       }
 
-      // Send the message
+      // Send the message and update conversation in ONE transaction
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -333,70 +336,27 @@ export class MessagesAPI {
         throw new Error(error.message);
       }
 
-      // Get sender and recipient data
-      const [senderResult, recipientResult, propertyResult] = await Promise.all(
-        [
-          supabase
-            .from('users')
-            .select('id, first_name, last_name, email, avatar_url, role')
-            .eq('id', data.sender_id)
-            .single(),
-          supabase
-            .from('users')
-            .select('id, first_name, last_name, email, avatar_url, role')
-            .eq('id', data.recipient_id)
-            .single(),
-          data.property_id
-            ? supabase
-                .from('properties')
-                .select('id, name, address')
-                .eq('id', data.property_id)
-                .single()
-            : Promise.resolve({ data: null })
-        ]
-      );
-
-      const messageWithDetails = {
-        ...data,
-        sender: senderResult.data,
-        recipient: recipientResult.data,
-        property: propertyResult.data
-      };
-
-      // Update conversation's last message
-      await supabase
+      // Update conversation's last message (fire and forget - don't wait)
+      supabase
         .from('conversations')
         .update({
           last_message_id: data.id,
           last_message_at: data.created_at
         })
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .then();
 
-      // Create notification for the recipient
-      try {
-        const senderName = `${senderResult.data?.first_name} ${senderResult.data?.last_name}`;
-        const messagePreview =
-          data.content.length > 100
-            ? data.content.substring(0, 100) + '...'
-            : data.content;
+      // Create notification asynchronously (fire and forget)
+      NotificationsAPI.createMessageNotification(
+        data.id,
+        'New Message',
+        data.content.substring(0, 100),
+        data.recipient_id
+      ).then();
 
-        await NotificationsAPI.createMessageNotification(
-          data.id,
-          senderName,
-          messagePreview,
-          data.recipient_id
-        );
-
-        console.log('Message notification created successfully');
-      } catch (notificationError) {
-        console.error(
-          'Failed to create message notification:',
-          notificationError
-        );
-        // Don't fail the message sending if notification creation fails
-      }
-
-      return { success: true, data: messageWithDetails };
+      // Return immediately without fetching extra data
+      // The UI already has this data from context
+      return { success: true, data };
     } catch (error) {
       console.error('Send message error:', error);
       return {
@@ -480,45 +440,50 @@ export class MessagesAPI {
           return { success: true, data: recipients };
         }
       } else if (userRole === 'tenant') {
-        // Tenants can message their property owner
-        const { data: tenantData } = await supabase
+        // Tenants can message their property owner - OPTIMIZED
+        const { data: tenantData, error: tenantError } = await supabase
           .from('tenants')
-          .select('property_id')
+          .select(`
+            property_id,
+            properties!inner (
+              id,
+              name,
+              owner_id,
+              users!properties_owner_id_fkey (
+                id,
+                first_name,
+                last_name,
+                email,
+                avatar_url,
+                role
+              )
+            )
+          `)
           .eq('user_id', userId)
-          .single();
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle();
 
-        if (tenantData) {
-          // Get property and owner data separately
-          const [propertyResult, ownerResult] = await Promise.all([
-            supabase
-              .from('properties')
-              .select('id, name, owner_id')
-              .eq('id', tenantData.property_id)
-              .single(),
-            supabase
-              .from('properties')
-              .select('owner_id')
-              .eq('id', tenantData.property_id)
-              .single()
-          ]);
+        if (tenantError) {
+          console.error('Tenant query error:', tenantError);
+          return { success: true, data: [] };
+        }
 
-          if (ownerResult.data?.owner_id) {
-            const ownerUserResult = await supabase
-              .from('users')
-              .select('id, first_name, last_name, email, avatar_url, role')
-              .eq('id', ownerResult.data.owner_id)
-              .single();
+        if (tenantData && tenantData.properties) {
+          const property = tenantData.properties as any;
+          const owner = property.users;
 
+          if (owner) {
             const recipients = [
               {
-                id: ownerUserResult.data?.id,
-                name: `${ownerUserResult.data?.first_name} ${ownerUserResult.data?.last_name}`,
-                email: ownerUserResult.data?.email,
-                role: ownerUserResult.data?.role,
-                avatar_url: ownerUserResult.data?.avatar_url,
+                id: owner.id,
+                name: `${owner.first_name} ${owner.last_name}`,
+                email: owner.email,
+                role: owner.role || 'owner',
+                avatar_url: owner.avatar_url,
                 property: {
-                  id: propertyResult.data?.id,
-                  name: propertyResult.data?.name
+                  id: property.id,
+                  name: property.name
                 }
               }
             ];

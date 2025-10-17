@@ -24,12 +24,14 @@ export function useRealtimeNotifications({
     urgent: 0
   });
   const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load initial notifications
   const loadNotifications = useCallback(async () => {
     if (!userId) return;
 
     try {
+      setIsLoading(true);
       const [notificationsResult, statsResult] = await Promise.all([
         NotificationsAPI.getUserNotifications(userId),
         NotificationsAPI.getNotificationStats(userId)
@@ -48,6 +50,8 @@ export function useRealtimeNotifications({
       }
     } catch (error) {
       console.error('Failed to load notifications:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [userId]);
 
@@ -214,6 +218,7 @@ export function useRealtimeNotifications({
     notifications,
     stats,
     isConnected,
+    isLoading,
     markAsRead,
     markAllAsRead,
     deleteNotification,

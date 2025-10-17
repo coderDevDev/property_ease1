@@ -105,7 +105,7 @@ export function RoleSelection({ onRoleSelect, onBack }: RoleSelectionProps) {
             Choose Your Role
           </h1>
           <p className="text-gray-600 text-sm sm:text-base lg:text-lg">
-            Select how you'll be using PropertyEase
+            Select how you'll be using PropertEase
           </p>
         </div>
 

@@ -261,6 +261,10 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
     return role === 'owner' ? '/owner/dashboard' : '/tenant/dashboard';
   };
 
+  const getProfilePath = () => {
+    return role === 'owner' ? '/owner/dashboard/profile' : '/tenant/dashboard/profile';
+  };
+
   const getMessagesPath = () => {
     return role === 'owner'
       ? '/owner/dashboard/messages'
@@ -288,7 +292,7 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
               onClick={() => router.push(getDashboardPath())}
               className="flex items-center gap-2 text-lg font-bold text-blue-700 hover:text-blue-800">
               <Home className="w-6 h-6" />
-              <span className="text-lg font-bold ml-4">PropertyEase</span>
+              <span className="text-lg font-bold ml-4">PropertEase</span>
             </Button>
           </div>
 
@@ -644,7 +648,7 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                   Dashboard
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => router.push('/dashboard/profile')}>
+                  onClick={() => router.push(getProfilePath())}>
                   <User className="w-4 h-4 mr-2" />
                   Profile
                 </DropdownMenuItem>

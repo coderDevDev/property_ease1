@@ -31,7 +31,6 @@ import {
 import { cn } from '@/lib/utils';
 import {
   Wrench,
-  Plus,
   Search,
   Filter,
   Eye,
@@ -309,21 +308,20 @@ export default function MaintenancePage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex flex-col gap-2">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
               Maintenance Management
             </h1>
             <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
-              Manage maintenance requests and track repair progress
+              Manage maintenance requests submitted by tenants
             </p>
           </div>
-          <Button
-            onClick={() => router.push('/owner/dashboard/maintenance/new')}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base">
-            <Plus className="w-4 h-4 mr-2" />
-            New Request
-          </Button>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-700">
+              <strong>Note:</strong> Maintenance requests are submitted by tenants. You can view, assign, and update the status of requests here.
+            </p>
+          </div>
         </div>
 
         {/* Statistics Cards */}

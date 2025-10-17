@@ -5,7 +5,7 @@ import './globals.css';
 import { ClientProviders } from '@/components/client-providers';
 
 export const metadata: Metadata = {
-  title: 'PropertyEase',
+  title: 'PropertEase',
   description: 'Property Management System'
 };
 

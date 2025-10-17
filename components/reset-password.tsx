@@ -214,7 +214,7 @@ export function ResetPassword({
                   <Building className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
-                  PropertyEase
+                  PropertEase
                 </h1>
               </div>
             </div>

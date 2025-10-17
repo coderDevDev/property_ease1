@@ -129,7 +129,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
             <Shield className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">PropertyEase</h1>
+            <h1 className="text-xl font-bold text-gray-900">PropertEase</h1>
             <Badge
               variant="outline"
               className="border-blue-200 text-blue-700 text-xs">

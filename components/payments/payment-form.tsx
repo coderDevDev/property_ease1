@@ -309,7 +309,6 @@ export function PaymentForm({
                   <SelectItem value="gcash">GCash</SelectItem>
                   <SelectItem value="maya">Maya</SelectItem>
                   <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="check">Check</SelectItem>
                 </SelectContent>
               </Select>

@@ -15,8 +15,6 @@ import {
   Send,
   Reply,
   MoreVertical,
-  Paperclip,
-  Smile,
   Check,
   CheckCheck,
   Archive,
@@ -94,7 +92,7 @@ export function SimpleChatInterface({
     loadMessages();
   }, [conversation.id, currentUserId]);
 
-  // Simple polling mechanism - check for new messages every 2 seconds
+  // OPTIMIZED: Fast polling for active conversations (2 seconds)
   useEffect(() => {
     const pollForNewMessages = async () => {
       try {
@@ -131,16 +129,15 @@ export function SimpleChatInterface({
       }
     };
 
-    // Start polling after initial load
+    // OPTIMIZED: Poll every 2 seconds for faster message receiving
     const startPolling = () => {
       pollingIntervalRef.current = setInterval(pollForNewMessages, 2000);
     };
 
-    // Start polling after a short delay
-    const timeoutId = setTimeout(startPolling, 3000);
+    // Start immediately - no delay
+    startPolling();
 
     return () => {
-      clearTimeout(timeoutId);
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
@@ -200,7 +197,18 @@ export function SimpleChatInterface({
         setNewMessage('');
         setReplyingTo(null);
         onMessageSent?.(result.data);
-        // toast.success('Message sent');
+
+        // OPTIMIZATION: Poll immediately after sending (expect quick reply)
+        setTimeout(async () => {
+          const refreshResult = await MessagesAPI.getConversationMessages(
+            conversation.id,
+            currentUserId
+          );
+          if (refreshResult.success && refreshResult.data) {
+            setMessages(refreshResult.data);
+            lastMessageCountRef.current = refreshResult.data.length;
+          }
+        }, 500); // Check for reply after 500ms
       } else {
         console.error('Failed to send message:', result.message);
         toast.error(result.message || 'Failed to send message');
@@ -537,17 +545,9 @@ export function SimpleChatInterface({
               onChange={e => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Type a message..."
-              className="min-h-[44px] max-h-32 resize-none pr-12 bg-white/50 border-blue-200/50 focus:border-blue-400"
+              className="min-h-[44px] max-h-32 resize-none bg-white/50 border-blue-200/50 focus:border-blue-400"
               rows={1}
             />
-            <div className="absolute right-2 bottom-2 flex gap-1">
-              <Button variant="ghost" size="sm" className="w-8 h-8 p-0">
-                <Paperclip className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="w-8 h-8 p-0">
-                <Smile className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
           <Button
             onClick={handleSendMessage}

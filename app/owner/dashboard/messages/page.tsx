@@ -91,7 +91,7 @@ export default function OwnerMessagesPage() {
     loadData();
   }, [authState.user?.id]);
 
-  // Poll for conversation updates every 5 seconds
+  // Optimized: Poll for conversation updates every 10 seconds (reduced frequency)
   useEffect(() => {
     if (!authState.user?.id) return;
 
@@ -108,8 +108,8 @@ export default function OwnerMessagesPage() {
       }
     };
 
-    // Start polling after initial load
-    const interval = setInterval(pollConversations, 5000);
+    // Start polling after initial load - REDUCED to every 10 seconds
+    const interval = setInterval(pollConversations, 10000);
 
     return () => clearInterval(interval);
   }, [authState.user?.id]);

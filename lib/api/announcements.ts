@@ -308,7 +308,8 @@ export class AnnouncementsAPI {
           title: data.title,
           propertyName: data.property?.name || 'Property',
           targetAudience: announcementData.target_audience,
-          propertyId
+          propertyId,
+          creatorId // Pass creator ID to exclude from notifications
         });
 
         try {
@@ -318,7 +319,8 @@ export class AnnouncementsAPI {
               data.title,
               data.property?.name || 'Property',
               announcementData.target_audience,
-              propertyId
+              propertyId,
+              creatorId // Exclude creator from notifications
             );
 
           if (notificationResult.success) {
@@ -502,7 +504,8 @@ export class AnnouncementsAPI {
     title: string,
     propertyName: string,
     targetAudience: string,
-    propertyId?: string
+    propertyId?: string,
+    creatorId?: string
   ): Promise<{
     success: boolean;
     message?: string;
@@ -513,7 +516,8 @@ export class AnnouncementsAPI {
         title,
         propertyName,
         targetAudience,
-        propertyId
+        propertyId,
+        creatorId
       });
 
       let targetUserIds: string[] = [];
@@ -528,10 +532,11 @@ export class AnnouncementsAPI {
         if (usersError) throw usersError;
         targetUserIds = users?.map(u => u.id) || [];
       } else if (targetAudience === 'tenants') {
-        // Get all tenants
+        // Get all ACTIVE tenants only
         const { data: tenants, error: tenantsError } = await supabase
           .from('tenants')
-          .select('user_id');
+          .select('user_id')
+          .eq('status', 'active');
 
         if (tenantsError) throw tenantsError;
         targetUserIds = tenants?.map(t => t.user_id) || [];
@@ -545,18 +550,25 @@ export class AnnouncementsAPI {
         if (ownersError) throw ownersError;
         targetUserIds = owners?.map(o => o.id) || [];
       } else if (targetAudience === 'specific' && propertyId) {
-        // Get tenants of specific property
+        // Get ACTIVE tenants of specific property only
         const { data: tenants, error: tenantsError } = await supabase
           .from('tenants')
           .select('user_id')
-          .eq('property_id', propertyId);
+          .eq('property_id', propertyId)
+          .eq('status', 'active');
 
         if (tenantsError) throw tenantsError;
         targetUserIds = tenants?.map(t => t.user_id) || [];
       }
 
+      // IMPORTANT: Exclude the creator from receiving notifications
+      if (creatorId) {
+        targetUserIds = targetUserIds.filter(userId => userId !== creatorId);
+        console.log('Filtered out creator from notifications:', creatorId);
+      }
+
       console.log(
-        'Target user IDs found:',
+        'Target user IDs found (after excluding creator):',
         targetUserIds.length,
         targetUserIds
       );

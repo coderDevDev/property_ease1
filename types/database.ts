@@ -215,7 +215,7 @@ export interface Database {
             | 'utility'
             | 'penalty'
             | 'other';
-          payment_method: 'gcash' | 'maya' | 'bank_transfer' | 'cash' | 'check';
+          payment_method: 'gcash' | 'maya' | 'bank_transfer' | 'check';
           payment_status:
             | 'pending'
             | 'paid'
@@ -244,7 +244,7 @@ export interface Database {
             | 'utility'
             | 'penalty'
             | 'other';
-          payment_method: 'gcash' | 'maya' | 'bank_transfer' | 'cash' | 'check';
+          payment_method: 'gcash' | 'maya' | 'bank_transfer' | 'check';
           payment_status?:
             | 'pending'
             | 'paid'
@@ -820,7 +820,7 @@ export interface Database {
         | 'utility'
         | 'penalty'
         | 'other';
-      payment_method: 'gcash' | 'maya' | 'bank_transfer' | 'cash' | 'check';
+      payment_method: 'gcash' | 'maya' | 'bank_transfer' | 'check';
       payment_status: 'pending' | 'paid' | 'failed' | 'refunded' | 'partial';
       maintenance_category:
         | 'plumbing'

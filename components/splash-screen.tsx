@@ -64,7 +64,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               </div>
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent mb-1">
-              PropertyEase
+              PropertEase
             </h1>
             <p className="text-white/80 text-sm font-medium">Smart Property Management</p>
           </div>

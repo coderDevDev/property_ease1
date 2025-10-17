@@ -546,7 +546,7 @@ export function SharedSidebar({ role }: SharedSidebarProps) {
             </div>
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
-                PropertyEase
+                PropertEase
               </h1>
               <p className="text-blue-600/70 text-sm font-medium">
                 {role === 'owner' ? 'Owner Portal' : 'Tenant Portal'}

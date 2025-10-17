@@ -27,12 +27,12 @@ import { toast } from 'sonner';
 
 export default function TenantNotificationsPage() {
   const { authState } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
 
   const {
     notifications,
     stats,
     isConnected,
+    isLoading,
     markAsRead,
     markAllAsRead,
     deleteNotification
@@ -44,10 +44,6 @@ export default function TenantNotificationsPage() {
       });
     }
   });
-
-  useEffect(() => {
-    setIsLoading(false);
-  }, []);
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {

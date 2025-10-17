@@ -74,6 +74,7 @@ export default function TenantNewMaintenancePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
   const [tenantId, setTenantId] = useState<string>('');
+  const [tenantRecords, setTenantRecords] = useState<any[]>([]);
   const [formData, setFormData] = useState<MaintenanceFormData>({
     property_id: '',
     title: '',
@@ -91,30 +92,56 @@ export default function TenantNewMaintenancePage() {
       if (!authState.user?.id) return;
 
       try {
-        // Get tenant record and properties where the current user is a tenant
+        // Get all tenant records and properties where the current user is a tenant
         const { data: tenantData, error } = await supabase
           .from('tenants')
           .select(
             `
             id,
-            property:properties(*)
+            property_id,
+            properties (
+              id,
+              name,
+              address,
+              city,
+              type
+            )
           `
           )
           .eq('user_id', authState.user.id)
-          .eq('status', 'active')
-          .single();
+          .eq('status', 'active');
 
         if (error) {
+          console.error('Supabase error:', error);
           throw new Error(error.message);
         }
 
-        if (tenantData) {
-          setTenantId(tenantData.id);
-          setProperties(
-            tenantData.property
-              ? [tenantData.property as unknown as Property]
-              : []
-          );
+        if (tenantData && tenantData.length > 0) {
+          // Store all tenant records for later lookup
+          setTenantRecords(tenantData);
+          
+          // Use the first active tenant record as default
+          setTenantId(tenantData[0].id);
+          
+          // Extract unique properties from all tenant records
+          const uniqueProperties = tenantData
+            .filter(t => t.properties)
+            .map(t => t.properties as unknown as Property)
+            .filter((prop, index, self) => 
+              index === self.findIndex((p) => p.id === prop.id)
+            );
+          
+          setProperties(uniqueProperties);
+          
+          // Auto-select first property if only one available
+          if (uniqueProperties.length === 1) {
+            setFormData(prev => ({ 
+              ...prev, 
+              property_id: uniqueProperties[0].id 
+            }));
+          }
+        } else {
+          toast.error('No active lease found. Please contact your property owner.');
         }
       } catch (error) {
         console.error('Failed to load tenant data:', error);
@@ -124,6 +151,18 @@ export default function TenantNewMaintenancePage() {
 
     loadProperties();
   }, [authState.user?.id]);
+
+  // Update tenant ID when property changes
+  useEffect(() => {
+    if (formData.property_id && tenantRecords.length > 0) {
+      const tenantRecord = tenantRecords.find(
+        t => t.property_id === formData.property_id
+      );
+      if (tenantRecord) {
+        setTenantId(tenantRecord.id);
+      }
+    }
+  }, [formData.property_id, tenantRecords]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};

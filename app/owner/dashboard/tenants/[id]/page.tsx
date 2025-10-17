@@ -337,6 +337,45 @@ export default function TenantDetailsPage() {
     }
   };
 
+  const handleExportData = () => {
+    if (!tenant) return;
+
+    const exportData = {
+      tenant_info: {
+        name: `${tenant.user.first_name} ${tenant.user.last_name}`,
+        email: tenant.user.email,
+        phone: tenant.user.phone,
+        unit_number: tenant.unit_number
+      },
+      property_info: {
+        name: tenant.property.name,
+        address: tenant.property.address,
+        city: tenant.property.city
+      },
+      lease_info: {
+        start_date: tenant.lease_start,
+        end_date: tenant.lease_end,
+        monthly_rent: tenant.monthly_rent,
+        security_deposit: tenant.security_deposit,
+        status: tenant.status
+      },
+      payment_summary: {
+        total_payments: payments?.length || 0,
+        total_paid: payments?.filter(p => p.payment_status === 'completed')
+          .length || 0
+      },
+      maintenance_summary: {
+        total_requests: maintenanceRequests?.length || 0
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json'
+    });
+    saveAs(blob, `tenant-${tenant.user.first_name}-${tenant.user.last_name}-data.json`);
+    toast.success('Tenant data exported successfully');
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -675,22 +714,34 @@ export default function TenantDetailsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {/* <DropdownMenuItem onClick={handleRenewLease}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Renew Lease
-                  </DropdownMenuItem> */}
-                  {/* <DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      router.push('/owner/dashboard/messages')
+                    }>
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Send Message
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      router.push(
+                        `/owner/dashboard/payments/new?tenant=${tenant?.id}`
+                      )
+                    }>
                     <FileText className="w-4 h-4 mr-2" />
                     Generate Invoice
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportData}>
                     <Download className="w-4 h-4 mr-2" />
                     Export Data
-                  </DropdownMenuItem> */}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      router.push(`/owner/dashboard/tenants/${tenant?.id}/edit`)
+                    }
+                    className="text-blue-600">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Details
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

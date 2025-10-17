@@ -43,7 +43,7 @@ export interface PaymentFormData {
     | 'utility'
     | 'penalty'
     | 'other';
-  payment_method: 'gcash' | 'maya' | 'bank_transfer' | 'cash' | 'check';
+  payment_method: 'gcash' | 'maya' | 'bank_transfer' | 'check';
   due_date: string;
   late_fee?: number;
   reference_number?: string;

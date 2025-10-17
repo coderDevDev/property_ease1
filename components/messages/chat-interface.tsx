@@ -11,8 +11,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import {
   Send,
-  Paperclip,
-  Smile,
   MoreVertical,
   Reply,
   Edit,
@@ -236,29 +234,10 @@ export function ChatInterface({
     }
   };
 
-  // Handle typing detection
-  const handleTyping = () => {
-    if (!isTyping) {
-      setIsTyping(true);
-      // Send typing indicator to other user
-      // This would typically be sent via a separate real-time channel
-    }
-
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Set new timeout to stop typing indicator
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-    }, 1000);
-  };
-
-  // Handle input change with typing detection
+  // Optimized: Direct input change without typing detection overhead
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value);
-    handleTyping();
+    // Removed typing detection to eliminate input lag
   };
 
   // Format message time
@@ -573,17 +552,9 @@ export function ChatInterface({
               onChange={handleInputChange}
               onKeyPress={handleKeyPress}
               placeholder="Type a message..."
-              className="min-h-[44px] max-h-32 resize-none pr-12 bg-white/50 border-blue-200/50 focus:border-blue-400"
+              className="min-h-[44px] max-h-32 resize-none bg-white/50 border-blue-200/50 focus:border-blue-400"
               rows={1}
             />
-            <div className="absolute right-2 bottom-2 flex gap-1">
-              <Button variant="ghost" size="sm" className="w-8 h-8 p-0">
-                <Paperclip className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="w-8 h-8 p-0">
-                <Smile className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
           <Button
             onClick={handleSendMessage}

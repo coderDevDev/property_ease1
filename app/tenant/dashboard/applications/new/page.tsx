@@ -154,13 +154,16 @@ export default function NewApplicationPage() {
     if (property) {
       try {
         const result = await TenantAPI.getAvailableUnits(propertyId);
+        console.log('Available units result:', result);
         if (result.success && result.data) {
           setAvailableUnits(result.data);
+          console.log('Set available units:', result.data);
         } else {
-          toast.error('Failed to load available units');
+          console.error('Failed to load units:', result.message);
+          toast.error(result.message || 'Failed to load available units');
         }
       } catch (error) {
-        console.error('Failed to fetch available units:', error);
+        console.error('Failed to load available units:', error);
         toast.error('Failed to load available units');
       }
     } else {
@@ -333,30 +336,42 @@ export default function NewApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Unit Number</Label>
+                    <Label>Unit Number *</Label>
                     <Select
                       value={formData.unitNumber}
+                      disabled={availableUnits.length === 0}
                       onValueChange={value =>
                         setFormData(prev => ({ ...prev, unitNumber: value }))
                       }>
                       <SelectTrigger className="bg-white">
-                        <SelectValue placeholder="Select unit number" />
+                        <SelectValue placeholder={
+                          availableUnits.length === 0 
+                            ? "Loading units..." 
+                            : "Select unit number"
+                        } />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from(
-                          new Set(availableUnits.map(u => u.unit_number))
-                        ).map(unitNumber => (
-                          <SelectItem key={unitNumber} value={unitNumber}>
-                            {unitNumber}
+                        {availableUnits.length > 0 ? (
+                          Array.from(
+                            new Set(availableUnits.map(u => u.unit_number))
+                          ).map(unitNumber => (
+                            <SelectItem key={unitNumber} value={unitNumber}>
+                              {unitNumber}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="__no_units__" disabled>
+                            No units available
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                     <div className="flex items-center gap-2 mt-1">
                       <AlertCircle className="w-4 h-4 text-blue-600" />
                       <p className="text-sm text-blue-600">
-                        {selectedProperty.available_units} units available out
-                        of {selectedProperty.total_units} total units
+                        {availableUnits.length > 0 
+                          ? `${availableUnits.length} units available`
+                          : 'Loading available units...'}
                       </p>
                     </div>
                   </div>
