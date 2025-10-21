@@ -16,7 +16,11 @@ import {
   Eye,
   Edit,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Star
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -43,6 +47,9 @@ interface Property {
   images?: string[];
   thumbnail?: string;
   created_at: string;
+  is_verified?: boolean;
+  rejection_reason?: string;
+  is_featured?: boolean;
 }
 
 export default function PropertiesPage() {
@@ -122,6 +129,36 @@ export default function PropertiesPage() {
       currency: 'PHP',
       minimumFractionDigits: 0
     }).format(amount);
+  };
+
+  const getApprovalBadge = (property: Property) => {
+    // Rejected with reason
+    if (!property.is_verified && property.rejection_reason) {
+      return (
+        <Badge className="bg-red-100 text-red-700 border-0 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          Rejected
+        </Badge>
+      );
+    }
+    
+    // Pending approval
+    if (!property.is_verified) {
+      return (
+        <Badge className="bg-yellow-100 text-yellow-700 border-0 flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          Pending
+        </Badge>
+      );
+    }
+    
+    // Verified
+    return (
+      <Badge className="bg-green-100 text-green-700 border-0 flex items-center gap-1">
+        <CheckCircle className="w-3 h-3" />
+        Verified
+      </Badge>
+    );
   };
 
   if (isLoading) {
@@ -216,8 +253,15 @@ export default function PropertiesPage() {
                   )}
 
                   {/* Status Badge Overlay */}
-                  <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
+                  <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1.5">
                     {getStatusBadge(property.status)}
+                    {getApprovalBadge(property)}
+                    {property.is_featured && (
+                      <Badge className="bg-yellow-100 text-yellow-700 border-0 flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-yellow-700" />
+                        Featured
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Quick Actions Overlay */}
@@ -292,6 +336,45 @@ export default function PropertiesPage() {
                     </div>
                   </div>
                 </CardHeader>
+
+                {/* Rejection Reason Alert */}
+                {!property.is_verified && property.rejection_reason && (
+                  <div className="px-3 sm:px-6 pb-2">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-red-900 mb-1">Property Rejected</p>
+                          <p className="text-xs text-red-700">{property.rejection_reason}</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2 h-7 text-xs border-red-300 text-red-700 hover:bg-red-100"
+                            onClick={() => router.push(`/owner/dashboard/properties/${property.id}/edit`)}>
+                            <Edit className="w-3 h-3 mr-1" />
+                            Fix and Resubmit
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pending Approval Info */}
+                {!property.is_verified && !property.rejection_reason && (
+                  <div className="px-3 sm:px-6 pb-2">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-yellow-900 mb-1">Pending Approval</p>
+                          <p className="text-xs text-yellow-700">Your property is under review by the admin team. You'll be notified once it's approved.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <CardContent className="pt-2 p-3 sm:p-6">
                   <div className="space-y-3">
                     {/* Unit Information */}

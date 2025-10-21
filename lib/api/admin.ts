@@ -816,4 +816,365 @@ export class AdminAPI {
       };
     }
   }
+
+  // ============================================================================
+  // PROPERTY APPROVAL & VERIFICATION
+  // ============================================================================
+
+  /**
+   * Approve a property listing
+   */
+  static async approveProperty(propertyId: string) {
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Call the database function
+      const { data, error } = await supabase.rpc('approve_property', {
+        p_property_id: propertyId,
+        p_admin_id: user.id
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Property approved successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Approve property error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to approve property',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Reject a property listing with reason
+   */
+  static async rejectProperty(propertyId: string, reason: string) {
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Call the database function
+      const { data, error } = await supabase.rpc('reject_property', {
+        p_property_id: propertyId,
+        p_admin_id: user.id,
+        p_reason: reason
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Property rejected successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Reject property error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to reject property',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Toggle featured status for a property
+   */
+  static async toggleFeaturedProperty(
+    propertyId: string,
+    featured: boolean,
+    featuredUntil?: string
+  ) {
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const updateData: any = {
+        is_featured: featured
+      };
+
+      if (featured) {
+        updateData.featured_by = user.id;
+        updateData.featured_at = new Date().toISOString();
+        if (featuredUntil) {
+          updateData.featured_until = featuredUntil;
+        }
+      } else {
+        updateData.featured_by = null;
+        updateData.featured_at = null;
+        updateData.featured_until = null;
+      }
+
+      const { data, error } = await supabase
+        .from('properties')
+        .update(updateData)
+        .eq('id', propertyId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Log the action
+      await supabase.from('property_moderation_log').insert({
+        property_id: propertyId,
+        admin_id: user.id,
+        action: featured ? 'featured' : 'unfeatured'
+      });
+
+      return {
+        success: true,
+        message: `Property ${featured ? 'featured' : 'unfeatured'} successfully`,
+        data
+      };
+    } catch (error) {
+      console.error('Toggle featured property error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to toggle featured status',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Get property moderation history
+   */
+  static async getPropertyModerationHistory(propertyId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('property_moderation_log')
+        .select(
+          `
+          *,
+          admin:users!admin_id(first_name, last_name, email)
+        `
+        )
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Get property moderation history error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch moderation history',
+        data: []
+      };
+    }
+  }
+
+  // ============================================================================
+  // USER VERIFICATION (KYC)
+  // ============================================================================
+
+  /**
+   * Verify a user (mark as verified)
+   */
+  static async verifyUser(userId: string) {
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Call the database function
+      const { data, error } = await supabase.rpc('verify_user', {
+        p_user_id: userId,
+        p_admin_id: user.id
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'User verified successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Verify user error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to verify user',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Request verification documents from a user
+   */
+  static async requestVerificationDocuments(
+    userId: string,
+    documents: string[] = ['id', 'proof_of_address']
+  ) {
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Call the database function
+      const { data, error } = await supabase.rpc(
+        'request_verification_documents',
+        {
+          p_user_id: userId,
+          p_admin_id: user.id,
+          p_documents: documents
+        }
+      );
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Document request sent successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Request verification documents error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to request documents',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Get user verification history
+   */
+  static async getUserVerificationHistory(userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('user_verification_log')
+        .select(
+          `
+          *,
+          admin:users!admin_id(first_name, last_name, email)
+        `
+        )
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false});
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Get user verification history error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch verification history',
+        data: []
+      };
+    }
+  }
+
+  /**
+   * Get all unverified users
+   */
+  static async getUnverifiedUsers() {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('is_verified', false)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Get unverified users error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch unverified users',
+        data: []
+      };
+    }
+  }
+
+  /**
+   * Get all unverified properties
+   */
+  static async getUnverifiedProperties() {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select(
+          `
+          *,
+          owner:users!owner_id(*)
+        `
+        )
+        .eq('is_verified', false)
+        .order('created_at', { ascending: false});
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Get unverified properties error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch unverified properties',
+        data: []
+      };
+    }
+  }
 }

@@ -48,13 +48,13 @@ const roles = [
     label: 'Tenant',
     icon: Users,
     description: 'Find and manage your rental'
+  },
+  {
+    id: 'admin' as const,
+    label: 'Administrator',
+    icon: Shield,
+    description: 'System administration'
   }
-  // {
-  //   id: 'admin' as const,
-  //   label: 'Administrator',
-  //   icon: Shield,
-  //   description: 'System administration'
-  // }
 ];
 
 export function TabbedLogin({
@@ -114,7 +114,7 @@ export function TabbedLogin({
         } else if (selectedRole === 'tenant') {
           router.push('/tenant/dashboard');
         } else if (selectedRole === 'admin') {
-          router.push('/admin/dashboard');
+          router.push('/dashboard');
         }
       } else {
         // Show error toast with modern red styling
@@ -173,7 +173,7 @@ export function TabbedLogin({
               <Label className="text-blue-700 font-semibold text-sm sm:text-base">
                 Select your role
               </Label>
-              <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-3 gap-2">
                 {roles.map(role => {
                   const Icon = role.icon;
                   const isActive = selectedRole === role.id;

@@ -47,7 +47,7 @@ import { MessagesAPI, type Message } from '@/lib/api/messages';
 import { toast } from 'sonner';
 
 interface TopNavbarProps {
-  role: 'owner' | 'tenant';
+  role: 'owner' | 'tenant' | 'admin';
   className?: string;
 }
 
@@ -258,20 +258,24 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
   };
 
   const getDashboardPath = () => {
+    if (role === 'admin') return '/dashboard';
     return role === 'owner' ? '/owner/dashboard' : '/tenant/dashboard';
   };
 
   const getProfilePath = () => {
+    if (role === 'admin') return '/dashboard/profile';
     return role === 'owner' ? '/owner/dashboard/profile' : '/tenant/dashboard/profile';
   };
 
   const getMessagesPath = () => {
+    if (role === 'admin') return '/dashboard/messages';
     return role === 'owner'
       ? '/owner/dashboard/messages'
       : '/tenant/dashboard/messages';
   };
 
   const getNotificationsPath = () => {
+    if (role === 'admin') return '/dashboard/notifications';
     return role === 'owner'
       ? '/owner/dashboard/notifications'
       : '/tenant/dashboard/notifications';

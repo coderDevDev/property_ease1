@@ -1,19 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import {
   BarChart3,
   Users,
@@ -26,78 +18,134 @@ import {
   Database,
   Activity,
   LogOut,
-  ChevronDown,
+  ChevronRight,
   Menu,
   X,
-  PhilippinePeso
+  PhilippinePeso,
+  Home,
+  MessageSquare,
+  User
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { AuthAPI } from '@/lib/api/auth';
+import { AdminAPI } from '@/lib/api/admin';
 
 interface AdminSidebarProps {
   className?: string;
 }
 
+interface AdminStats {
+  users: { total: number; active: number; newThisMonth: number };
+  properties: { total: number; active: number };
+  payments: { thisMonthAmount: number; pending: number };
+  tenants: { active: number; pending: number };
+  maintenance: { total: number };
+}
+
+interface SidebarItem {
+  icon: any;
+  label: string;
+  route: string;
+  description: string;
+  badge?: string;
+  badgeColor?: string;
+  section: string;
+  count?: number;
+}
+
 export function AdminSidebar({ className }: AdminSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { authState } = useAuth();
+  const { authState, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [stats, setStats] = useState<AdminStats>({
+    users: { total: 0, active: 0, newThisMonth: 0 },
+    properties: { total: 0, active: 0 },
+    payments: { thisMonthAmount: 0, pending: 0 },
+    tenants: { active: 0, pending: 0 },
+    maintenance: { total: 0 }
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const navigation = [
+  // Load admin stats
+  useEffect(() => {
+    const loadAdminStats = async () => {
+      try {
+        setIsLoading(true);
+        const result = await AdminAPI.getSystemStats();
+        if (result.success && result.data) {
+          setStats(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to load admin stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAdminStats();
+  }, []);
+
+  // Define sidebar items with sections
+  const sidebarItems: SidebarItem[] = [
     {
-      name: 'Dashboard',
+      icon: Home,
+      label: 'Dashboard',
       route: '/dashboard',
-      icon: BarChart3,
-      description: 'System overview and analytics'
+      description: 'System overview',
+      section: 'main'
     },
     {
-      name: 'Users',
-      route: '/dashboard/users',
       icon: Users,
-      description: 'Manage all user accounts'
+      label: 'Users',
+      route: '/dashboard/users',
+      description: 'Manage all accounts',
+      badge: isLoading ? '...' : `${stats.users.total} total`,
+      section: 'management'
     },
     {
-      name: 'Properties',
-      route: '/dashboard/properties',
       icon: Building2,
-      description: 'Property oversight and management'
+      label: 'Properties',
+      route: '/dashboard/properties',
+      description: 'Property oversight',
+      badge: isLoading ? '...' : `${stats.properties.active} active`,
+      section: 'management'
     },
     {
-      name: 'Payments',
-      route: '/dashboard/payments',
       icon: PhilippinePeso,
-      description: 'Payment tracking and analytics'
+      label: 'Payments',
+      route: '/dashboard/payments',
+      description: 'Payment monitoring',
+      badge: isLoading
+        ? '...'
+        : stats.payments.pending > 0
+        ? `${stats.payments.pending} pending`
+        : 'All processed',
+      badgeColor:
+        stats.payments.pending > 0
+          ? 'bg-yellow-100 text-yellow-700'
+          : 'bg-green-100 text-green-700',
+      section: 'financial'
     },
     {
-      name: 'Maintenance',
-      route: '/dashboard/maintenance',
       icon: Wrench,
-      description: 'System-wide maintenance requests'
+      label: 'Maintenance',
+      route: '/dashboard/maintenance',
+      description: 'Service requests',
+      section: 'operations'
     },
-    // {
-    //   name: 'Content Moderation',
-    //   route: '/dashboard/content',
-    //   icon: Shield,
-    //   description: 'Review and moderate content'
-    // },
     {
-      name: 'Analytics',
-      route: '/dashboard/analytics',
       icon: BarChart3,
-      description: 'System analytics and reports'
+      label: 'Analytics',
+      route: '/dashboard/analytics',
+      description: 'System insights',
+      section: 'reports'
     },
-    // {
-    //   name: 'System Health',
-    //   route: '/dashboard/health',
-    //   icon: Activity,
-    //   description: 'Monitor system performance'
-    // },
     {
-      name: 'Settings',
-      route: '/dashboard/settings',
       icon: Settings,
-      description: 'System configuration'
+      label: 'Settings',
+      route: '/dashboard/settings',
+      description: 'Configuration',
+      section: 'system'
     }
   ];
 
@@ -106,13 +154,9 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
     setIsMobileMenuOpen(false);
   };
 
-  const handleLogout = async () => {
-    try {
-      await AuthAPI.logout();
-      router.push('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
   };
 
   const isActive = (route: string) => {
@@ -120,135 +164,158 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
     return normalize(pathname) === normalize(route);
   };
 
-  const sidebarContent = (
-    <div className="flex flex-col h-full bg-white border-r border-gray-200">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-            <Shield className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">PropertEase</h1>
+  // Group sidebar items by section
+  const sectionConfig = {
+    main: {
+      title: 'Main',
+      items: sidebarItems.filter(item => item.section === 'main')
+    },
+    management: {
+      title: 'Management',
+      items: sidebarItems.filter(item => item.section === 'management')
+    },
+    financial: {
+      title: 'Financial',
+      items: sidebarItems.filter(item => item.section === 'financial')
+    },
+    operations: {
+      title: 'Operations',
+      items: sidebarItems.filter(item => item.section === 'operations')
+    },
+    reports: {
+      title: 'Reports',
+      items: sidebarItems.filter(item => item.section === 'reports')
+    },
+    system: {
+      title: 'System',
+      items: sidebarItems.filter(item => item.section === 'system')
+    }
+  };
+
+  const renderSidebarItem = (item: SidebarItem, index: number) => (
+    <button
+      key={`${item.section}-${index}`}
+      onClick={() => handleSidebarItemClick(item.route)}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 hover:bg-blue-50 hover:scale-[1.02] ${
+        isActive(item.route)
+          ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200 shadow-sm'
+          : 'text-gray-700 hover:text-blue-600'
+      }`}>
+      <item.icon
+        className={`w-5 h-5 transition-colors ${
+          isActive(item.route) ? 'text-blue-600' : 'text-gray-500'
+        }`}
+      />
+      <div className="flex-1 text-left">
+        <div className="flex items-center justify-between">
+          <span className="font-medium text-sm">{item.label}</span>
+          {(item.badge || item.count !== undefined) && (
             <Badge
-              variant="outline"
-              className="border-blue-200 text-blue-700 text-xs">
-              Admin Panel
+              className={`text-xs px-2 py-0.5 transition-all ${
+                item.badgeColor || 'bg-blue-100 text-blue-700'
+              }`}>
+              {item.badge || item.count}
             </Badge>
+          )}
+          {isActive(item.route) && (
+            <ChevronRight className="w-4 h-4 text-blue-600" />
+          )}
+        </div>
+        <p
+          className={`text-xs mt-0.5 transition-colors ${
+            isActive(item.route) ? 'text-blue-600' : 'text-gray-500'
+          }`}>
+          {item.description}
+        </p>
+      </div>
+    </button>
+  );
+
+  const sidebarContent = (
+    <div className="flex flex-col w-full h-full bg-gradient-to-b from-white to-blue-50/30 shadow-2xl backdrop-blur-sm border-r border-blue-100">
+      {/* Sidebar Header */}
+      <div className="p-6 border-b border-blue-100 bg-gradient-to-r from-blue-50 to-blue-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+              <Shield className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+                PropertEase
+              </h1>
+              <p className="text-blue-600/70 text-sm font-medium">
+                Admin Portal
+              </p>
+            </div>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}>
+            <X className="w-5 h-5" />
+          </Button>
         </div>
       </div>
 
-      {/* User Profile */}
-      <div className="p-6 border-b border-gray-200">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="w-full justify-start p-0 h-auto hover:bg-gray-50">
-              <div className="flex items-center gap-3 w-full">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage
-                    src={authState.user?.avatar}
-                    alt={authState.user?.firstName}
-                  />
-                  <AvatarFallback className="bg-blue-100 text-blue-700">
-                    {authState.user?.firstName?.[0]}
-                    {authState.user?.lastName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-gray-900">
-                    {authState.user?.firstName} {authState.user?.lastName}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {authState.user?.email}
-                  </p>
+      {/* Sidebar Navigation */}
+      <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
+        <nav className="space-y-6">
+          {Object.entries(sectionConfig).map(
+            ([sectionKey, section]) =>
+              section.items.length > 0 && (
+                <div key={sectionKey} className="space-y-2">
+                  <h3 className="text-xs font-bold text-blue-700/80 uppercase tracking-wider px-4 mb-3 flex items-center gap-2">
+                    {section.title}
+                    {sectionKey === 'main' && <Home className="w-3 h-3" />}
+                    {sectionKey === 'management' && <Users className="w-3 h-3" />}
+                    {sectionKey === 'financial' && <PhilippinePeso className="w-3 h-3" />}
+                    {sectionKey === 'operations' && <Wrench className="w-3 h-3" />}
+                    {sectionKey === 'reports' && <BarChart3 className="w-3 h-3" />}
+                    {sectionKey === 'system' && <Settings className="w-3 h-3" />}
+                  </h3>
+                  <div className="space-y-1">
+                    {section.items.map((item, index) =>
+                      renderSidebarItem(item, index)
+                    )}
+                  </div>
                 </div>
-                <ChevronDown className="h-4 w-4 text-gray-400" />
-              </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuLabel>Administrator</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => handleSidebarItemClick('/dashboard/profile')}>
-              Profile Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleSidebarItemClick('/dashboard/security')}>
-              Security Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              )
+          )}
+        </nav>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {navigation.map(item => {
-          const Icon = item.icon;
-          const active = isActive(item.route);
-
-          return (
-            <button
-              key={item.route}
-              onClick={() => handleSidebarItemClick(item.route)}
-              className={`w-full text-left p-3 rounded-lg transition-all duration-200 group ${
-                active
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}>
-              <div className="flex items-center gap-3">
-                <Icon
-                  className={`h-5 w-5 ${
-                    active
-                      ? 'text-blue-600'
-                      : 'text-gray-400 group-hover:text-gray-600'
-                  }`}
-                />
-                <div className="flex-1">
-                  <div
-                    className={`text-sm font-medium ${
-                      active ? 'text-blue-700' : 'text-gray-900'
-                    }`}>
-                    {item.name}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {item.description}
-                  </div>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* System Status */}
-      <div className="p-4 border-t border-gray-200">
-        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+      {/* System Status Footer */}
+      <div className="p-4 border-t border-blue-100">
+        <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
                 <Database className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-medium text-blue-900">
+                <div className="text-sm font-medium text-green-900">
                   System Status
                 </div>
-                <div className="text-xs text-blue-600">
+                <div className="text-xs text-green-700">
                   All systems operational
                 </div>
               </div>
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Sidebar Footer */}
+      <div className="p-4 border-t border-blue-100 bg-gradient-to-r from-blue-50/50 to-white">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 hover:scale-[1.02] hover:shadow-sm">
+          <LogOut className="w-5 h-5" />
+          <span className="font-semibold">Sign Out</span>
+        </button>
       </div>
     </div>
   );
@@ -258,35 +325,51 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="bg-white shadow-lg">
-          {isMobileMenuOpen ? (
-            <X className="h-4 w-4" />
-          ) : (
-            <Menu className="h-4 w-4" />
-          )}
+          className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
+          onClick={() => setIsMobileMenuOpen(true)}>
+          <Menu className="w-5 h-5" />
         </Button>
       </div>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Overlay */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-          <div className="absolute left-0 top-0 h-full w-80 max-w-[90vw]">
-            {sidebarContent}
-          </div>
-        </div>
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
       )}
 
       {/* Desktop Sidebar */}
-      <div className={`hidden lg:block w-80 ${className}`}>
+      <div className="hidden lg:block fixed inset-y-0 left-0 w-72 z-30">
         {sidebarContent}
       </div>
+
+      {/* Mobile Sidebar */}
+      <div
+        className={`lg:hidden fixed inset-y-0 left-0 w-80 z-50 transform transition-transform duration-300 ease-in-out ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
+        {sidebarContent}
+      </div>
+
+      {/* Custom Scrollbar Styles */}
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #3b82f6;
+          border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #2563eb;
+        }
+      `}</style>
     </>
   );
 }

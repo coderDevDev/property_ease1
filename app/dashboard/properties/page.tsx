@@ -30,8 +30,32 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  PhilippinePeso
+  PhilippinePeso,
+  Eye,
+  Star,
+  MoreHorizontal,
+  Edit
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { AdminAPI } from '@/lib/api/admin';
 import { toast } from 'sonner';
 
@@ -52,6 +76,8 @@ interface Property {
   owner_id: string;
   description?: string;
   amenities?: string[];
+  is_featured?: boolean;
+  is_verified?: boolean;
 }
 
 interface PropertyWithOwner extends Property {
@@ -68,6 +94,11 @@ export default function PropertiesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [selectedProperty, setSelectedProperty] = useState<PropertyWithOwner | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
     loadProperties();
@@ -148,9 +179,10 @@ export default function PropertiesPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium">Loading properties...</p>
         </div>
       </div>
     );
@@ -172,97 +204,85 @@ export default function PropertiesPage() {
   );
 
   return (
-    <div className="p-6 space-y-6 ml-72">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Property Oversight
-          </h1>
-          <p className="text-gray-600">
-            Monitor all properties across the platform
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              Property Oversight
+            </h1>
+            <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
+              Monitor all properties across the platform
+            </p>
+          </div>
+          <Badge className="bg-blue-100 text-blue-700 border-blue-200 self-start sm:self-auto">
+            <Building2 className="w-3 h-3 mr-1" />
+            {filteredProperties.length} Properties
+          </Badge>
         </div>
-        <Badge variant="outline" className="border-blue-200 text-blue-700">
-          {filteredProperties.length} Properties
-        </Badge>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Total Properties
-            </CardTitle>
-            <Building2 className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">
-              {totalProperties}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              {activeProperties} active, {maintenanceProperties} maintenance
-            </p>
-          </CardContent>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{totalProperties}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total Properties</p>
+                </div>
+              </div>
+            </CardContent>
         </Card>
 
-        <Card className="border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Total Units
-            </CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{totalUnits}</div>
-            <p className="text-xs text-gray-600 mt-1">
-              {occupiedUnits} occupied (
-              {getOccupancyRate(occupiedUnits, totalUnits)}%)
-            </p>
-          </CardContent>
+          <Card className="bg-white/70 backdrop-blur-sm border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{totalUnits}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total Units</p>
+                </div>
+              </div>
+            </CardContent>
         </Card>
 
-        <Card className="border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Monthly Revenue
-            </CardTitle>
-            <PhilippinePeso className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">
-              ₱{totalRevenue.toLocaleString()}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              From {occupiedUnits} occupied units
-            </p>
-          </CardContent>
+          <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <PhilippinePeso className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">₱{totalRevenue.toLocaleString()}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Monthly Revenue</p>
+                </div>
+              </div>
+            </CardContent>
         </Card>
 
-        <Card className="border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Occupancy Rate
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div
-              className={`text-2xl font-bold ${getOccupancyColor(
-                getOccupancyRate(occupiedUnits, totalUnits)
-              )}`}>
-              {getOccupancyRate(occupiedUnits, totalUnits)}%
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              {totalUnits - occupiedUnits} units available
-            </p>
-          </CardContent>
+          <Card className="bg-white/70 backdrop-blur-sm border-cyan-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{getOccupancyRate(occupiedUnits, totalUnits)}%</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Occupancy Rate</p>
+                </div>
+              </div>
+            </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
+        {/* Filters */}
+        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
@@ -311,144 +331,584 @@ export default function PropertiesPage() {
         </CardContent>
       </Card>
 
-      {/* Properties Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="w-5 h-5" />
-            Properties ({filteredProperties.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Units</TableHead>
-                  <TableHead>Occupancy</TableHead>
-                  <TableHead>Monthly Rent</TableHead>
-                  <TableHead>Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProperties.map(property => {
-                  const occupancyRate = getOccupancyRate(
-                    property.occupied_units,
-                    property.total_units
-                  );
+        {/* Properties Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="bg-white/70 backdrop-blur-sm border-blue-200/50">
+            <TabsTrigger value="all" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              All Properties
+              <Badge className="ml-2 bg-blue-100 text-blue-700">{properties.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
+              Pending Approval
+              <Badge className="ml-2 bg-yellow-100 text-yellow-700">
+                {properties.filter(p => !p.is_verified).length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
 
-                  return (
-                    <TableRow key={property.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {property.name}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center">
-                            <MapPin className="w-3 h-3 mr-1" />
-                            {property.address}
-                            {property.city && `, ${property.city}`}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {property.owner ? (
+          <TabsContent value="all">
+        {/* All Properties Table */}
+        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Properties ({filteredProperties.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Property</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Units</TableHead>
+                    <TableHead>Occupancy</TableHead>
+                    <TableHead>Monthly Rent</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProperties.map(property => {
+                    const occupancyRate = property.total_units > 0
+                      ? Math.round((property.occupied_units / property.total_units) * 100)
+                      : 0;
+
+                    return (
+                      <TableRow key={property.id}>
+                        <TableCell>
                           <div>
-                            <div className="font-medium text-gray-900">
-                              {property.owner.first_name}{' '}
-                              {property.owner.last_name}
+                            <div className="font-medium text-gray-900 flex items-center gap-2">
+                              {property.name}
+                              {property.is_featured && (
+                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              )}
+                              {property.is_verified && (
+                                <Badge className="bg-blue-100 text-blue-700 text-xs">✓ Verified</Badge>
+                              )}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {property.owner.email}
+                              <MapPin className="w-3 h-3 inline mr-1" />
+                              {property.address}
                             </div>
                           </div>
-                        ) : (
-                          <span className="text-gray-500">No owner</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {property.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`${getStatusBadgeColor(
-                            property.status
-                          )} capitalize`}>
-                          {getStatusIcon(property.status)}
-                          <span className="ml-1">{property.status}</span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="font-medium">
-                            {property.total_units} total
+                        </TableCell>
+                        <TableCell>
+                          {property.owner ? (
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {property.owner.first_name}{' '}
+                                {property.owner.last_name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {property.owner.email}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500">No owner</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {property.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={`${getStatusBadgeColor(
+                              property.status
+                            )} capitalize`}>
+                            {getStatusIcon(property.status)}
+                            <span className="ml-1">{property.status}</span>
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">
+                              {property.total_units} total
+                            </div>
+                            <div className="text-gray-500">
+                              {property.occupied_units} occupied,{' '}
+                              {property.available_units} available
+                            </div>
                           </div>
-                          <div className="text-gray-500">
-                            {property.occupied_units} occupied,{' '}
-                            {property.available_units} available
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div
-                          className={`font-medium ${getOccupancyColor(
-                            occupancyRate
-                          )}`}>
-                          {occupancyRate}%
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                        </TableCell>
+                        <TableCell>
                           <div
-                            className={`h-2 rounded-full ${
-                              occupancyRate >= 90
-                                ? 'bg-green-500'
-                                : occupancyRate >= 70
-                                ? 'bg-yellow-500'
-                                : 'bg-red-500'
-                            }`}
-                            style={{ width: `${occupancyRate}%` }}
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">
-                          ₱{property.monthly_rent.toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-500">per unit</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          {new Date(property.created_at).toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-          {filteredProperties.length === 0 && (
-            <div className="text-center py-8">
-              <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No properties found
-              </h3>
-              <p className="text-gray-600">
-                {searchTerm
-                  ? 'Try adjusting your search criteria.'
-                  : 'No properties match the current filters.'}
-              </p>
+                            className={`font-medium ${getOccupancyColor(
+                              occupancyRate
+                            )}`}>
+                            {occupancyRate}%
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                            <div
+                              className={`h-2 rounded-full ${
+                                occupancyRate >= 90
+                                  ? 'bg-green-500'
+                                  : occupancyRate >= 70
+                                  ? 'bg-yellow-500'
+                                  : 'bg-red-500'
+                              }`}
+                              style={{ width: `${occupancyRate}%` }}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">
+                            ₱{property.monthly_rent.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-gray-500">per unit</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {new Date(property.created_at).toLocaleDateString()}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedProperty(property);
+                                  setIsViewDialogOpen(true);
+                                }}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleToggleFeatured(property.id, !property.is_featured)}>
+                                <Star className="w-4 h-4 mr-2" />
+                                {property.is_featured ? 'Remove Featured' : 'Mark as Featured'}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              {filteredProperties.length === 0 && (
+                <div className="text-center py-8">
+                  <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No properties found
+                  </h3>
+                  <p className="text-gray-600">
+                    {searchTerm
+                      ? 'Try adjusting your search criteria.'
+                      : 'No properties match the current filters.'}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+          </TabsContent>
+
+          <TabsContent value="pending">
+            {/* Pending Properties Table */}
+            <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-yellow-600" />
+                  Pending Approval ({properties.filter(p => !p.is_verified).length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Property</TableHead>
+                        <TableHead>Owner</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Units</TableHead>
+                        <TableHead>Monthly Rent</TableHead>
+                        <TableHead>Submitted</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {properties.filter(p => !p.is_verified).map(property => (
+                        <TableRow key={property.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-gray-900">{property.name}</div>
+                              <div className="text-sm text-gray-500">
+                                <MapPin className="w-3 h-3 inline mr-1" />
+                                {property.address}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {property.owner ? (
+                              <div>
+                                <div className="font-medium text-gray-900">
+                                  {property.owner.first_name} {property.owner.last_name}
+                                </div>
+                                <div className="text-sm text-gray-500">{property.owner.email}</div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-500">No owner</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">{property.type}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm font-medium">{property.total_units} units</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">₱{property.monthly_rent.toLocaleString()}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-500">
+                              {new Date(property.created_at).toLocaleDateString()}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                                onClick={() => {
+                                  setSelectedProperty(property);
+                                  setIsViewDialogOpen(true);
+                                }}>
+                                <Eye className="w-4 h-4 mr-1" />
+                                View
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                                onClick={() => handleApproveProperty(property.id)}>
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-200 text-red-700 hover:bg-red-50"
+                                onClick={() => {
+                                  setSelectedProperty(property);
+                                  setIsRejectDialogOpen(true);
+                                }}>
+                                <AlertCircle className="w-4 h-4 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {properties.filter(p => !p.is_verified).length === 0 && (
+                    <div className="text-center py-8">
+                      <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        All properties approved!
+                      </h3>
+                      <p className="text-gray-600">No properties pending approval at this time.</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Reject Property Dialog */}
+        <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                Reject Property
+              </DialogTitle>
+              <DialogDescription>
+                Provide a reason for rejecting {selectedProperty?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="rejection-reason">Rejection Reason</Label>
+                <Textarea
+                  id="rejection-reason"
+                  placeholder="e.g., Incomplete information, invalid documents, policy violations..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  rows={4}
+                  className="mt-2"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsRejectDialogOpen(false);
+                    setRejectionReason('');
+                  }}>
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={handleRejectProperty}
+                  disabled={!rejectionReason.trim()}>
+                  Reject Property
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Property Details Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            Property Details
+          </DialogTitle>
+          <DialogDescription>
+            Complete information for {selectedProperty?.name}
+          </DialogDescription>
+        </DialogHeader>
+        {selectedProperty && (
+          <Tabs defaultValue="info" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="info">Information</TabsTrigger>
+              <TabsTrigger value="units">Units</TabsTrigger>
+              <TabsTrigger value="owner">Owner</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="info" className="space-y-4">
+              <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Property Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-600">Property Name</Label>
+                      <p className="font-medium">{selectedProperty.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600">Type</Label>
+                      <p className="font-medium capitalize">{selectedProperty.type}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-gray-600">Address</Label>
+                      <p className="font-medium">{selectedProperty.address}</p>
+                      {selectedProperty.city && (
+                        <p className="text-sm text-gray-600">
+                          {selectedProperty.city}, {selectedProperty.province || ''}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-gray-600">Status</Label>
+                      <Badge className={
+                        selectedProperty.status === 'active'
+                          ? 'bg-green-100 text-green-700'
+                          : selectedProperty.status === 'inactive'
+                          ? 'bg-gray-100 text-gray-700'
+                          : 'bg-yellow-100 text-yellow-700'
+                      }>
+                        {selectedProperty.status}
+                      </Badge>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600">Monthly Rent</Label>
+                      <p className="font-medium text-lg">₱{selectedProperty.monthly_rent.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600">Property ID</Label>
+                      <p className="font-mono text-xs">{selectedProperty.id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600">Created Date</Label>
+                      <p className="font-medium">{new Date(selectedProperty.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  {selectedProperty.description && (
+                    <div>
+                      <Label className="text-gray-600">Description</Label>
+                      <p className="text-sm text-gray-700 mt-1">{selectedProperty.description}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="units" className="space-y-4">
+              <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Unit Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Total Units</p>
+                      <p className="text-3xl font-bold text-blue-700">{selectedProperty.total_units}</p>
+                    </div>
+                    <div className="p-4 bg-green-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Occupied</p>
+                      <p className="text-3xl font-bold text-green-700">{selectedProperty.occupied_units}</p>
+                    </div>
+                    <div className="p-4 bg-purple-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Available</p>
+                      <p className="text-3xl font-bold text-purple-700">{selectedProperty.available_units}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Label className="text-gray-600">Occupancy Rate</Label>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="flex-1 bg-gray-200 rounded-full h-4">
+                        <div
+                          className="bg-blue-600 h-4 rounded-full"
+                          style={{
+                            width: `${(selectedProperty.occupied_units / selectedProperty.total_units) * 100}%`
+                          }}
+                        />
+                      </div>
+                      <span className="font-bold text-lg">
+                        {Math.round((selectedProperty.occupied_units / selectedProperty.total_units) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="owner" className="space-y-4">
+              <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Owner Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedProperty.owner ? (
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-gray-600">Full Name</Label>
+                        <p className="font-medium">
+                          {selectedProperty.owner.first_name} {selectedProperty.owner.last_name}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">Email</Label>
+                        <p className="font-medium">{selectedProperty.owner.email}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">No owner information available</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="settings" className="space-y-4">
+              <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Property Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Featured Property</p>
+                      <p className="text-sm text-gray-600">Display prominently to tenants</p>
+                    </div>
+                    <Badge className={selectedProperty.is_featured ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}>
+                      {selectedProperty.is_featured ? '⭐ Featured' : 'Not Featured'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Verified Property</p>
+                      <p className="text-sm text-gray-600">Documents verified by admin</p>
+                    </div>
+                    <Badge className={selectedProperty.is_verified ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}>
+                      {selectedProperty.is_verified ? '✓ Verified' : 'Not Verified'}
+                    </Badge>
+                  </div>
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      ⭐ <strong>Feature Status:</strong><br/>
+                      Featured properties appear at the top of search results and property listings.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+      </DialogContent>
+    </Dialog>
+      </div>
     </div>
   );
+
+  async function handleToggleFeatured(propertyId: string, featured: boolean) {
+    try {
+      const result = await AdminAPI.toggleFeaturedProperty(propertyId, featured);
+      if (result.success) {
+        toast.success(result.message || `Property ${featured ? 'featured' : 'unfeatured'} successfully`);
+        loadProperties();
+      } else {
+        toast.error(result.message || 'Failed to toggle featured status');
+      }
+    } catch (error) {
+      toast.error('Failed to toggle featured status');
+      console.error('Toggle featured error:', error);
+    }
+  }
+
+  async function handleApproveProperty(propertyId: string) {
+    try {
+      const result = await AdminAPI.approveProperty(propertyId);
+      if (result.success) {
+        toast.success('Property approved successfully! Owner will be notified.');
+        loadProperties();
+      } else {
+        toast.error(result.message || 'Failed to approve property');
+      }
+    } catch (error) {
+      toast.error('Failed to approve property');
+      console.error('Approve error:', error);
+    }
+  }
+
+  async function handleRejectProperty() {
+    if (!selectedProperty || !rejectionReason.trim()) {
+      toast.error('Please provide a rejection reason');
+      return;
+    }
+
+    try {
+      const result = await AdminAPI.rejectProperty(selectedProperty.id, rejectionReason);
+      if (result.success) {
+        toast.success('Property rejected. Owner will be notified with the reason.');
+        setIsRejectDialogOpen(false);
+        setRejectionReason('');
+        loadProperties();
+      } else {
+        toast.error(result.message || 'Failed to reject property');
+      }
+    } catch (error) {
+      toast.error('Failed to reject property');
+      console.error('Reject error:', error);
+    }
+  }
 }

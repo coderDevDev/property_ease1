@@ -82,6 +82,8 @@ export interface PropertyListing {
   property_rules?: string;
   created_at: string;
   updated_at: string;
+  is_verified?: boolean;
+  is_featured?: boolean;
   // Additional fields for tenant view
   owner_name: string;
   owner_email: string;
@@ -289,6 +291,8 @@ export class TenantAPI {
           property_rules,
           created_at,
           updated_at,
+          is_verified,
+          is_featured,
           users!properties_owner_id_fkey (
             first_name,
             last_name,
@@ -297,7 +301,8 @@ export class TenantAPI {
           )
         `
         )
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .eq('is_verified', true);
 
       if (error) throw error;
 
@@ -316,7 +321,14 @@ export class TenantAPI {
           featured_amenities: property.amenities?.slice(0, 4) || [],
           amenities: property.amenities || [],
           images: property.images || []
-        }));
+        }))
+        .sort((a, b) => {
+          // Featured properties first
+          if (a.is_featured && !b.is_featured) return -1;
+          if (!a.is_featured && b.is_featured) return 1;
+          // Then by creation date (newest first)
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
 
       return { success: true, data: propertyListings };
     } catch (error) {
@@ -358,6 +370,8 @@ export class TenantAPI {
           property_rules,
           created_at,
           updated_at,
+          is_verified,
+          is_featured,
           users!properties_owner_id_fkey (
             first_name,
             last_name,
@@ -367,9 +381,18 @@ export class TenantAPI {
         `
         )
         .eq('id', propertyId)
+        .eq('is_verified', true)
         .single();
 
       if (error) throw error;
+      
+      // Don't show unverified properties to tenants
+      if (!property.is_verified) {
+        return {
+          success: false,
+          message: 'Property not available'
+        };
+      }
 
       const propertyListing: PropertyListing = {
         ...property,

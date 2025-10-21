@@ -465,11 +465,17 @@ export default function TenantPropertiesPage() {
                   alt={property.name}
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
-                <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
+                <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1.5">
                   <Badge className="bg-blue-600 text-white text-xs">
                     {property.type.charAt(0).toUpperCase() +
                       property.type.slice(1)}
                   </Badge>
+                  {property.is_featured && (
+                    <Badge className="bg-yellow-500 text-white text-xs flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-white" />
+                      Featured
+                    </Badge>
+                  )}
                 </div>
                 <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex gap-1 sm:gap-2">
                   {/* <Button

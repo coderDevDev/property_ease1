@@ -193,9 +193,12 @@ export default function MaintenancePage() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium">
+            Loading maintenance requests...
+          </p>
         </div>
       </div>
     );
@@ -225,107 +228,116 @@ export default function MaintenancePage() {
       : 0;
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Maintenance Oversight
-          </h1>
-          <p className="text-gray-600">
-            System-wide maintenance request monitoring
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              Maintenance Management
+            </h1>
+            <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
+              Monitor and manage maintenance requests
+            </p>
+          </div>
+          <Badge className="bg-blue-100 text-blue-700 border-blue-200 self-start sm:self-auto">
+            <Wrench className="w-3 h-3 mr-1" />
+            {filteredRequests.length} Requests
+          </Badge>
         </div>
-        <Badge variant="outline" className="border-blue-200 text-blue-700">
-          {filteredRequests.length} Requests
-        </Badge>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <Card className="border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Total Requests
-            </CardTitle>
-            <Wrench className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">
-              {totalRequests}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">All time</p>
-          </CardContent>
-        </Card>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+          {/* Total */}
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {totalRequests}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-yellow-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Open
-            </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-700">
-              {openRequests.length}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">Awaiting assignment</p>
-          </CardContent>
-        </Card>
+          {/* Open */}
+          <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {openRequests.length}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">Open</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              In Progress
-            </CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-700">
-              {inProgressRequests.length}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">Being worked on</p>
-          </CardContent>
-        </Card>
+          {/* In Progress */}
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {inProgressRequests.length}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    In Progress
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-green-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Completed
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-700">
-              {completedRequests.length}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              ₱{totalCost.toLocaleString()} total cost
-            </p>
-          </CardContent>
-        </Card>
+          {/* Completed */}
+          <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {completedRequests.length}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">Completed</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-red-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Urgent
-            </CardTitle>
-            <Flag className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-700">
-              {urgentRequests.length}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              Needs immediate attention
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Urgent */}
+          <Card className="bg-white/70 backdrop-blur-sm border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <Flag className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {urgentRequests.length}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">Urgent</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Performance Metrics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        {/* Performance Metrics */}
+        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg">Performance Metrics</CardTitle>
           </CardHeader>
@@ -359,6 +371,7 @@ export default function MaintenancePage() {
           </CardContent>
         </Card>
 
+        {/* Category Breakdown */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Category Breakdown</CardTitle>
@@ -402,221 +415,230 @@ export default function MaintenancePage() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <Label htmlFor="search">Search Requests</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  id="search"
-                  placeholder="Search by title, description, tenant, or property..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+        {/* Filters and Table */}
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1">
+                <Label htmlFor="search">Search Requests</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="search"
+                    placeholder="Search by title, description, tenant, or property..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              {/* Status */}
+              <div>
+                <Label htmlFor="status-filter">Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <Label htmlFor="priority-filter">Priority</Label>
+                <Select
+                  value={priorityFilter}
+                  onValueChange={setPriorityFilter}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="All Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Priority</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Category */}
+              <div>
+                <Label htmlFor="category-filter">Category</Label>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="plumbing">Plumbing</SelectItem>
+                    <SelectItem value="electrical">Electrical</SelectItem>
+                    <SelectItem value="hvac">HVAC</SelectItem>
+                    <SelectItem value="appliances">Appliances</SelectItem>
+                    <SelectItem value="structural">Structural</SelectItem>
+                    <SelectItem value="cleaning">Cleaning</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div>
-              <Label htmlFor="status-filter">Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="priority-filter">Priority</Label>
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="All Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priority</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="category-filter">Category</Label>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="plumbing">Plumbing</SelectItem>
-                  <SelectItem value="electrical">Electrical</SelectItem>
-                  <SelectItem value="hvac">HVAC</SelectItem>
-                  <SelectItem value="appliances">Appliances</SelectItem>
-                  <SelectItem value="structural">Structural</SelectItem>
-                  <SelectItem value="cleaning">Cleaning</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Requests Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wrench className="w-5 h-5" />
-            Maintenance Requests ({filteredRequests.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Request</TableHead>
-                  <TableHead>Tenant</TableHead>
-                  <TableHead>Property</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Cost</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRequests.map(request => (
-                  <TableRow key={request.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {request.title}
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Request</TableHead>
+                    <TableHead>Tenant</TableHead>
+                    <TableHead>Property</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRequests.map(request => (
+                    <TableRow key={request.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {request.title}
+                          </div>
+                          <div className="text-sm text-gray-500 line-clamp-2">
+                            {request.description}
+                          </div>
+                          {request.images && request.images.length > 0 && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              {request.images.length} image(s) attached
+                            </div>
+                          )}
                         </div>
-                        <div className="text-sm text-gray-500 line-clamp-2">
-                          {request.description}
+                      </TableCell>
+
+                      <TableCell>
+                        {request.tenant ? (
+                          <div>
+                            <div className="font-medium text-gray-900 flex items-center">
+                              <User className="w-3 h-3 mr-1" />
+                              {request.tenant.first_name}{' '}
+                              {request.tenant.last_name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {request.tenant.email}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">No tenant</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        {request.property ? (
+                          <div>
+                            <div className="font-medium text-gray-900 flex items-center">
+                              <Building2 className="w-3 h-3 mr-1" />
+                              {request.property.name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {request.property.address}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">No property</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {request.category}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`${getPriorityBadgeColor(
+                            request.priority
+                          )} capitalize`}>
+                          {getPriorityIcon(request.priority)}
+                          <span className="ml-1">{request.priority}</span>
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`${getStatusBadgeColor(
+                            request.status
+                          )} capitalize`}>
+                          {getStatusIcon(request.status)}
+                          <span className="ml-1">
+                            {request.status === 'in_progress'
+                              ? 'In Progress'
+                              : request.status}
+                          </span>
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="text-sm text-gray-900 flex items-center">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {new Date(request.created_at).toLocaleDateString()}
                         </div>
-                        {request.images && request.images.length > 0 && (
-                          <div className="text-xs text-blue-600 mt-1">
-                            {request.images.length} image(s) attached
+                        {request.completion_date && (
+                          <div className="text-xs text-gray-500">
+                            Completed:{' '}
+                            {new Date(
+                              request.completion_date
+                            ).toLocaleDateString()}
                           </div>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {request.tenant ? (
-                        <div>
-                          <div className="font-medium text-gray-900 flex items-center">
-                            <User className="w-3 h-3 mr-1" />
-                            {request.tenant.first_name}{' '}
-                            {request.tenant.last_name}
+                      </TableCell>
+
+                      <TableCell>
+                        {request.cost ? (
+                          <div className="font-medium text-gray-900">
+                            ₱{request.cost.toLocaleString()}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {request.tenant.email}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-500">No tenant</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {request.property ? (
-                        <div>
-                          <div className="font-medium text-gray-900 flex items-center">
-                            <Building2 className="w-3 h-3 mr-1" />
-                            {request.property.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {request.property.address}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-500">No property</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {request.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`${getPriorityBadgeColor(
-                          request.priority
-                        )} capitalize`}>
-                        {getPriorityIcon(request.priority)}
-                        <span className="ml-1">{request.priority}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`${getStatusBadgeColor(
-                          request.status
-                        )} capitalize`}>
-                        {getStatusIcon(request.status)}
-                        <span className="ml-1">
-                          {request.status === 'in_progress'
-                            ? 'In Progress'
-                            : request.status}
-                        </span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-gray-900 flex items-center">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        {new Date(request.created_at).toLocaleDateString()}
-                      </div>
-                      {request.completion_date && (
-                        <div className="text-xs text-gray-500">
-                          Completed:{' '}
-                          {new Date(
-                            request.completion_date
-                          ).toLocaleDateString()}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {request.cost ? (
-                        <div className="font-medium text-gray-900">
-                          ₱{request.cost.toLocaleString()}
-                        </div>
-                      ) : (
-                        <span className="text-gray-500">-</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          {filteredRequests.length === 0 && (
-            <div className="text-center py-8">
-              <Wrench className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No maintenance requests found
-              </h3>
-              <p className="text-gray-600">
-                {searchTerm
-                  ? 'Try adjusting your search criteria.'
-                  : 'No requests match the current filters.'}
-              </p>
+                        ) : (
+                          <span className="text-gray-500">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {filteredRequests.length === 0 && (
+              <div className="text-center py-8">
+                <Wrench className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No maintenance requests found
+                </h3>
+                <p className="text-gray-600">
+                  {searchTerm
+                    ? 'Try adjusting your search criteria.'
+                    : 'No requests match the current filters.'}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

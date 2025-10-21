@@ -165,9 +165,10 @@ export default function PaymentsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium">Loading payments...</p>
         </div>
       </div>
     );
@@ -183,98 +184,87 @@ export default function PaymentsPage() {
   const failedAmount = failedPayments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Payment Monitoring
-          </h1>
-          <p className="text-gray-600">
-            Monitor payment transactions and revenue
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              Payment Monitoring
+            </h1>
+            <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
+              Monitor payment transactions and revenue
+            </p>
+          </div>
+          <Badge className="bg-blue-100 text-blue-700 border-blue-200 self-start sm:self-auto">
+            <PhilippinePeso className="w-3 h-3 mr-1" />
+            {filteredPayments.length} Payments
+          </Badge>
         </div>
-        <Badge variant="outline" className="border-blue-200 text-blue-700">
-          {filteredPayments.length} Payments
-        </Badge>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Total Revenue
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">
-              ₱{totalRevenue.toLocaleString()}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              {completedPayments.length} completed payments
-            </p>
-          </CardContent>
-        </Card>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">₱{totalRevenue.toLocaleString()}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total Revenue</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Pending Amount
-            </CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-700">
-              ₱{pendingAmount.toLocaleString()}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              {pendingPayments.length} pending payments
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">₱{pendingAmount.toLocaleString()}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Pending</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Failed Amount
-            </CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-700">
-              ₱{failedAmount.toLocaleString()}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              {failedPayments.length} failed payments
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="bg-white/70 backdrop-blur-sm border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">₱{failedAmount.toLocaleString()}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Failed</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Success Rate
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-700">
-              {totalPayments > 0
-                ? Math.round((completedPayments.length / totalPayments) * 100)
-                : 0}
-              %
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              {completedPayments.length} of {totalPayments} payments
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {totalPayments > 0 ? Math.round((completedPayments.length / totalPayments) * 100) : 0}%
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">Success Rate</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Filters */}
-      <Card>
+        {/* Filters */}
+        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
@@ -341,8 +331,8 @@ export default function PaymentsPage() {
         </CardContent>
       </Card>
 
-      {/* Payments Table */}
-      <Card>
+        {/* Payments Table */}
+        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PhilippinePeso className="w-5 h-5" />
@@ -486,7 +476,8 @@ export default function PaymentsPage() {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

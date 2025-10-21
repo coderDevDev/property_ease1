@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Users,
   Building2,
@@ -17,7 +16,9 @@ import {
   Activity,
   FileText,
   Database,
-  Server
+  Server,
+  CreditCard,
+  PhilippinePeso
 } from 'lucide-react';
 import { AdminAPI } from '@/lib/api/admin';
 import { useAuth } from '@/hooks/useAuth';
@@ -59,7 +60,6 @@ export function AdminDashboard() {
   const { authState } = useAuth();
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     loadSystemStats();
@@ -97,44 +97,83 @@ export function AdminDashboard() {
     );
   }
 
+  // Quick action navigation
+  const handleQuickAction = (route: string) => {
+    window.location.href = route;
+  };
+
+  const quickActions = [
+    {
+      icon: Users,
+      label: 'Users',
+      color: 'from-blue-500 to-blue-600',
+      route: '/dashboard/users',
+      count: stats?.users.total.toString() || '0',
+      description: 'Manage users'
+    },
+    {
+      icon: Building2,
+      label: 'Properties',
+      color: 'from-purple-500 to-purple-600',
+      route: '/dashboard/properties',
+      count: stats?.properties.total.toString() || '0',
+      description: 'Property oversight'
+    },
+    {
+      icon: PhilippinePeso,
+      label: 'Payments',
+      color: 'from-green-500 to-green-600',
+      route: '/dashboard/payments',
+      count: formatCurrency(stats?.payments.thisMonthAmount || 0),
+      description: 'This month'
+    },
+    {
+      icon: Wrench,
+      label: 'Maintenance',
+      color: 'from-orange-500 to-orange-600',
+      route: '/dashboard/maintenance',
+      count: '0',
+      description: 'Track requests'
+    },
+    {
+      icon: BarChart3,
+      label: 'Analytics',
+      color: 'from-cyan-500 to-cyan-600',
+      route: '/dashboard/analytics',
+      count: '',
+      description: 'System insights'
+    },
+    {
+      icon: Settings,
+      label: 'Settings',
+      color: 'from-gray-500 to-gray-600',
+      route: '/dashboard/settings',
+      count: '',
+      description: 'Configuration'
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
-                Admin Dashboard
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Welcome back, {authState.user?.firstName}! Here's your system
-                overview.
-              </p>
-            </div>
-            <Badge variant="outline" className="border-blue-200 text-blue-700">
-              <Shield className="w-4 h-4 mr-1" />
-              Administrator
-            </Badge>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="properties">Properties</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-            <TabsTrigger value="system">System</TabsTrigger>
-          </TabsList>
+        <div className="space-y-8">
+          {/* Welcome Section */}
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                Welcome back, {authState.user?.firstName}!
+              </h1>
+              <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                <Shield className="w-3 h-3 mr-1" />
+                Admin
+              </Badge>
+            </div>
+            <p className="text-gray-600">Here's your system overview for today.</p>
+          </div>
 
-          <TabsContent value="overview" className="space-y-6">
+          {/* Overview Section */}
+          <div className="space-y-6">
             {/* Overview Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="border-blue-100">
@@ -204,6 +243,34 @@ export function AdminDashboard() {
                   </p>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Quick Actions */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <Card
+                      key={action.label}
+                      className="cursor-pointer hover:shadow-lg transition-all duration-200 border-blue-100 hover:border-blue-300"
+                      onClick={() => handleQuickAction(action.route)}
+                    >
+                      <CardContent className="p-6 text-center">
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${action.color} flex items-center justify-center mx-auto mb-3 shadow-lg`}>
+                          <Icon className="w-6 h-6 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-gray-900 mb-1">{action.label}</h3>
+                        {action.count && (
+                          <p className="text-lg font-bold text-blue-600 mb-1">{action.count}</p>
+                        )}
+                        <p className="text-xs text-gray-500">{action.description}</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
 
             {/* User Breakdown */}
@@ -278,8 +345,15 @@ export function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
+// Remove unused tab sections below
+/*
           <TabsContent value="users" className="space-y-6">
             <Card>
               <CardHeader>
@@ -454,8 +528,4 @@ export function AdminDashboard() {
               </Card>
             </div>
           </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-}
+*/

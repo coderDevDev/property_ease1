@@ -3,6 +3,7 @@
 import '../globals.css';
 import { useAuth } from '@/hooks/useAuth';
 import { AdminSidebar } from '@/components/admin-sidebar';
+import { TopNavbar } from '@/components/layout/top-navbar';
 import { redirect } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -51,9 +52,12 @@ export default function DashboardLayout({
 
   // Admin layout with sidebar
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
       <AdminSidebar />
-      <main className="flex-1">{children}</main>
+      <div className="lg:ml-72">
+        <TopNavbar role="admin" />
+        <main className="pt-0">{children}</main>
+      </div>
     </div>
   );
 }
