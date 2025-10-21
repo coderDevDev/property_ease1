@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TenantAPI } from '@/lib/api/tenant';
+import { generateLeaseAgreementPDF } from '@/lib/pdf/leaseAgreementPDF';
+import { generatePaymentSchedulePDF } from '@/lib/pdf/paymentSchedulePDF';
 
 interface LeaseDocument {
   id: string;
@@ -103,6 +105,65 @@ export default function LeasePage() {
     }
   };
 
+  const handleDownloadLease = () => {
+    if (!lease || !authState.user) return;
+
+    const leaseDurationMonths = Math.ceil(
+      (lease.lease_end.getTime() - lease.lease_start.getTime()) /
+        (1000 * 60 * 60 * 24 * 30)
+    );
+
+    const leaseData = {
+      tenantName: `${authState.user.firstName} ${authState.user.lastName}`,
+      tenantEmail: authState.user.email || '',
+      tenantPhone: authState.user.phone || '',
+      ownerName: lease.property_details.owner_name,
+      ownerEmail: '',
+      ownerPhone: lease.property_details.owner_contact,
+      propertyName: lease.property_name,
+      propertyAddress: lease.property_details.address,
+      propertyCity: '',
+      propertyType: lease.property_details.type,
+      unitNumber: lease.unit_number,
+      leaseStart: lease.lease_start.toISOString(),
+      leaseEnd: lease.lease_end.toISOString(),
+      leaseDuration: leaseDurationMonths,
+      monthlyRent: lease.monthly_rent,
+      securityDeposit: lease.security_deposit,
+      paymentDueDay: 5,
+      terms: lease.terms_and_conditions,
+      amenities: lease.property_details.amenities
+    };
+
+    generateLeaseAgreementPDF(leaseData);
+    toast.success('Lease agreement downloaded!');
+  };
+
+  const handleDownloadPaymentSchedule = () => {
+    if (!lease || !authState.user) return;
+
+    const scheduleData = {
+      tenantName: `${authState.user.firstName} ${authState.user.lastName}`,
+      propertyName: lease.property_name,
+      unitNumber: lease.unit_number,
+      leaseStart: lease.lease_start.toISOString(),
+      leaseEnd: lease.lease_end.toISOString(),
+      monthlyRent: lease.monthly_rent,
+      payments: lease.payments.map(p => ({
+        id: p.id,
+        due_date: p.due_date,
+        amount: p.amount,
+        payment_status: p.status,
+        payment_type: 'rent',
+        paid_date: p.paid_date,
+        late_fee: 0
+      }))
+    };
+
+    generatePaymentSchedulePDF(scheduleData);
+    toast.success('Payment schedule downloaded!');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
@@ -160,6 +221,21 @@ export default function LeasePage() {
             <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
               View and manage your current lease agreement and related documents
             </p>
+          </div>
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            <Button
+              onClick={handleDownloadLease}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm sm:text-base">
+              <FileText className="w-4 h-4 mr-2" />
+              Download Lease Agreement
+            </Button>
+            <Button
+              onClick={handleDownloadPaymentSchedule}
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
+              <Download className="w-4 h-4 mr-2" />
+              Download Payment Schedule
+            </Button>
           </div>
         </div>
 

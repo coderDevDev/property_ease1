@@ -136,16 +136,11 @@ export default function ApplicationsPage() {
     rejected: applications.filter(a => a.status === 'rejected').length
   };
 
-  const handleDownloadLease = (
-    application: Application,
-    e: React.MouseEvent
-  ) => {
+  const handleDownloadLease = (application: Application, e: React.MouseEvent) => {
     e.stopPropagation();
-
+    
     if (application.status !== 'approved') {
-      toast.error(
-        'Lease agreement is only available for approved applications'
-      );
+      toast.error('Lease agreement is only available for approved applications');
       return;
     }
 
@@ -230,9 +225,7 @@ export default function ApplicationsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {stats.total}
-                  </p>
+                  <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                   <ClipboardList className="w-6 h-6 text-blue-600" />
@@ -545,8 +538,7 @@ export default function ApplicationsPage() {
                             ).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              className={getStatusColor(application.status)}>
+                            <Badge className={getStatusColor(application.status)}>
                               <span className="flex items-center gap-1">
                                 {getStatusIcon(application.status)}
                                 {application.status.charAt(0).toUpperCase() +
@@ -578,9 +570,7 @@ export default function ApplicationsPage() {
                                   variant="ghost"
                                   size="sm"
                                   className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                  onClick={e =>
-                                    handleDownloadLease(application, e)
-                                  }
+                                  onClick={e => handleDownloadLease(application, e)}
                                   title="Download Lease">
                                   <Download className="w-4 h-4" />
                                 </Button>

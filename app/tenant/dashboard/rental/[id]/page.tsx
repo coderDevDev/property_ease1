@@ -54,6 +54,8 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { saveAs } from 'file-saver';
+import { generateLeaseAgreementPDF } from '@/lib/pdf/leaseAgreementPDF';
+import { generatePaymentSchedulePDF } from '@/lib/pdf/paymentSchedulePDF';
 import {
   Dialog,
   DialogContent,
@@ -426,6 +428,84 @@ export default function TenantRentalDetailsPage() {
       .reduce((sum, p) => sum + (p.amount || 0) + (p.late_fee || 0), 0);
   };
 
+  const handleDownloadLeaseAgreement = () => {
+    if (!rental || rental.status !== 'approved') {
+      toast.error('Lease agreement is only available for approved applications');
+      return;
+    }
+
+    // Calculate lease end date (12 months from move-in by default)
+    const moveInDate = new Date(rental.move_in_date);
+    const leaseEndDate = new Date(moveInDate);
+    leaseEndDate.setMonth(leaseEndDate.getMonth() + 12);
+
+    const leaseData = {
+      tenantName: authState.user?.firstName + ' ' + authState.user?.lastName || 'Tenant',
+      tenantEmail: authState.user?.email || '',
+      tenantPhone: authState.user?.phone || '',
+      ownerName: rental.owner.name,
+      ownerEmail: rental.owner.email,
+      ownerPhone: rental.owner.phone,
+      propertyName: rental.property.name,
+      propertyAddress: rental.property.address,
+      propertyCity: rental.property.city,
+      propertyType: rental.property.type,
+      unitNumber: rental.unit_number,
+      leaseStart: rental.move_in_date,
+      leaseEnd: leaseEndDate.toISOString(),
+      leaseDuration: 12,
+      monthlyRent: rental.monthly_rent,
+      securityDeposit: rental.monthly_rent * 2,
+      paymentDueDay: 5,
+      terms: [
+        'Tenant shall pay rent on or before the 5th day of each month.',
+        'A late fee of ₱500 or 5% of the monthly rent (whichever is higher) will be charged after 3 days.',
+        'The security deposit will be refunded at the end of the lease term, subject to property inspection.',
+        'Tenant is responsible for maintaining the property in good condition.',
+        'Tenant must notify the landlord of any maintenance issues promptly.',
+        'Subletting is not allowed without prior written consent from the landlord.',
+        'Tenant must comply with all building rules and regulations.',
+        'Either party may terminate this agreement with 30 days written notice.'
+      ],
+      amenities: rental.property.amenities || []
+    };
+
+    generateLeaseAgreementPDF(leaseData);
+    toast.success('Lease agreement downloaded!');
+  };
+
+  const handleDownloadPaymentSchedule = () => {
+    if (!rental || rental.status !== 'approved' || payments.length === 0) {
+      toast.error('Payment schedule is only available for approved applications with payments');
+      return;
+    }
+
+    const moveInDate = new Date(rental.move_in_date);
+    const leaseEndDate = new Date(moveInDate);
+    leaseEndDate.setMonth(leaseEndDate.getMonth() + 12);
+
+    const scheduleData = {
+      tenantName: authState.user?.firstName + ' ' + authState.user?.lastName || 'Tenant',
+      propertyName: rental.property.name,
+      unitNumber: rental.unit_number,
+      leaseStart: rental.move_in_date,
+      leaseEnd: leaseEndDate.toISOString(),
+      monthlyRent: rental.monthly_rent,
+      payments: payments.map(p => ({
+        id: p.id,
+        due_date: p.due_date,
+        amount: Number(p.amount || rental.monthly_rent),
+        payment_status: p.payment_status,
+        payment_type: 'rent',
+        paid_date: p.payment_date,
+        late_fee: Number(p.late_fee || 0)
+      }))
+    };
+
+    generatePaymentSchedulePDF(scheduleData);
+    toast.success('Payment schedule downloaded!');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 flex items-center justify-center">
@@ -497,6 +577,30 @@ export default function TenantRentalDetailsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {rental.status === 'approved' && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="border-blue-600 text-blue-600 hover:bg-blue-50 text-sm sm:text-base">
+                      <Download className="w-4 h-4 mr-2" />
+                      Downloads
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleDownloadLeaseAgreement}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Lease Agreement PDF
+                    </DropdownMenuItem>
+                    {payments.length > 0 && (
+                      <DropdownMenuItem onClick={handleDownloadPaymentSchedule}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Payment Schedule PDF
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <Button
                 onClick={() => router.push('/tenant/dashboard/messages')}
                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm sm:text-base">

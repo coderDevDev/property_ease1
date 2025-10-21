@@ -58,6 +58,8 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { saveAs } from 'file-saver';
+import { generateLeaseAgreementPDF } from '@/lib/pdf/leaseAgreementPDF';
+import { generatePaymentSchedulePDF } from '@/lib/pdf/paymentSchedulePDF';
 import {
   Dialog,
   DialogContent,
@@ -345,16 +347,10 @@ export default function TenantDetailsPage() {
         name: `${tenant.user.first_name} ${tenant.user.last_name}`,
         email: tenant.user.email,
         phone: tenant.user.phone,
-        unit_number: tenant.unit_number
-      },
-      property_info: {
-        name: tenant.property.name,
-        address: tenant.property.address,
-        city: tenant.property.city
-      },
-      lease_info: {
-        start_date: tenant.lease_start,
-        end_date: tenant.lease_end,
+        unit_number: tenant.unit_number,
+        property: tenant.property.name,
+        lease_start: tenant.lease_start,
+        lease_end: tenant.lease_end,
         monthly_rent: tenant.monthly_rent,
         security_deposit: tenant.security_deposit,
         status: tenant.status
@@ -374,6 +370,74 @@ export default function TenantDetailsPage() {
     });
     saveAs(blob, `tenant-${tenant.user.first_name}-${tenant.user.last_name}-data.json`);
     toast.success('Tenant data exported successfully');
+  };
+
+  const handleDownloadLeaseAgreement = () => {
+    if (!tenant) return;
+
+    const leaseDurationMonths = Math.ceil(
+      (new Date(tenant.lease_end).getTime() - new Date(tenant.lease_start).getTime()) /
+        (1000 * 60 * 60 * 24 * 30)
+    );
+
+    const leaseData = {
+      tenantName: `${tenant.user.first_name} ${tenant.user.last_name}`,
+      tenantEmail: tenant.user.email,
+      tenantPhone: tenant.user.phone,
+      ownerName: authState.user?.firstName + ' ' + authState.user?.lastName || 'Property Owner',
+      ownerEmail: authState.user?.email || '',
+      ownerPhone: authState.user?.phone || '',
+      propertyName: tenant.property.name,
+      propertyAddress: tenant.property.address || '',
+      propertyCity: tenant.property.city || '',
+      propertyType: tenant.property.type || '',
+      unitNumber: tenant.unit_number,
+      leaseStart: tenant.lease_start,
+      leaseEnd: tenant.lease_end,
+      leaseDuration: leaseDurationMonths,
+      monthlyRent: tenant.monthly_rent,
+      securityDeposit: tenant.security_deposit,
+      paymentDueDay: 5,
+      terms: [
+        'Tenant shall pay rent on or before the 5th day of each month.',
+        'A late fee of ₱500 or 5% of the monthly rent (whichever is higher) will be charged after 3 days.',
+        'The security deposit will be refunded at the end of the lease term, subject to property inspection.',
+        'Tenant is responsible for maintaining the property in good condition.',
+        'Tenant must notify the landlord of any maintenance issues promptly.',
+        'Subletting is not allowed without prior written consent from the landlord.',
+        'Tenant must comply with all building rules and regulations.',
+        'Either party may terminate this agreement with 30 days written notice.'
+      ],
+      amenities: tenant.property.amenities || []
+    };
+
+    generateLeaseAgreementPDF(leaseData);
+    toast.success('Lease agreement downloaded!');
+  };
+
+  const handleDownloadPaymentSchedule = () => {
+    if (!tenant) return;
+
+    const scheduleData = {
+      tenantName: `${tenant.user.first_name} ${tenant.user.last_name}`,
+      propertyName: tenant.property.name,
+      unitNumber: tenant.unit_number,
+      leaseStart: tenant.lease_start,
+      leaseEnd: tenant.lease_end,
+      monthlyRent: tenant.monthly_rent,
+      payments: payments.map(p => ({
+        id: p.id,
+        due_date: p.due_date,
+        amount: Number(p.amount),
+        payment_status: p.payment_status,
+        payment_type: p.payment_type || 'rent',
+        paid_date: p.paid_date,
+        late_fee: Number(p.late_fee || 0)
+      }))
+    };
+
+    generatePaymentSchedulePDF(scheduleData);
+    toast.success('Payment schedule downloaded!');
   };
 
   const getStatusBadge = (status: string) => {
@@ -714,6 +778,14 @@ export default function TenantDetailsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleDownloadLeaseAgreement}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Download Lease Agreement
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadPaymentSchedule}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Payment Schedule
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() =>
                       router.push('/owner/dashboard/messages')
@@ -727,12 +799,12 @@ export default function TenantDetailsPage() {
                         `/owner/dashboard/payments/new?tenant=${tenant?.id}`
                       )
                     }>
-                    <FileText className="w-4 h-4 mr-2" />
+                    <CreditCard className="w-4 h-4 mr-2" />
                     Generate Invoice
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleExportData}>
                     <Download className="w-4 h-4 mr-2" />
-                    Export Data
+                    Export Data (JSON)
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() =>

@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { generatePaymentSchedulePDF } from '@/lib/pdf/paymentSchedulePDF';
 import {
   DollarSign,
   Eye,
@@ -353,6 +354,38 @@ export default function TenantPaymentsPage() {
               Track and manage your payment history
             </p>
           </div>
+          <Button
+            onClick={() => {
+              if (payments.length === 0) {
+                toast.error('No payments to export');
+                return;
+              }
+              const firstPayment = payments[0];
+              const scheduleData = {
+                tenantName: `${authState.user?.firstName || ''} ${authState.user?.lastName || ''}}`,
+                propertyName: firstPayment.property?.name || 'Property',
+                unitNumber: firstPayment.tenant?.unit_number || 'N/A',
+                leaseStart: firstPayment.tenant?.lease_start || '',
+                leaseEnd: firstPayment.tenant?.lease_end || '',
+                monthlyRent: Number(firstPayment.amount),
+                payments: payments.map(p => ({
+                  id: p.id,
+                  due_date: p.due_date,
+                  amount: Number(p.amount),
+                  payment_status: p.payment_status,
+                  payment_type: p.payment_type,
+                  paid_date: p.paid_date,
+                  late_fee: Number(p.late_fee || 0)
+                }))
+              };
+              generatePaymentSchedulePDF(scheduleData);
+              toast.success('Payment schedule exported!');
+            }}
+            variant="outline"
+            className="border-blue-600 text-blue-600 hover:bg-blue-50">
+            <Download className="w-4 h-4 mr-2" />
+            Export as PDF
+          </Button>
         </div>
 
         {/* Urgent Payments Alert */}
