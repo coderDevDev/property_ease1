@@ -1,5 +1,13 @@
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import {
+  generateLeasePayments,
+  validateLeaseForPaymentGeneration,
+  calculateLeaseTotal
+} from '@/lib/utils/paymentGenerator';
 import type { Database } from '@/types/database';
+
+export type { LeaseDetails } from '@/lib/utils/paymentGenerator';
 
 type Payment = Database['public']['Tables']['payments']['Row'];
 type PaymentInsert = Database['public']['Tables']['payments']['Insert'];
@@ -30,6 +38,10 @@ export interface PaymentWithDetails extends Payment {
     last_name: string;
     email: string;
   };
+  // Refund tracking fields (from migration)
+  is_refunded?: boolean;
+  refund_id?: string;
+  refund_amount?: number;
 }
 
 export interface PaymentFormData {
@@ -479,26 +491,83 @@ export class PaymentsAPI {
     }
   }
 
-  static async getTenantPayments(userId: string): Promise<{
-    success: boolean;
-    data?: PaymentWithDetails[];
-    message?: string;
-  }> {
+  /**
+   * Get payments for a tenant by user_id
+   * Note: A tenant can have multiple active rentals
+   */
+  static async getTenantPayments(userId: string) {
     try {
-      // First get the tenant record for this user
-      const { data: tenant, error: tenantError } = await supabase
+      // First, get all tenant records for this user (can have multiple properties)
+      const { data: tenants, error: tenantError } = await supabase
         .from('tenants')
         .select('id')
         .eq('user_id', userId)
-        .eq('status', 'active')
-        .single();
+        .eq('status', 'active');
 
-      if (tenantError || !tenant) {
-        throw new Error('No active tenant record found');
+      if (tenantError) {
+        console.error('Tenant lookup error:', tenantError);
+        throw new Error('Failed to fetch tenant records');
       }
 
-      // Then get payments for this tenant
-      return await this.getPayments(undefined, tenant.id);
+      if (!tenants || tenants.length === 0) {
+        console.log('No active tenant records found for user:', userId);
+        return {
+          success: true,
+          data: [], // Return empty array instead of error
+          message: 'No active rentals found'
+        };
+      }
+
+      // Get all tenant IDs
+      const tenantIds = tenants.map(t => t.id);
+
+      // Get all payments for these tenants (across all properties)
+      const { data, error } = await supabase
+        .from('payments')
+        .select(
+          `
+          *,
+          tenant:tenants!inner(
+            id,
+            unit_number,
+            user:users!inner(
+              id,
+              first_name,
+              last_name,
+              email,
+              phone
+            )
+          ),
+          property:properties(
+            id,
+            name,
+            address,
+            city,
+            type
+          ),
+          created_by_user:users!payments_created_by_fkey(
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        `
+        )
+        .in('tenant_id', tenantIds) // Use 'in' to get payments for all tenant records
+        .order('due_date', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Remove duplicates based on payment ID (in case of duplicate tenant records)
+      const uniquePayments = data
+        ? Array.from(
+            new Map(data.map(payment => [payment.id, payment])).values()
+          )
+        : [];
+
+      return { success: true, data: uniquePayments };
     } catch (error) {
       console.error('Get tenant payments error:', error);
       return {
@@ -584,6 +653,208 @@ export class PaymentsAPI {
             ? error.message
             : 'Failed to fetch owner payments',
         data: []
+      };
+    }
+  }
+
+  // ============================================================================
+  // REFUND MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Request a refund for a payment (tenant)
+   */
+  static async requestRefund(
+    paymentId: string,
+    amount: number,
+    reason: string
+  ): Promise<{
+    success: boolean;
+    message?: string;
+    data?: any;
+  }> {
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.rpc('request_payment_refund', {
+        p_payment_id: paymentId,
+        p_user_id: user.id,
+        p_amount: amount,
+        p_reason: reason
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Refund request submitted successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Request refund error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to request refund'
+      };
+    }
+  }
+
+  /**
+   * Get refund requests for a user (tenant)
+   */
+  static async getUserRefunds(userId: string): Promise<{
+    success: boolean;
+    message?: string;
+    data?: any[];
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('payment_refunds')
+        .select(
+          `
+          *,
+          payment:payments(
+            *,
+            property:properties(id, name, address, city)
+          ),
+          reviewed_by_user:users!reviewed_by(first_name, last_name)
+        `
+        )
+        .eq('requested_by', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        data: data || []
+      };
+    } catch (error) {
+      console.error('Get user refunds error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch refund requests',
+        data: []
+      };
+    }
+  }
+
+  /**
+   * Get refund details
+   */
+  static async getRefund(refundId: string): Promise<{
+    success: boolean;
+    message?: string;
+    data?: any;
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('payment_refunds')
+        .select(
+          `
+          *,
+          payment:payments(
+            *,
+            tenant:tenants(
+              id,
+              unit_number,
+              user:users(first_name, last_name, email, phone)
+            ),
+            property:properties(id, name, address, city)
+          ),
+          requested_by_user:users!requested_by(first_name, last_name, email),
+          reviewed_by_user:users!reviewed_by(first_name, last_name, email)
+        `
+        )
+        .eq('id', refundId)
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        data
+      };
+    } catch (error) {
+      console.error('Get refund error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to fetch refund'
+      };
+    }
+  }
+
+  /**
+   * Check if payment can be refunded
+   */
+  static async canRequestRefund(paymentId: string): Promise<{
+    success: boolean;
+    canRefund: boolean;
+    reason?: string;
+  }> {
+    try {
+      const { data: payment, error } = await supabase
+        .from('payments')
+        .select('*, payment_refunds(*)')
+        .eq('id', paymentId)
+        .single();
+
+      if (error) throw error;
+
+      // Check if already refunded
+      if (payment.is_refunded) {
+        return {
+          success: true,
+          canRefund: false,
+          reason: 'Payment already refunded'
+        };
+      }
+
+      // Check if payment is not paid
+      if (payment.payment_status !== 'paid') {
+        return {
+          success: true,
+          canRefund: false,
+          reason: 'Only paid payments can be refunded'
+        };
+      }
+
+      // Check if there's a pending refund request
+      const pendingRefund = payment.payment_refunds?.find(
+        (r: any) => r.status === 'pending'
+      );
+      if (pendingRefund) {
+        return {
+          success: true,
+          canRefund: false,
+          reason: 'Refund request already pending'
+        };
+      }
+
+      return {
+        success: true,
+        canRefund: true
+      };
+    } catch (error) {
+      console.error('Check refund eligibility error:', error);
+      return {
+        success: false,
+        canRefund: false,
+        reason: 'Failed to check refund eligibility'
       };
     }
   }

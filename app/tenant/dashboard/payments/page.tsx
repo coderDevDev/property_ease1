@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -13,6 +19,18 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import {
@@ -23,26 +41,118 @@ import {
   CheckCircle,
   Clock,
   Home,
-  Table2,
-  LayoutGrid,
   CreditCard,
   Receipt,
-  Download
+  Download,
+  RefreshCw,
+  Zap,
+  Droplet,
+  Wifi,
+  TrendingUp,
+  FileText,
+  ArrowRight,
+  Shield
 } from 'lucide-react';
 import { PaymentsAPI, type PaymentWithDetails } from '@/lib/api/payments';
-import { PaymentCard } from '@/components/payments/payment-card';
-import { PaymentFilters } from '@/components/payments/payment-filters';
 import { toast } from 'sonner';
+import { PaymentCalendar } from '@/components/payments/PaymentCalendar';
+import { PropertyPaymentSummary } from '@/components/payments/PropertyPaymentSummary';
+import { PaymentTimeline } from '@/components/payments/PaymentTimeline';
+
+// Enhanced payment interface with status and calculations
+interface EnhancedPayment extends PaymentWithDetails {
+  status: 'overdue' | 'due_soon' | 'pending' | 'paid';
+  lateFee: number;
+  daysUntilDue: number;
+  daysOverdue: number;
+  totalAmount: number;
+}
+
+interface PaymentSummary {
+  total: number;
+  paid: number;
+  pending: number;
+  overdue: number;
+  dueSoon: number;
+  overdueCount: number;
+  dueSoonCount: number;
+}
+
+// Helper Functions
+function calculateDaysUntilDue(dueDate: string): number {
+  const due = new Date(dueDate);
+  const now = new Date();
+  const diffTime = due.getTime() - now.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+function calculateLateFee(payment: PaymentWithDetails): number {
+  if (payment.payment_status === 'paid') return 0;
+
+  const daysOverdue = Math.abs(
+    Math.min(0, calculateDaysUntilDue(payment.due_date))
+  );
+  if (daysOverdue === 0) return 0;
+
+  // Late fee: 5% of amount or ₱50/day, whichever is higher
+  const percentageFee = Number(payment.amount) * 0.05;
+  const dailyFee = daysOverdue * 50;
+
+  return Math.max(percentageFee, dailyFee);
+}
+
+function getPaymentStatus(
+  payment: PaymentWithDetails
+): 'overdue' | 'due_soon' | 'pending' | 'paid' {
+  if (payment.payment_status === 'paid') return 'paid';
+
+  const daysUntilDue = calculateDaysUntilDue(payment.due_date);
+
+  if (daysUntilDue < 0) return 'overdue';
+  if (daysUntilDue <= 7) return 'due_soon';
+  return 'pending';
+}
+
+function enhancePayment(payment: PaymentWithDetails): EnhancedPayment {
+  const status = getPaymentStatus(payment);
+  const lateFee = calculateLateFee(payment);
+  const daysUntilDue = calculateDaysUntilDue(payment.due_date);
+  const daysOverdue = Math.max(0, -daysUntilDue);
+  const totalAmount = Number(payment.amount) + lateFee;
+
+  return {
+    ...payment,
+    status,
+    lateFee,
+    daysUntilDue,
+    daysOverdue,
+    totalAmount
+  };
+}
 
 export default function TenantPaymentsPage() {
   const { authState } = useAuth();
   const router = useRouter();
   const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedPayment, setSelectedPayment] =
+    useState<PaymentWithDetails | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [viewMode, setViewMode] = useState<
+    'list' | 'calendar' | 'timeline' | 'properties'
+  >('timeline');
+  const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Xendit payment dialog
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<string>('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Load tenant payments
   useEffect(() => {
@@ -56,17 +166,63 @@ export default function TenantPaymentsPage() {
         if (result.success) {
           setPayments(result.data || []);
         } else {
-          toast.error(result.message || 'Failed to load payments');
+          // Show friendly error message
+          const errorMessage = result.message || 'Failed to load payments';
+
+          // Check if it's a connection issue
+          if (
+            errorMessage.includes('Failed to fetch') ||
+            errorMessage.includes('503')
+          ) {
+            toast.error(
+              '⚠️ Database connection issue. Please refresh the page.'
+            );
+          } else {
+            toast.error(errorMessage);
+          }
         }
       } catch (error) {
-        console.error('Failed to load payments:', error);
-        toast.error('Failed to load payments');
+        console.error('Load payments error:', error);
+        toast.error('⚠️ Unable to connect to database. Please try again.');
       } finally {
         setIsLoading(false);
       }
     };
 
     loadPayments();
+  }, [authState.user?.id]);
+
+  // Check for payment status from URL (after Xendit redirect)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const paymentStatus = searchParams.get('payment');
+
+    if (paymentStatus === 'success') {
+      // Poll for updated payment status (webhook may take a few seconds)
+      const checkPaymentStatus = async () => {
+        // Wait 3 seconds for webhook to process
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // Reload payments to get updated status
+        if (authState.user?.id) {
+          const result = await PaymentsAPI.getTenantPayments(authState.user.id);
+          if (result.success && result.data) {
+            setPayments(result.data);
+          }
+        }
+      };
+
+      checkPaymentStatus();
+
+      // Show success toast
+      toast.success('✅ Payment successful! Updating status...');
+
+      // Clean up URL
+      window.history.replaceState({}, '', '/tenant/dashboard/payments');
+    } else if (paymentStatus === 'failed') {
+      toast.error('❌ Payment failed. Please try again.');
+      window.history.replaceState({}, '', '/tenant/dashboard/payments');
+    }
   }, [authState.user?.id]);
 
   // Filter payments
@@ -138,21 +294,35 @@ export default function TenantPaymentsPage() {
     }
   };
 
-  // Statistics
+  // Enhance all payments with status and calculations
+  const enhancedPayments: EnhancedPayment[] = payments.map(enhancePayment);
+
+  // Categorize payments
+  const overduePayments = enhancedPayments.filter(p => p.status === 'overdue');
+  const dueSoonPayments = enhancedPayments.filter(p => p.status === 'due_soon');
+  const paidPayments = enhancedPayments.filter(p => p.status === 'paid');
+  const pendingPayments = enhancedPayments.filter(p => p.status === 'pending');
+
+  // Calculate summary
+  const summary: PaymentSummary = {
+    total: payments.reduce((sum, p) => sum + Number(p.amount), 0),
+    paid: paidPayments.reduce((sum, p) => sum + Number(p.amount), 0),
+    pending: pendingPayments.reduce((sum, p) => sum + Number(p.amount), 0),
+    overdue: overduePayments.reduce((sum, p) => sum + p.totalAmount, 0),
+    dueSoon: dueSoonPayments.reduce((sum, p) => sum + p.totalAmount, 0),
+    overdueCount: overduePayments.length,
+    dueSoonCount: dueSoonPayments.length
+  };
+
+  // Legacy stats for backward compatibility
   const stats = {
     total: payments.length,
-    pending: payments.filter(p => p.payment_status === 'pending').length,
-    paid: payments.filter(p => p.payment_status === 'paid').length,
-    overdue: payments.filter(
-      p => p.payment_status === 'pending' && new Date(p.due_date) < new Date()
-    ).length,
-    totalAmount: payments.reduce((sum, p) => sum + Number(p.amount), 0),
-    pendingAmount: payments
-      .filter(p => p.payment_status === 'pending')
-      .reduce((sum, p) => sum + Number(p.amount), 0),
-    paidAmount: payments
-      .filter(p => p.payment_status === 'paid')
-      .reduce((sum, p) => sum + Number(p.amount), 0)
+    pending: pendingPayments.length,
+    paid: paidPayments.length,
+    overdue: overduePayments.length,
+    totalAmount: summary.total,
+    pendingAmount: summary.pending,
+    paidAmount: summary.paid
   };
 
   if (isLoading) {
@@ -185,19 +355,131 @@ export default function TenantPaymentsPage() {
           </div>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+        {/* Urgent Payments Alert */}
+        {overduePayments.length > 0 && (
+          <Card className="border-red-300 bg-red-50/50 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-red-700 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+                Overdue Payments ({summary.overdueCount})
+              </CardTitle>
+              <CardDescription className="text-red-600">
+                Please settle these payments to avoid additional penalties
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {overduePayments.slice(0, 3).map(payment => (
+                  <div
+                    key={payment.id}
+                    className="p-3 bg-white rounded-lg border border-red-200">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 capitalize">
+                          {payment.payment_type.replace('_', ' ')} -{' '}
+                          {payment.property.name}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Due: {new Date(payment.due_date).toLocaleDateString()}
+                          <span className="text-red-600 font-medium ml-2">
+                            ({payment.daysOverdue} days overdue)
+                          </span>
+                        </p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className="text-lg font-bold text-gray-900">
+                            ₱{payment.totalAmount.toLocaleString()}
+                          </span>
+                          {payment.lateFee > 0 && (
+                            <span className="text-sm text-red-600">
+                              (+ ₱{payment.lateFee.toLocaleString()} late fee)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                        onClick={() => {
+                          setSelectedPayment(payment);
+                          setIsPaymentDialogOpen(true);
+                        }}>
+                        Pay Now
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Due Soon Alert */}
+        {dueSoonPayments.length > 0 && overduePayments.length === 0 && (
+          <Card className="border-yellow-300 bg-yellow-50/50 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-yellow-700 flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Due Soon ({summary.dueSoonCount})
+              </CardTitle>
+              <CardDescription className="text-yellow-600">
+                Upcoming payments in the next 7 days
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {dueSoonPayments.slice(0, 3).map(payment => (
+                  <div
+                    key={payment.id}
+                    className="p-3 bg-white rounded-lg border border-yellow-200">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 capitalize">
+                          {payment.payment_type.replace('_', ' ')} -{' '}
+                          {payment.property.name}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Due: {new Date(payment.due_date).toLocaleDateString()}
+                          <span className="text-yellow-600 font-medium ml-2">
+                            (in {payment.daysUntilDue}{' '}
+                            {payment.daysUntilDue === 1 ? 'day' : 'days'})
+                          </span>
+                        </p>
+                        <span className="text-lg font-bold text-gray-900 mt-2 inline-block">
+                          ₱{payment.amount.toLocaleString()}
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                        onClick={() => {
+                          setSelectedPayment(payment);
+                          setIsPaymentDialogOpen(true);
+                        }}>
+                        Pay Now
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="bg-white/70 backdrop-blur-sm border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
-                    {stats.total}
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                    ₱{summary.overdue.toLocaleString()}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-600">Total</p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Overdue ({summary.overdueCount})
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -206,14 +488,16 @@ export default function TenantPaymentsPage() {
           <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
-                    {stats.pending}
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                    ₱{summary.dueSoon.toLocaleString()}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-600">Pending</p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Due Soon ({summary.dueSoonCount})
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -222,12 +506,12 @@ export default function TenantPaymentsPage() {
           <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
-                    {stats.paid}
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                    ₱{summary.paid.toLocaleString()}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-600">Paid</p>
                 </div>
@@ -235,30 +519,30 @@ export default function TenantPaymentsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white/70 backdrop-blur-sm border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
-                    {stats.overdue}
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                    ₱{summary.total.toLocaleString()}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-600">Overdue</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Amount Summary */}
+        {/* Quick Stats - Keep for backward compatibility */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
             <CardContent className="p-3 sm:p-4">
               <div className="text-center">
                 <p className="text-lg sm:text-2xl font-bold text-blue-600">
-                  ₱{stats.totalAmount.toLocaleString()}
+                  ₱{summary.total.toLocaleString()}
                 </p>
                 <p className="text-xs sm:text-sm text-gray-600">Total Amount</p>
               </div>
@@ -290,195 +574,655 @@ export default function TenantPaymentsPage() {
           </Card>
         </div>
 
-        {/* Filters */}
-        <PaymentFilters
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          filterStatus={filterStatus}
-          onStatusChange={setFilterStatus}
-          filterType={filterType}
-          onTypeChange={setFilterType}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
+        {/* View Mode Toggle */}
+        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex gap-2">
+                {/* <Button
+                  variant={viewMode === 'list' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="gap-2">
+                  <FileText className="w-4 h-4" />
+                  List
+                </Button> */}
+                <Button
+                  variant={viewMode === 'timeline' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('timeline')}
+                  className="gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Timeline
+                </Button>
+                <Button
+                  variant={viewMode === 'calendar' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('calendar')}
+                  className="gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Calendar
+                </Button>
 
-        {/* Results Count */}
-        <div className="flex items-center justify-between">
-          <p className="text-gray-600 text-sm sm:text-base">
-            Showing {filteredPayments.length} of {payments.length} payments
-          </p>
-        </div>
+                <Button
+                  variant={viewMode === 'properties' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('properties')}
+                  className="gap-2">
+                  <Home className="w-4 h-4" />
+                  Properties
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Table View */}
-        {viewMode === 'table' && (
-          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-blue-50/50">
-                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
-                        Payment
-                      </TableHead>
-                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden sm:table-cell">
-                        Property
-                      </TableHead>
-                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden md:table-cell">
-                        Type
-                      </TableHead>
-                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
-                        Status
-                      </TableHead>
-                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
-                        Amount
-                      </TableHead>
-                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden lg:table-cell">
-                        Due Date
-                      </TableHead>
-                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
-                        Actions
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPayments.map(payment => (
-                      <TableRow
-                        key={payment.id}
-                        className="hover:bg-blue-50/30 transition-colors">
-                        <TableCell>
-                          <div>
-                            <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                              {payment.payment_type
-                                .replace('_', ' ')
-                                .replace(/\b\w/g, l => l.toUpperCase())}
-                            </p>
-                            {payment.reference_number && (
-                              <p className="text-xs sm:text-sm text-gray-600">
-                                Ref: {payment.reference_number}
+        {/* Search and Filters */}
+        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Label htmlFor="search" className="sr-only">
+                  Search
+                </Label>
+                <div className="relative">
+                  <Eye className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="search"
+                    placeholder="Search payments..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <select
+                  value={filterStatus}
+                  onChange={e => setFilterStatus(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="all">All Status</option>
+                  <option value="paid">Paid</option>
+                  <option value="pending">Pending</option>
+                  <option value="failed">Failed</option>
+                </select>
+
+                <select
+                  value={filterType}
+                  onChange={e => setFilterType(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="all">All Types</option>
+                  <option value="rent">Rent</option>
+                  <option value="deposit">Deposit</option>
+                  <option value="security_deposit">Security</option>
+                  <option value="utility">Utility</option>
+                  <option value="penalty">Penalty</option>
+                </select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Conditional View Rendering */}
+        {viewMode === 'calendar' && <PaymentCalendar payments={payments} />}
+
+        {viewMode === 'timeline' && (
+          <PaymentTimeline
+            payments={payments}
+            daysAhead={30}
+            onPayNow={payment => {
+              setSelectedPayment(payment);
+              setIsPaymentDialogOpen(true);
+            }}
+          />
+        )}
+
+        {viewMode === 'properties' && (
+          <PropertyPaymentSummary
+            payments={payments}
+            onPayNow={payment => {
+              setSelectedPayment(payment);
+              setIsPaymentDialogOpen(true);
+            }}
+          />
+        )}
+
+        {/* List View (Default) */}
+        {viewMode === 'list' && (
+          <>
+            {/* Results Count */}
+            <div className="flex items-center justify-between">
+              <p className="text-gray-600 text-sm sm:text-base">
+                Showing {filteredPayments.length} of {payments.length} payments
+              </p>
+            </div>
+
+            {/* Payments Table */}
+            <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-blue-50/50">
+                        <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
+                          Payment
+                        </TableHead>
+                        <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden sm:table-cell">
+                          Property
+                        </TableHead>
+                        <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden md:table-cell">
+                          Type
+                        </TableHead>
+                        <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
+                          Status
+                        </TableHead>
+                        <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
+                          Amount
+                        </TableHead>
+                        <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden lg:table-cell">
+                          Due Date
+                        </TableHead>
+                        <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPayments.map(payment => (
+                        <TableRow
+                          key={payment.id}
+                          className="hover:bg-blue-50/30 transition-colors">
+                          <TableCell>
+                            <div>
+                              <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                                {payment.payment_type
+                                  .replace('_', ' ')
+                                  .replace(/\b\w/g, l => l.toUpperCase())}
                               </p>
-                            )}
-                            <div className="sm:hidden mt-1">
-                              <p className="text-xs text-gray-500">
+                              {payment.reference_number && (
+                                <p className="text-xs sm:text-sm text-gray-600">
+                                  Ref: {payment.reference_number}
+                                </p>
+                              )}
+                              <div className="sm:hidden mt-1">
+                                <p className="text-xs text-gray-500">
+                                  {payment.property.name}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            <div>
+                              <p className="font-medium text-gray-900 text-sm sm:text-base">
                                 {payment.property.name}
                               </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          <div>
-                            <p className="font-medium text-gray-900 text-sm sm:text-base">
-                              {payment.property.name}
-                            </p>
-                            <p className="text-xs sm:text-sm text-gray-600">
-                              {payment.property.city}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          <Badge
-                            className={`${getPaymentTypeBadge(
-                              payment.payment_type
-                            )} text-xs sm:text-sm`}>
-                            {payment.payment_type.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={`${getStatusBadge(
-                              payment.payment_status
-                            )} text-xs sm:text-sm`}>
-                            {payment.payment_status.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                              ₱{Number(payment.amount).toLocaleString()}
-                            </p>
-                            {payment.late_fee && payment.late_fee > 0 && (
-                              <p className="text-xs sm:text-sm text-red-600">
-                                +₱{Number(payment.late_fee).toLocaleString()}{' '}
-                                late fee
+                              <p className="text-xs sm:text-sm text-gray-600">
+                                {payment.property.city}
                               </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          <div>
-                            <p className="text-xs sm:text-sm text-gray-900">
-                              {new Date(payment.due_date).toLocaleDateString()}
-                            </p>
-                            {payment.paid_date && (
-                              <p className="text-xs text-green-600">
-                                Paid:{' '}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <Badge
+                              className={`${getPaymentTypeBadge(
+                                payment.payment_type
+                              )} text-xs sm:text-sm`}>
+                              {payment.payment_type.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={`${getStatusBadge(
+                                payment.payment_status
+                              )} text-xs sm:text-sm`}>
+                              {payment.payment_status.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                                ₱{Number(payment.amount).toLocaleString()}
+                              </p>
+                              {payment.late_fee && payment.late_fee > 0 && (
+                                <p className="text-xs sm:text-sm text-red-600">
+                                  +₱{Number(payment.late_fee).toLocaleString()}{' '}
+                                  late fee
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <div>
+                              <p className="text-xs sm:text-sm text-gray-900">
                                 {new Date(
-                                  payment.paid_date
+                                  payment.due_date
                                 ).toLocaleDateString()}
                               </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1 sm:gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleViewPayment(payment)}
-                              className="h-8 w-8 sm:h-9 sm:w-9">
-                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </Button>
-                            {payment.payment_status === 'paid' &&
-                              payment.receipt_url && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDownloadReceipt(payment)}
-                                  className="text-green-600 hover:text-green-700 h-8 w-8 sm:h-9 sm:w-9">
-                                  <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                                </Button>
+                              {payment.paid_date && (
+                                <p className="text-xs text-green-600">
+                                  Paid:{' '}
+                                  {new Date(
+                                    payment.paid_date
+                                  ).toLocaleDateString()}
+                                </p>
                               )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 sm:gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewPayment(payment)}
+                                className="h-8 w-8 sm:h-9 sm:w-9"
+                                title="View Details">
+                                <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                              </Button>
+                              {payment.payment_status === 'paid' &&
+                                !payment.is_refunded && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedPayment(payment);
+                                      setRefundAmount(String(payment.amount));
+                                      setIsRefundDialogOpen(true);
+                                    }}
+                                    className="text-blue-600 hover:text-blue-700 h-8 w-8 sm:h-9 sm:w-9"
+                                    title="Request Refund">
+                                    <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  </Button>
+                                )}
+                              {payment.payment_status === 'paid' &&
+                                payment.receipt_url && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleDownloadReceipt(payment)
+                                    }
+                                    className="text-green-600 hover:text-green-700 h-8 w-8 sm:h-9 sm:w-9"
+                                    title="Download Receipt">
+                                    <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  </Button>
+                                )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Empty State */}
+            {filteredPayments.length === 0 && (
+              <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+                <CardContent className="p-6 sm:p-12 text-center">
+                  <DollarSign className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                    No payments found
+                  </h3>
+                  <p className="text-gray-600 mb-6 text-sm sm:text-base">
+                    {searchTerm ||
+                    filterStatus !== 'all' ||
+                    filterType !== 'all'
+                      ? 'Try adjusting your search or filter criteria.'
+                      : 'No payments have been created for your account yet.'}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* Xendit Payment Dialog */}
+        <Dialog
+          open={isPaymentDialogOpen}
+          onOpenChange={setIsPaymentDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-blue-600" />
+                Pay with Xendit
+              </DialogTitle>
+              <DialogDescription>
+                Choose your preferred payment method
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedPayment &&
+              (() => {
+                const enhanced = enhancePayment(selectedPayment);
+                return (
+                  <div className="space-y-4">
+                    {/* Payment Details */}
+                    <div className="p-4 bg-blue-50 rounded-lg space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Payment Type:</span>
+                        <span className="font-medium capitalize">
+                          {selectedPayment.payment_type.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Property:</span>
+                        <span className="font-medium">
+                          {selectedPayment.property.name}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Amount:</span>
+                        <span className="font-medium">
+                          ₱{Number(selectedPayment.amount).toLocaleString()}
+                        </span>
+                      </div>
+                      {enhanced.lateFee > 0 && (
+                        <div className="flex justify-between text-sm text-red-600">
+                          <span>Late Fee:</span>
+                          <span className="font-medium">
+                            +₱{enhanced.lateFee.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="pt-2 border-t border-blue-200 flex justify-between">
+                        <span className="font-semibold text-gray-900">
+                          Total:
+                        </span>
+                        <span className="font-bold text-xl text-blue-600">
+                          ₱{enhanced.totalAmount.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Payment Methods */}
+                    <div className="space-y-2">
+                      <Label>Select Payment Method</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            'h-16 flex-col gap-1',
+                            selectedPaymentMethod === 'gcash' &&
+                              'border-blue-500 bg-blue-50 border-2'
+                          )}
+                          onClick={() => setSelectedPaymentMethod('gcash')}>
+                          <Droplet className="w-5 h-5 text-blue-600" />
+                          <span className="text-xs font-medium">GCash</span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            'h-16 flex-col gap-1',
+                            selectedPaymentMethod === 'maya' &&
+                              'border-green-500 bg-green-50 border-2'
+                          )}
+                          onClick={() => setSelectedPaymentMethod('maya')}>
+                          <Zap className="w-5 h-5 text-green-600" />
+                          <span className="text-xs font-medium">Maya</span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            'h-16 flex-col gap-1',
+                            selectedPaymentMethod === 'card' &&
+                              'border-purple-500 bg-purple-50 border-2'
+                          )}
+                          onClick={() => setSelectedPaymentMethod('card')}>
+                          <CreditCard className="w-5 h-5 text-purple-600" />
+                          <span className="text-xs font-medium">
+                            Credit/Debit
+                          </span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            'h-16 flex-col gap-1',
+                            selectedPaymentMethod === 'bank' &&
+                              'border-orange-500 bg-orange-50 border-2'
+                          )}
+                          onClick={() => setSelectedPaymentMethod('bank')}>
+                          <Home className="w-5 h-5 text-orange-600" />
+                          <span className="text-xs font-medium">
+                            Bank Transfer
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Info Notice */}
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-600 flex items-start gap-2">
+                        <Shield className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <span>
+                          You'll be redirected to Xendit's secure payment
+                          gateway to complete your transaction.
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsPaymentDialogOpen(false);
+                  setSelectedPaymentMethod('');
+                  setSelectedPayment(null);
+                }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handlePayWithXendit}
+                disabled={!selectedPaymentMethod || isProcessingPayment}
+                className="bg-blue-600 hover:bg-blue-700">
+                {isProcessingPayment ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Proceed to Payment
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Request Refund Dialog */}
+        <Dialog open={isRefundDialogOpen} onOpenChange={setIsRefundDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-blue-600" />
+                Request Refund
+              </DialogTitle>
+              <DialogDescription>
+                Request a refund for payment #
+                {selectedPayment?.reference_number}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Payment Info */}
+              {selectedPayment && (
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-gray-600">Payment Type:</p>
+                      <p className="font-medium capitalize">
+                        {selectedPayment.payment_type.replace('_', ' ')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Amount:</p>
+                      <p className="font-medium">
+                        ₱{Number(selectedPayment.amount).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Refund Amount */}
+              <div>
+                <Label htmlFor="refund-amount">Refund Amount *</Label>
+                <Input
+                  id="refund-amount"
+                  type="number"
+                  placeholder="Enter amount"
+                  value={refundAmount}
+                  onChange={e => setRefundAmount(e.target.value)}
+                  max={selectedPayment?.amount}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Max: ₱
+                  {selectedPayment?.amount
+                    ? Number(selectedPayment.amount).toLocaleString()
+                    : '0'}
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Grid View */}
-        {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredPayments.map(payment => (
-              <PaymentCard
-                key={payment.id}
-                payment={payment}
-                role="tenant"
-                onView={handleViewPayment}
-              />
-            ))}
-          </div>
-        )}
+              {/* Refund Reason */}
+              <div>
+                <Label htmlFor="refund-reason">Reason *</Label>
+                <Textarea
+                  id="refund-reason"
+                  placeholder="Please explain why you're requesting a refund..."
+                  value={refundReason}
+                  onChange={e => setRefundReason(e.target.value)}
+                  rows={4}
+                  className="mt-1"
+                />
+              </div>
+            </div>
 
-        {/* Empty State */}
-        {filteredPayments.length === 0 && (
-          <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
-            <CardContent className="p-6 sm:p-12 text-center">
-              <DollarSign className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-                No payments found
-              </h3>
-              <p className="text-gray-600 mb-6 text-sm sm:text-base">
-                {searchTerm || filterStatus !== 'all' || filterType !== 'all'
-                  ? 'Try adjusting your search or filter criteria.'
-                  : 'No payments have been created for your account yet.'}
-              </p>
-            </CardContent>
-          </Card>
-        )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsRefundDialogOpen(false);
+                  setRefundAmount('');
+                  setRefundReason('');
+                  setSelectedPayment(null);
+                }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRequestRefund}
+                disabled={!refundAmount || !refundReason.trim() || isSubmitting}
+                className="bg-blue-600 hover:bg-blue-700">
+                {isSubmitting ? 'Submitting...' : 'Submit Request'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
+
+  // Handler for requesting refund
+  async function handleRequestRefund() {
+    if (!selectedPayment || !refundAmount || !refundReason.trim()) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    const amount = parseFloat(refundAmount);
+    if (amount <= 0 || amount > Number(selectedPayment.amount)) {
+      toast.error('Invalid refund amount');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const result = await PaymentsAPI.requestRefund(
+        selectedPayment.id,
+        amount,
+        refundReason
+      );
+
+      if (result.success) {
+        toast.success('Refund request submitted successfully!');
+        setIsRefundDialogOpen(false);
+        setRefundAmount('');
+        setRefundReason('');
+        setSelectedPayment(null);
+        // Reload payments
+        const paymentsResult = await PaymentsAPI.getTenantPayments(
+          authState.user!.id
+        );
+        if (paymentsResult.success) {
+          setPayments(paymentsResult.data || []);
+        }
+      } else {
+        toast.error(result.message || 'Failed to submit refund request');
+      }
+    } catch (error) {
+      console.error('Request refund error:', error);
+      toast.error('Failed to submit refund request');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  // Handle Xendit payment
+  async function handlePayWithXendit() {
+    if (!selectedPayment || !selectedPaymentMethod) {
+      toast.error('Please select a payment method');
+      return;
+    }
+
+    try {
+      setIsProcessingPayment(true);
+
+      const enhanced = enhancePayment(selectedPayment);
+      const totalAmount = enhanced.totalAmount;
+
+      // Create Xendit payment link
+      const response = await fetch('/api/xendit/create-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          payment_id: selectedPayment.id,
+          amount: totalAmount,
+          payment_method: selectedPaymentMethod,
+          description: `${selectedPayment.payment_type} - ${selectedPayment.property.name}`,
+          customer_email: authState.user!.email,
+          customer_name: `${authState.user!.firstName} ${
+            authState.user!.lastName
+          }`,
+          late_fee: enhanced.lateFee
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment link');
+      }
+
+      const { invoice_url } = await response.json();
+
+      // Redirect to Xendit checkout
+      toast.success('Redirecting to payment gateway...');
+      window.location.href = invoice_url;
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error('Failed to process payment. Please try again.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  }
 }

@@ -75,7 +75,6 @@ export default function NewApplicationPage() {
     moveInDate: null as Date | null,
     message: ''
   });
-  const [availableUnits, setAvailableUnits] = useState<AvailableUnit[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
@@ -115,15 +114,7 @@ export default function NewApplicationPage() {
                 unitType: selectedProp.unit_types[0] // Auto-select first unit type
               }));
 
-              // Fetch available units for the selected property
-              const unitsResult = await TenantAPI.getAvailableUnits(
-                selectedProp.id
-              );
-              if (unitsResult.success && unitsResult.data) {
-                setAvailableUnits(unitsResult.data);
-              } else {
-                toast.error('Failed to load available units');
-              }
+              // Unit number will be manually entered by user
             }
           }
         } else {
@@ -149,26 +140,6 @@ export default function NewApplicationPage() {
       unitType: '', // Reset unit type when property changes
       unitNumber: '' // Reset unit number when property changes
     }));
-
-    // Fetch available units
-    if (property) {
-      try {
-        const result = await TenantAPI.getAvailableUnits(propertyId);
-        console.log('Available units result:', result);
-        if (result.success && result.data) {
-          setAvailableUnits(result.data);
-          console.log('Set available units:', result.data);
-        } else {
-          console.error('Failed to load units:', result.message);
-          toast.error(result.message || 'Failed to load available units');
-        }
-      } catch (error) {
-        console.error('Failed to load available units:', error);
-        toast.error('Failed to load available units');
-      }
-    } else {
-      setAvailableUnits([]);
-    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -336,44 +307,19 @@ export default function NewApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Unit Number *</Label>
-                    <Select
+                    <Label htmlFor="unitNumber">Unit Number *</Label>
+                    <Input
+                      id="unitNumber"
                       value={formData.unitNumber}
-                      disabled={availableUnits.length === 0}
-                      onValueChange={value =>
-                        setFormData(prev => ({ ...prev, unitNumber: value }))
-                      }>
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder={
-                          availableUnits.length === 0 
-                            ? "Loading units..." 
-                            : "Select unit number"
-                        } />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableUnits.length > 0 ? (
-                          Array.from(
-                            new Set(availableUnits.map(u => u.unit_number))
-                          ).map(unitNumber => (
-                            <SelectItem key={unitNumber} value={unitNumber}>
-                              {unitNumber}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="__no_units__" disabled>
-                            No units available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <div className="flex items-center gap-2 mt-1">
-                      <AlertCircle className="w-4 h-4 text-blue-600" />
-                      <p className="text-sm text-blue-600">
-                        {availableUnits.length > 0 
-                          ? `${availableUnits.length} units available`
-                          : 'Loading available units...'}
-                      </p>
-                    </div>
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, unitNumber: e.target.value }))
+                      }
+                      placeholder="e.g., 201, A-1, Ground Floor, etc."
+                      className="bg-white"
+                    />
+                    <p className="text-sm text-gray-500">
+                      Enter the unit number you're interested in
+                    </p>
                   </div>
 
                   {formData.unitNumber && (

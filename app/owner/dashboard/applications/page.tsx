@@ -90,6 +90,8 @@ export default function OwnerApplicationsPage() {
     null
   );
   const [actionNote, setActionNote] = useState('');
+  const [leaseDuration, setLeaseDuration] = useState(12); // Default 12 months
+  const [showLeasePreview, setShowLeasePreview] = useState(false);
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -212,6 +214,7 @@ export default function OwnerApplicationsPage() {
           : 'reject_rental_application',
         {
           application_id: selectedApplication.id,
+          ...(actionType === 'approve' ? { lease_duration_months: leaseDuration } : {}),
           ...(actionType === 'reject' ? { rejection_reason: actionNote } : {})
         }
       );
@@ -962,31 +965,245 @@ export default function OwnerApplicationsPage() {
 
       {/* Action Dialog */}
       <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto max-w-[calc(100vw-2rem)]">
+        <DialogContent className="max-h-[90vh] overflow-y-auto max-w-[calc(100vw-2rem)] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">
               {actionType === 'approve'
-                ? 'Approve Application'
+                ? 'Approve Application & Set Lease Terms'
                 : 'Reject Application'}
             </DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
               {actionType === 'approve'
-                ? 'Are you sure you want to approve this application? This will create a new tenant record.'
+                ? 'Review and set the lease terms before approving this application.'
                 : 'Please provide a reason for rejecting this application.'}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Approval Form */}
+          {actionType === 'approve' && selectedApplication && (
+            <div className="space-y-6 py-4">
+              {/* Applicant Info Summary */}
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <h4 className="font-medium text-blue-900 mb-2">
+                  Applicant Information
+                </h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-blue-700">Tenant</p>
+                    <p className="font-medium text-blue-900">
+                      {selectedApplication.user_name}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-blue-700">Property</p>
+                    <p className="font-medium text-blue-900">
+                      {selectedApplication.property_name}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-blue-700">Unit Number</p>
+                    <p className="font-medium text-blue-900">
+                      {selectedApplication.unit_number}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-blue-700">Monthly Rent</p>
+                    <p className="font-medium text-blue-900">
+                      ₱{selectedApplication.monthly_rent.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lease Start Date */}
+              <div className="space-y-2">
+                <Label>Lease Start Date</Label>
+                <Input
+                  type="date"
+                  value={selectedApplication.move_in_date}
+                  disabled
+                  className="bg-gray-50"
+                />
+                <p className="text-xs text-gray-500">
+                  Based on tenant's preferred move-in date
+                </p>
+              </div>
+
+              {/* Lease Duration Selector */}
+              <div className="space-y-2">
+                <Label>Lease Duration *</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    type="button"
+                    variant={leaseDuration === 6 ? 'default' : 'outline'}
+                    onClick={() => setLeaseDuration(6)}
+                    className={cn(
+                      leaseDuration === 6 &&
+                        'bg-blue-600 hover:bg-blue-700 text-white'
+                    )}>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    6 Months
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={leaseDuration === 12 ? 'default' : 'outline'}
+                    onClick={() => setLeaseDuration(12)}
+                    className={cn(
+                      leaseDuration === 12 &&
+                        'bg-blue-600 hover:bg-blue-700 text-white'
+                    )}>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    12 Months
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={leaseDuration === 24 ? 'default' : 'outline'}
+                    onClick={() => setLeaseDuration(24)}
+                    className={cn(
+                      leaseDuration === 24 &&
+                        'bg-blue-600 hover:bg-blue-700 text-white'
+                    )}>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    24 Months
+                  </Button>
+                </div>
+                <Select
+                  value={leaseDuration.toString()}
+                  onValueChange={val => setLeaseDuration(Number(val))}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Or select custom duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 Month (Short-term)</SelectItem>
+                    <SelectItem value="3">3 Months (Quarterly)</SelectItem>
+                    <SelectItem value="6">6 Months</SelectItem>
+                    <SelectItem value="9">9 Months</SelectItem>
+                    <SelectItem value="12">12 Months (Standard)</SelectItem>
+                    <SelectItem value="18">18 Months</SelectItem>
+                    <SelectItem value="24">24 Months (Long-term)</SelectItem>
+                    <SelectItem value="36">36 Months (3 Years)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Lease Summary Preview */}
+              <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <h4 className="font-medium text-green-900 mb-3 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  Lease Terms Summary
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-green-700">Start Date:</span>
+                    <span className="font-medium text-green-900">
+                      {format(
+                        new Date(selectedApplication.move_in_date),
+                        'PPP'
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-green-700">End Date:</span>
+                    <span className="font-medium text-green-900">
+                      {format(
+                        new Date(
+                          new Date(selectedApplication.move_in_date).setMonth(
+                            new Date(
+                              selectedApplication.move_in_date
+                            ).getMonth() + leaseDuration
+                          )
+                        ),
+                        'PPP'
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-green-200">
+                    <span className="text-green-700 font-medium">
+                      Total Duration:
+                    </span>
+                    <span className="font-semibold text-green-900">
+                      {leaseDuration} {leaseDuration === 1 ? 'Month' : 'Months'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-green-700">Monthly Payments:</span>
+                    <span className="font-medium text-green-900">
+                      {leaseDuration} payments
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-green-700">Total Rent:</span>
+                    <span className="font-semibold text-green-900">
+                      ₱
+                      {(
+                        selectedApplication.monthly_rent * leaseDuration
+                      ).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Optional Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="approval-note">
+                  Additional Notes (Optional)
+                </Label>
+                <Textarea
+                  id="approval-note"
+                  value={actionNote}
+                  onChange={e => setActionNote(e.target.value)}
+                  placeholder="Any additional notes or special terms..."
+                  className="resize-none"
+                  rows={3}
+                />
+              </div>
+
+              {/* What Will Happen */}
+              <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <h4 className="font-medium text-yellow-900 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  What happens next:
+                </h4>
+                <ul className="space-y-1 text-sm text-yellow-800">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-yellow-600" />
+                    <span>Tenant record will be created</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-yellow-600" />
+                    <span>
+                      {leaseDuration} monthly payment records will be
+                      auto-generated
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-yellow-600" />
+                    <span>Unit will be marked as occupied</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-yellow-600" />
+                    <span>Tenant will be notified of approval</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Rejection Form */}
           {actionType === 'reject' && (
             <div className="py-4">
-              <Label htmlFor="rejection-reason">Rejection Reason</Label>
+              <Label htmlFor="rejection-reason">Rejection Reason *</Label>
               <Textarea
                 id="rejection-reason"
                 value={actionNote}
                 onChange={e => setActionNote(e.target.value)}
                 placeholder="Please provide a reason for rejecting this application..."
-                className="mt-2"
+                className="mt-2 resize-none"
+                rows={4}
               />
             </div>
           )}
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -994,20 +1211,30 @@ export default function OwnerApplicationsPage() {
                 setShowActionDialog(false);
                 setActionType(null);
                 setActionNote('');
+                setLeaseDuration(12);
               }}>
               Cancel
             </Button>
             <Button
               onClick={handleAction}
+              disabled={actionType === 'reject' && !actionNote.trim()}
               className={cn(
                 'text-white',
                 actionType === 'approve'
                   ? 'bg-green-500 hover:bg-green-600'
                   : 'bg-red-500 hover:bg-red-600'
               )}>
-              {actionType === 'approve'
-                ? 'Confirm Approval'
-                : 'Confirm Rejection'}
+              {actionType === 'approve' ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve & Create Lease
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Confirm Rejection
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

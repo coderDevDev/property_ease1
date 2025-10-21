@@ -102,8 +102,8 @@ export class TenantAPI {
     message?: string;
   }> {
     try {
-      // Get tenant record for current user
-      const { data: tenant, error: tenantError } = await supabase
+      // Get tenant records for current user (can have multiple properties)
+      const { data: tenants, error: tenantError } = await supabase
         .from('tenants')
         .select(
           `
@@ -123,15 +123,16 @@ export class TenantAPI {
         `
         )
         .eq('user_id', userId)
-        .eq('status', 'active')
-        .single();
+        .eq('status', 'active');
 
-      if (tenantError && tenantError.code !== 'PGRST116') {
+      if (tenantError) {
         throw tenantError;
       }
 
+      // Use the first tenant record for currentLease (primary property)
       let currentLease = null;
-      if (tenant) {
+      if (tenants && tenants.length > 0) {
+        const tenant = tenants[0]; // Use first property as primary
         const leaseEnd = new Date(tenant.lease_end);
         const today = new Date();
         const daysRemaining = Math.ceil(
@@ -148,17 +149,18 @@ export class TenantAPI {
           leaseEnd: leaseEnd,
           daysRemaining: daysRemaining,
           propertyId: tenant.property_id,
-          tenantId: tenant.id
+          tenantId: tenant.id,
+          totalProperties: tenants.length // Add count of total properties
         };
       }
 
-      // Get upcoming payments
-      const upcomingPayments = tenant
-        ? await this.getUpcomingPayments(tenant.id)
+      // Get upcoming payments (using first tenant if available)
+      const upcomingPayments = tenants && tenants.length > 0
+        ? await this.getUpcomingPayments(tenants[0].id)
         : [];
 
       // Get maintenance requests
-      const maintenanceResult = tenant
+      const maintenanceResult = tenants && tenants.length > 0
         ? await this.getMaintenanceRequests(userId)
         : {
             success: false,
@@ -199,14 +201,19 @@ export class TenantAPI {
             }))
           : [];
 
-      // Get documents count
-      const documentsCount = tenant
-        ? await this.getDocumentsCount(tenant.id)
+      // Get announcements (from first property)
+      const announcements: any[] = []; // Placeholder - implement if needed
+
+      // Get documents count (from first tenant)
+      const documentsCount = tenants && tenants.length > 0
+        ? await this.getDocumentsCount(tenants[0].id)
         : 0;
 
-      // Calculate quick stats
+      // Calculate quick stats (using first tenant)
       const quickStats = {
-        totalPayments: tenant ? await this.getTotalPaymentsCount(tenant.id) : 0,
+        totalPayments: tenants && tenants.length > 0 
+          ? await this.getTotalPaymentsCount(tenants[0].id) 
+          : 0,
         activeRequests: maintenanceRequests.filter(
           r => r.status === 'pending' || r.status === 'in_progress'
         ).length,

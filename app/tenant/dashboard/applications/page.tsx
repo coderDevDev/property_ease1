@@ -235,6 +235,29 @@ export default function ApplicationsPage() {
                       <div className="flex items-center gap-1">
                         <CreditCard className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span>
+                          {application.status === 'approved' && (
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Badge className="bg-green-100 text-green-700">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Approved
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => router.push('/tenant/dashboard/lease')}
+                                className="border-blue-200 text-blue-700 hover:bg-blue-50">
+                                <FileText className="w-4 h-4 mr-2" />
+                                View Lease
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => router.push('/tenant/dashboard/payments')}
+                                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white">
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                View Payments
+                              </Button>
+                            </div>
+                          )}
                           ₱{application.monthly_rent.toLocaleString()}/month
                         </span>
                       </div>

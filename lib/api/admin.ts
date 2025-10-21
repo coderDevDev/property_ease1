@@ -1177,4 +1177,242 @@ export class AdminAPI {
       };
     }
   }
+
+  // ============================================================================
+  // PAYMENT REFUND MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Get all pending refund requests
+   */
+  static async getPendingRefunds() {
+    try {
+      const { data, error } = await supabase
+        .from('payment_refunds')
+        .select(
+          `
+          *,
+          payment:payments(
+            *,
+            tenant:tenants(
+              id,
+              unit_number,
+              user:users(first_name, last_name, email, phone)
+            ),
+            property:properties(id, name, address, city)
+          ),
+          requested_by_user:users!requested_by(first_name, last_name, email)
+        `
+        )
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Get pending refunds error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch pending refunds',
+        data: []
+      };
+    }
+  }
+
+  /**
+   * Get all refund requests (with optional status filter)
+   */
+  static async getAllRefunds(status?: string) {
+    try {
+      let query = supabase
+        .from('payment_refunds')
+        .select(
+          `
+          *,
+          payment:payments(
+            *,
+            tenant:tenants(
+              id,
+              unit_number,
+              user:users(first_name, last_name, email, phone)
+            ),
+            property:properties(id, name, address, city)
+          ),
+          requested_by_user:users!requested_by(first_name, last_name, email),
+          reviewed_by_user:users!reviewed_by(first_name, last_name, email)
+        `
+        )
+        .order('created_at', { ascending: false });
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Get all refunds error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to fetch refunds',
+        data: []
+      };
+    }
+  }
+
+  /**
+   * Approve a refund request
+   */
+  static async approveRefund(refundId: string, notes?: string) {
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.rpc('approve_payment_refund', {
+        p_refund_id: refundId,
+        p_admin_id: user.id,
+        p_notes: notes || null
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Refund approved successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Approve refund error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to approve refund',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Reject a refund request
+   */
+  static async rejectRefund(refundId: string, reason: string) {
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.rpc('reject_payment_refund', {
+        p_refund_id: refundId,
+        p_admin_id: user.id,
+        p_notes: reason
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Refund rejected successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Reject refund error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to reject refund',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Mark refund as processed
+   */
+  static async processRefund(
+    refundId: string,
+    refundMethod: string,
+    refundReference: string
+  ) {
+    try {
+      const { data, error } = await supabase.rpc('process_payment_refund', {
+        p_refund_id: refundId,
+        p_refund_method: refundMethod,
+        p_refund_reference: refundReference
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Refund marked as processed',
+        data
+      };
+    } catch (error) {
+      console.error('Process refund error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to process refund',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Get refund statistics
+   */
+  static async getRefundStats() {
+    try {
+      const { data: refunds, error } = await supabase
+        .from('payment_refunds')
+        .select('*');
+
+      if (error) throw error;
+
+      const stats = {
+        total: refunds.length,
+        pending: refunds.filter(r => r.status === 'pending').length,
+        approved: refunds.filter(r => r.status === 'approved').length,
+        rejected: refunds.filter(r => r.status === 'rejected').length,
+        processed: refunds.filter(r => r.status === 'processed').length,
+        totalAmount: refunds.reduce((sum, r) => sum + Number(r.amount), 0),
+        pendingAmount: refunds
+          .filter(r => r.status === 'pending')
+          .reduce((sum, r) => sum + Number(r.amount), 0)
+      };
+
+      return { success: true, data: stats };
+    } catch (error) {
+      console.error('Get refund stats error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch refund statistics',
+        data: null
+      };
+    }
+  }
 }

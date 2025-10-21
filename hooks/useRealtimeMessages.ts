@@ -86,7 +86,7 @@ export function useRealtimeMessages({
         }
       )
       .subscribe(status => {
-        console.log('Messages subscription status:', status);
+        // console.log('Messages subscription status:', status);
         setIsConnected(status === 'SUBSCRIBED');
       });
 

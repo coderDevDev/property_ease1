@@ -147,7 +147,6 @@ export function useRealtimeNotifications({
         }
       )
       .subscribe(status => {
-        console.log('Notifications subscription status:', status);
         setIsConnected(status === 'SUBSCRIBED');
       });
 
