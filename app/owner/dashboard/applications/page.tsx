@@ -42,7 +42,8 @@ import {
   Building2,
   Eye,
   LayoutGrid,
-  Table2
+  Table2,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -319,6 +320,53 @@ export default function OwnerApplicationsPage() {
       toast.error('Failed to process application', {
         description:
           error instanceof Error ? error.message : 'Please try again later'
+      });
+    }
+  };
+
+  const handleDeleteApplication = async (application: Application) => {
+    // Safety check: Don't allow deleting approved applications that created tenants
+    if (application.status === 'approved') {
+      const confirmDelete = confirm(
+        `⚠️ WARNING: This application was APPROVED and may have created a tenant record.\n\n` +
+        `Deleting this will NOT delete the tenant record.\n\n` +
+        `Are you sure you want to delete this application record?\n\n` +
+        `Applicant: ${application.user_name}\n` +
+        `Property: ${application.property_name}`
+      );
+      
+      if (!confirmDelete) return;
+    } else {
+      const confirmDelete = confirm(
+        `Delete application from ${application.user_name}?\n\n` +
+        `Property: ${application.property_name}\n` +
+        `Status: ${application.status}\n\n` +
+        `This will also delete all uploaded documents.\n` +
+        `This action cannot be undone!`
+      );
+      
+      if (!confirmDelete) return;
+    }
+
+    try {
+      // Delete application (documents will be cascade deleted)
+      const { error } = await supabase
+        .from('rental_applications')
+        .delete()
+        .eq('id', application.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setApplications(prev => prev.filter(app => app.id !== application.id));
+
+      toast.success('Application deleted successfully', {
+        description: 'All related documents have been removed'
+      });
+    } catch (error) {
+      console.error('Failed to delete application:', error);
+      toast.error('Failed to delete application', {
+        description: error instanceof Error ? error.message : 'Please try again later'
       });
     }
   };
@@ -941,6 +989,25 @@ export default function OwnerApplicationsPage() {
                   </Button>
                 </div>
               )}
+
+              {/* Delete Button */}
+              <div className="pt-4 border-t">
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    handleDeleteApplication(selectedApplication);
+                  }}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Application
+                </Button>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  {selectedApplication.status === 'approved' 
+                    ? '⚠️ This will NOT delete the tenant record'
+                    : 'This will delete the application and all documents'}
+                </p>
+              </div>
 
               {/* Rejection Reason */}
               {selectedApplication.status === 'rejected' &&

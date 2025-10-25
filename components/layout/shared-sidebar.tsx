@@ -30,7 +30,10 @@ import {
   ScrollText,
   CreditCard,
   HelpCircle,
-  ChevronDown
+  ChevronDown,
+  Shield,
+  Zap,
+  TrendingUp
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { PropertiesAPI } from '@/lib/api/properties';
@@ -309,6 +312,27 @@ export function SharedSidebar({ role }: SharedSidebarProps) {
             stats.payments.overdue > 0
               ? 'bg-red-100 text-red-700'
               : 'bg-green-100 text-green-700',
+          section: 'financial'
+        },
+        {
+          icon: Shield,
+          label: 'Deposits',
+          route: '/owner/dashboard/deposits',
+          description: 'Security deposits',
+          section: 'financial'
+        },
+        {
+          icon: Zap,
+          label: 'Utility Bills',
+          route: '/owner/dashboard/utility-bills',
+          description: 'Utility management',
+          section: 'financial'
+        },
+        {
+          icon: TrendingUp,
+          label: 'Advance Payments',
+          route: '/owner/dashboard/advance-payments',
+          description: 'Advance rent tracking',
           section: 'financial'
         },
         {

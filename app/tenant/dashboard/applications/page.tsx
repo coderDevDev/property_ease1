@@ -36,11 +36,13 @@ import {
   List,
   Download,
   Eye,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TenantAPI } from '@/lib/api/tenant';
 import { generateLeaseAgreementPDF } from '@/lib/pdf/leaseAgreementPDF';
+import { supabase } from '@/lib/supabase';
 
 interface Application {
   id: string;
@@ -134,6 +136,52 @@ export default function ApplicationsPage() {
     pending: applications.filter(a => a.status === 'pending').length,
     approved: applications.filter(a => a.status === 'approved').length,
     rejected: applications.filter(a => a.status === 'rejected').length
+  };
+
+  const handleCancelApplication = async (
+    application: Application,
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+
+    // Only allow canceling pending applications
+    if (application.status !== 'pending') {
+      toast.error('You can only cancel pending applications');
+      return;
+    }
+
+    const confirmCancel = confirm(
+      `Cancel your application for ${application.property_name}?\n\n` +
+      `Unit: ${application.unit_type}\n` +
+      `Monthly Rent: ₱${application.monthly_rent.toLocaleString()}\n\n` +
+      `This will delete your application and all uploaded documents.\n` +
+      `This action cannot be undone!`
+    );
+
+    if (!confirmCancel) return;
+
+    try {
+      // Delete application (documents will be cascade deleted)
+      const { error } = await supabase
+        .from('rental_applications')
+        .delete()
+        .eq('id', application.id)
+        .eq('user_id', authState.user?.id); // Extra safety check
+
+      if (error) throw error;
+
+      // Update local state
+      setApplications(prev => prev.filter(app => app.id !== application.id));
+
+      toast.success('Application cancelled successfully', {
+        description: 'All related documents have been removed'
+      });
+    } catch (error) {
+      console.error('Failed to cancel application:', error);
+      toast.error('Failed to cancel application', {
+        description: error instanceof Error ? error.message : 'Please try again later'
+      });
+    }
   };
 
   const handleDownloadLease = (
@@ -472,6 +520,16 @@ export default function ApplicationsPage() {
                             Download Lease
                           </Button>
                         )}
+                        {application.status === 'pending' && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="flex-1"
+                            onClick={e => handleCancelApplication(application, e)}>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Cancel
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -583,6 +641,18 @@ export default function ApplicationsPage() {
                                   }
                                   title="Download Lease">
                                   <Download className="w-4 h-4" />
+                                </Button>
+                              )}
+                              {application.status === 'pending' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={e =>
+                                    handleCancelApplication(application, e)
+                                  }
+                                  title="Cancel Application">
+                                  <Trash2 className="w-4 h-4" />
                                 </Button>
                               )}
                             </div>

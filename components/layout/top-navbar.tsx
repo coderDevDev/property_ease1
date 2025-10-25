@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
 import { cn } from '@/lib/utils';
+import { FEATURE_FLAGS } from '@/config/features';
 import {
   Bell,
   MessageSquare,
@@ -60,6 +61,7 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
+  // Real-time notifications (disabled via config)
   const {
     notifications,
     stats: notificationStats,
@@ -67,25 +69,34 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
     markAsRead,
     markAllAsRead,
     deleteNotification
-  } = useRealtimeNotifications({
-    userId: authState.user?.id || '',
-    onNewNotification: notification => {
-      // Show toast for urgent notifications
-      if (notification.priority === 'high') {
-        toast.info(notification.title, {
-          description: notification.message,
-          action: {
-            label: 'View',
-            onClick: () => {
-              if (notification.action_url) {
-                router.push(notification.action_url);
+  } = FEATURE_FLAGS.REALTIME_NOTIFICATIONS
+    ? useRealtimeNotifications({
+        userId: authState.user?.id || '',
+        onNewNotification: notification => {
+          // Show toast for urgent notifications
+          if (notification.priority === 'high' && FEATURE_FLAGS.ENABLE_TOAST_NOTIFICATIONS) {
+            toast.info(notification.title, {
+              description: notification.message,
+              action: {
+                label: 'View',
+                onClick: () => {
+                  if (notification.action_url) {
+                    router.push(notification.action_url);
+                  }
+                }
               }
-            }
+            });
           }
-        });
-      }
-    }
-  });
+        }
+      })
+    : {
+        notifications: [],
+        stats: { total: 0, unread: 0, urgent: 0 },
+        isConnected: false,
+        markAsRead: async () => {},
+        markAllAsRead: async () => {},
+        deleteNotification: async () => {}
+      };
 
   // Load user profile
   const loadUserProfile = async () => {
@@ -118,31 +129,41 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
     }
   };
 
+  // Real-time messages (disabled via config)
   const {
     unreadCount: messageUnreadCount,
     isConnected: messagesConnected,
     markAsRead: markMessageAsRead,
     markAllAsRead: markAllMessagesAsRead
-  } = useRealtimeMessages({
-    userId: authState.user?.id || '',
-    onNewMessage: message => {
-      // Show toast for new messages
-      toast.info('New Message', {
-        description: `You have a new message from ${
-          message.sender?.first_name || 'someone'
-        }`,
-        action: {
-          label: 'View',
-          onClick: () => {
-            router.push(getMessagesPath());
+  } = FEATURE_FLAGS.REALTIME_MESSAGES
+    ? useRealtimeMessages({
+        userId: authState.user?.id || '',
+        onNewMessage: message => {
+          // Show toast for new messages
+          if (FEATURE_FLAGS.ENABLE_TOAST_NOTIFICATIONS) {
+            toast.info('New Message', {
+              description: `You have a new message from ${
+                message.sender?.first_name || 'someone'
+              }`,
+              action: {
+                label: 'View',
+                onClick: () => {
+                  router.push(getMessagesPath());
+                }
+              }
+            });
           }
-        }
-      });
 
-      // Refresh recent messages
-      loadRecentMessages();
-    }
-  });
+          // Refresh recent messages
+          loadRecentMessages();
+        }
+      })
+    : {
+        unreadCount: 0,
+        isConnected: false,
+        markAsRead: async () => {},
+        markAllAsRead: async () => {}
+      };
 
   // Load recent messages when component mounts
   useEffect(() => {
@@ -469,11 +490,11 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                   size="sm"
                   className="relative text-gray-600 hover:text-blue-600 hover:bg-blue-50">
                   <Bell className="w-5 h-5" />
-                  {notificationStats.unread > 0 && (
+                  {(notificationStats?.unread || 0) > 0 && (
                     <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500 text-white">
-                      {notificationStats.unread > 99
+                      {(notificationStats?.unread || 0) > 99
                         ? '99+'
-                        : notificationStats.unread}
+                        : notificationStats?.unread}
                     </Badge>
                   )}
                 </Button>
@@ -487,7 +508,7 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">Notifications</CardTitle>
                       <div className="flex items-center gap-2">
-                        {notificationStats.unread > 0 && (
+                        {(notificationStats?.unread || 0) > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"

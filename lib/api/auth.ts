@@ -120,6 +120,13 @@ export class AuthAPI {
         .single();
 
       if (userError) {
+        // Check for connection errors
+        if (userError.message.includes('upstream connect error') || 
+            userError.message.includes('connection') ||
+            userError.message.includes('Failed to fetch')) {
+          console.warn('Database connection issue when fetching user profile');
+          throw new Error('Connection issue. Please try again.');
+        }
         console.error('User data fetch error:', userError);
         throw new Error('Failed to fetch user profile');
       }
@@ -215,6 +222,13 @@ export class AuthAPI {
         .single();
 
       if (userError) {
+        // Check for connection errors
+        if (userError.message.includes('upstream connect error') || 
+            userError.message.includes('connection') ||
+            userError.message.includes('Failed to fetch')) {
+          console.warn('Database connection issue when fetching user data');
+          return { user: null, session: null };
+        }
         console.error('User data fetch error:', userError);
         return { user: null, session: null };
       }

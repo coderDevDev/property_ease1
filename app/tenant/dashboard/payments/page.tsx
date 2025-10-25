@@ -55,10 +55,12 @@ import {
   Shield
 } from 'lucide-react';
 import { PaymentsAPI, type PaymentWithDetails } from '@/lib/api/payments';
+import { DepositsAPI, type DepositBalance, type MoveOutInspection, type DepositDeduction } from '@/lib/api/deposits';
 import { toast } from 'sonner';
 import { PaymentCalendar } from '@/components/payments/PaymentCalendar';
 import { PropertyPaymentSummary } from '@/components/payments/PropertyPaymentSummary';
 import { PaymentTimeline } from '@/components/payments/PaymentTimeline';
+import { DepositBalanceCard } from '@/components/tenant/DepositBalanceCard';
 
 // Enhanced payment interface with status and calculations
 interface EnhancedPayment extends PaymentWithDetails {
@@ -155,6 +157,11 @@ export default function TenantPaymentsPage() {
     useState<string>('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
+  // Deposit state
+  const [depositBalance, setDepositBalance] = useState<DepositBalance | null>(null);
+  const [inspection, setInspection] = useState<MoveOutInspection | null>(null);
+  const [deductions, setDeductions] = useState<DepositDeduction[]>([]);
+
   // Load tenant payments
   useEffect(() => {
     const loadPayments = async () => {
@@ -192,6 +199,37 @@ export default function TenantPaymentsPage() {
 
     loadPayments();
   }, [authState.user?.id]);
+
+  // Load deposit data
+  const loadDepositData = async () => {
+    if (!payments || payments.length === 0) return;
+    
+    // Get first payment's tenant_id
+    const tenantId = payments[0]?.tenant?.id;
+    if (!tenantId) return;
+
+    try {
+      const deposit = await DepositsAPI.getTenantDeposit(tenantId);
+      setDepositBalance(deposit);
+
+      if (deposit) {
+        const insp = await DepositsAPI.getTenantInspection(tenantId);
+        setInspection(insp);
+
+        if (insp) {
+          const deds = await DepositsAPI.getInspectionDeductions(insp.id);
+          setDeductions(deds);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading deposit data:', error);
+    }
+  };
+
+  // Load deposit when payments are loaded
+  useEffect(() => {
+    loadDepositData();
+  }, [payments]);
 
   // Check for payment status from URL (after Xendit redirect)
   useEffect(() => {
@@ -298,11 +336,23 @@ export default function TenantPaymentsPage() {
   // Enhance all payments with status and calculations
   const enhancedPayments: EnhancedPayment[] = payments.map(enhancePayment);
 
-  // Categorize payments
-  const overduePayments = enhancedPayments.filter(p => p.status === 'overdue');
-  const dueSoonPayments = enhancedPayments.filter(p => p.status === 'due_soon');
+  // Categorize payments (exclude security deposits and refunds from due/overdue lists)
+  const overduePayments = enhancedPayments.filter(
+    p => p.status === 'overdue' && 
+    p.payment_type !== 'security_deposit' && 
+    p.payment_status !== 'refunded'
+  );
+  const dueSoonPayments = enhancedPayments.filter(
+    p => p.status === 'due_soon' && 
+    p.payment_type !== 'security_deposit' && 
+    p.payment_status !== 'refunded'
+  );
   const paidPayments = enhancedPayments.filter(p => p.status === 'paid');
-  const pendingPayments = enhancedPayments.filter(p => p.status === 'pending');
+  const pendingPayments = enhancedPayments.filter(
+    p => p.status === 'pending' && 
+    p.payment_type !== 'security_deposit' && 
+    p.payment_status !== 'refunded'
+  );
 
   // Calculate summary
   const summary: PaymentSummary = {
@@ -606,6 +656,16 @@ export default function TenantPaymentsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Security Deposit Card */}
+        {depositBalance && (
+          <DepositBalanceCard
+            deposit={depositBalance}
+            inspection={inspection}
+            deductions={deductions}
+            onRefresh={loadDepositData}
+          />
+        )}
 
         {/* View Mode Toggle */}
         <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">

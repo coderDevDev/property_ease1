@@ -34,6 +34,23 @@ export interface TenantFormData {
 export class TenantsAPI {
   static async getTenants(ownerId: string) {
     try {
+      // First get owner's property IDs
+      const { data: properties, error: propError } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('owner_id', ownerId);
+      
+      if (propError) {
+        throw new Error(propError.message);
+      }
+      
+      if (!properties || properties.length === 0) {
+        return { success: true, data: [] };
+      }
+      
+      const propertyIds = properties.map(p => p.id);
+      
+      // Then get tenants for those properties
       const { data, error } = await supabase
         .from('tenants')
         .select(
@@ -43,7 +60,7 @@ export class TenantsAPI {
           property:properties(*)
         `
         )
-        .eq('properties.owner_id', ownerId)
+        .in('property_id', propertyIds)
         .order('created_at', { ascending: false });
 
       if (error) {
