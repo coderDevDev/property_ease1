@@ -43,6 +43,7 @@ interface Tenant {
   id: string;
   user_id: string;
   property_id: string;
+  monthly_rent: number;
   user: {
     first_name: string;
     last_name: string;
@@ -124,6 +125,18 @@ export function CreateDepositDialog({
     });
   };
 
+  // Get selected tenant's monthly rent for validation
+  const getSelectedTenantMonthlyRent = (): number => {
+    const tenant = tenants.find(t => t.id === formData.tenantId);
+    return tenant?.monthly_rent || 0;
+  };
+
+  // Calculate maximum allowed security deposit (2 months rent per RA 9653)
+  const getMaxAllowedDeposit = (): number => {
+    const monthlyRent = getSelectedTenantMonthlyRent();
+    return monthlyRent * 2; // Philippine Rent Control Act (RA 9653): Max 2 months
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -135,6 +148,19 @@ export function CreateDepositDialog({
     const amount = parseFloat(formData.depositAmount);
     if (isNaN(amount) || amount <= 0) {
       toast.error('Please enter a valid deposit amount');
+      return;
+    }
+
+    // Validate against Philippine Rent Control Act (RA 9653)
+    const maxAllowed = getMaxAllowedDeposit();
+    const monthlyRent = getSelectedTenantMonthlyRent();
+    if (monthlyRent > 0 && amount > maxAllowed) {
+      toast.error(
+        `Security deposit cannot exceed ₱${maxAllowed.toLocaleString()}`,
+        {
+          description: `Philippine Rent Control Act (RA 9653) limits security deposits to 2 months rent (₱${monthlyRent.toLocaleString()} × 2)`
+        }
+      );
       return;
     }
 
@@ -226,16 +252,40 @@ export function CreateDepositDialog({
               </div>
             )}
 
+            {/* Legal Compliance Banner */}
+            {formData.tenantId && getSelectedTenantMonthlyRent() > 0 && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-blue-900 text-sm mb-1">
+                      Philippine Rent Control Act (RA 9653)
+                    </h4>
+                    <p className="text-sm text-blue-700 mb-2">
+                      Security deposits are limited to a maximum of 2 months rent.
+                    </p>
+                    <div className="text-sm text-blue-800 font-medium">
+                      Maximum allowed: ₱{getMaxAllowedDeposit().toLocaleString()}
+                      <span className="text-blue-600 font-normal ml-1">
+                        (₱{getSelectedTenantMonthlyRent().toLocaleString()} × 2 months)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Deposit Amount */}
             <div className="space-y-2">
               <Label htmlFor="amount">
-                Deposit Amount (₱) <span className="text-red-500">*</span>
+                Security Deposit Amount (₱) <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="amount"
                 type="number"
                 step="0.01"
                 min="0"
+                max={getMaxAllowedDeposit() || undefined}
                 placeholder="10000.00"
                 value={formData.depositAmount}
                 onChange={e =>
@@ -243,6 +293,11 @@ export function CreateDepositDialog({
                 }
                 required
               />
+              {formData.tenantId && getSelectedTenantMonthlyRent() > 0 && (
+                <p className="text-xs text-gray-500">
+                  Legal maximum: ₱{getMaxAllowedDeposit().toLocaleString()} (2 months rent)
+                </p>
+              )}
             </div>
 
             {/* Notes */}

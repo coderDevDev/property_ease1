@@ -31,6 +31,7 @@ import { Loader2 } from 'lucide-react';
 import { UtilitiesAPI } from '@/lib/api/utilities';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface CreateBillDialogProps {
   onClose: () => void;
@@ -82,16 +83,44 @@ export function CreateBillDialog({ onClose, onSuccess }: CreateBillDialogProps) 
 
   useEffect(() => {
     loadProperties();
-  }, []);
+  }, [authState.user?.id]);
 
   const loadProperties = async () => {
-    // This would fetch owner's properties - simplified for now
-    // In real implementation, fetch from properties API
+    if (!authState.user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('id, name, address, city')
+        .eq('owner_id', authState.user.id)
+        .eq('status', 'active')
+        .order('name');
+
+      if (error) throw error;
+      setProperties(data || []);
+    } catch (error) {
+      console.error('Error loading properties:', error);
+      toast.error('Failed to load properties');
+    }
   };
 
   const loadTenants = async (propertyId: string) => {
-    // This would fetch tenants for selected property
-    // In real implementation, fetch from tenants API
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .select(`
+          id,
+          user:users(id, first_name, last_name, email)
+        `)
+        .eq('property_id', propertyId)
+        .eq('status', 'active');
+
+      if (error) throw error;
+      setTenants(data || []);
+    } catch (error) {
+      console.error('Error loading tenants:', error);
+      toast.error('Failed to load tenants');
+    }
   };
 
   const handlePropertyChange = (propertyId: string) => {
@@ -135,7 +164,7 @@ export function CreateBillDialog({ onClose, onSuccess }: CreateBillDialogProps) 
     try {
       const result = await UtilitiesAPI.createBill({
         propertyId: formData.propertyId,
-        tenantId: formData.tenantId || null,
+        tenantId: formData.tenantId && formData.tenantId !== 'no-tenant' ? formData.tenantId : null,
         createdBy: authState.user.id,
         billType: formData.billType,
         billingPeriodStart: formData.billingPeriodStart,
@@ -189,8 +218,15 @@ export function CreateBillDialog({ onClose, onSuccess }: CreateBillDialogProps) 
                   <SelectValue placeholder="Select property" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="prop1">Property 1</SelectItem>
-                  <SelectItem value="prop2">Property 2</SelectItem>
+                  {properties.length === 0 ? (
+                    <SelectItem value="no-properties" disabled>No properties found</SelectItem>
+                  ) : (
+                    properties.map((property) => (
+                      <SelectItem key={property.id} value={property.id}>
+                        {property.name} - {property.city}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -207,8 +243,12 @@ export function CreateBillDialog({ onClose, onSuccess }: CreateBillDialogProps) 
                   <SelectValue placeholder="Select tenant" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="tenant1">Tenant 1</SelectItem>
-                  <SelectItem value="tenant2">Tenant 2</SelectItem>
+                  <SelectItem value="no-tenant">No tenant (Property bill)</SelectItem>
+                  {tenants.map((tenant: any) => (
+                    <SelectItem key={tenant.id} value={tenant.id}>
+                      {tenant.user.first_name} {tenant.user.last_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

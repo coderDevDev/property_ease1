@@ -50,14 +50,26 @@ export function PropertyPaymentSummary({ payments, onPayNow }: PropertyPaymentSu
       return daysUntil > 0 && daysUntil <= 30;
     });
 
-    const nextPayment = upcoming.sort((a, b) => 
-      new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
-    )[0];
+    // Separate upfront payments (advance_rent and security_deposit)
+    const upfrontPayments = pending.filter(p => 
+      p.payment_type === 'advance_rent' || 
+      p.payment_type === 'deposit' || // Legacy support
+      p.payment_type === 'security_deposit'
+    );
+    
+    // Get next payment (prioritize upfront payments, then upcoming)
+    const nextPayment = upfrontPayments.length > 0
+      ? upfrontPayments.sort((a, b) => 
+          new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+        )[0]
+      : upcoming.sort((a, b) => 
+          new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+        )[0];
 
     const totalPending = pending.reduce((sum, p) => sum + Number(p.amount) + (p.late_fee || 0), 0);
     const totalPaid = paid.reduce((sum, p) => sum + Number(p.amount), 0);
 
-    // Calculate recurring payments (assuming monthly)
+    // Calculate recurring payments (assuming monthly) - exclude upfront payments
     const rentPayments = propertyPayments.filter(p => p.payment_type === 'rent');
     const utilityPayments = propertyPayments.filter(p => p.payment_type === 'utility');
     
@@ -73,6 +85,7 @@ export function PropertyPaymentSummary({ payments, onPayNow }: PropertyPaymentSu
       overdue: overdue.length,
       upcoming: upcoming.length,
       paid: paid.length,
+      upfrontPayments,
       nextPayment,
       totalPending,
       totalPaid,
@@ -103,6 +116,41 @@ export function PropertyPaymentSummary({ payments, onPayNow }: PropertyPaymentSu
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* Upfront Payments Section */}
+                {stats.upfrontPayments.length > 0 && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs text-blue-700 font-medium mb-2">
+                      🛡️ Upfront Payments Required
+                    </p>
+                    <div className="space-y-2">
+                      {stats.upfrontPayments.map((payment) => {
+                        const getLabel = (type: string) => {
+                          if (type === 'advance_rent' || type === 'deposit') return '💰 Advance Rent';
+                          if (type === 'security_deposit') return '🛡️ Security Deposit';
+                          return type;
+                        };
+                        
+                        return (
+                          <div key={payment.id} className="flex items-center justify-between text-sm">
+                            <span className="text-gray-700 capitalize">
+                              {getLabel(payment.payment_type)}
+                            </span>
+                            <span className="font-bold text-gray-900">
+                              ₱{payment.amount.toLocaleString()}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <div className="pt-2 border-t border-blue-200 flex items-center justify-between">
+                        <span className="text-xs text-blue-700 font-semibold">Total Upfront:</span>
+                        <span className="text-base font-bold text-blue-900">
+                          ₱{stats.upfrontPayments.reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Next Payment */}
                 {stats.nextPayment ? (
                   <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">

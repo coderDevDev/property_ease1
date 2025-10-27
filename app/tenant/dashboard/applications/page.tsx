@@ -63,6 +63,19 @@ interface Application {
   }[];
   notes?: string;
   rejection_reason?: string;
+  // Tenant record data (for approved applications)
+  tenant?: {
+    id: string;
+    lease_start: string;
+    lease_end: string;
+    deposit: number;
+    security_deposit: number;
+    property_address?: string;
+    property_city?: string;
+    owner_name?: string;
+    owner_email?: string;
+    owner_phone?: string;
+  };
 }
 
 export default function ApplicationsPage() {
@@ -184,7 +197,7 @@ export default function ApplicationsPage() {
     }
   };
 
-  const handleDownloadLease = (
+  const handleDownloadLease = async (
     application: Application,
     e: React.MouseEvent
   ) => {
@@ -197,44 +210,92 @@ export default function ApplicationsPage() {
       return;
     }
 
-    const moveInDate = new Date(application.move_in_date);
-    const leaseEndDate = new Date(moveInDate);
-    leaseEndDate.setMonth(leaseEndDate.getMonth() + 12);
+    try {
+      // Fetch tenant record with complete data
+      // Get the most recent tenant record for this user and property
+      const { data: tenants, error } = await supabase
+        .from('tenants')
+        .select(
+          `
+          *,
+          property:properties(
+            name,
+            address,
+            city,
+            type,
+            amenities,
+            owner:users!properties_owner_id_fkey(
+              first_name,
+              last_name,
+              email,
+              phone
+            )
+          )
+        `
+        )
+        .eq('user_id', authState.user?.id)
+        .eq('property_id', application.property_id)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-    const leaseData = {
-      tenantName:
-        authState.user?.firstName + ' ' + authState.user?.lastName || 'Tenant',
-      tenantEmail: authState.user?.email || '',
-      tenantPhone: authState.user?.phone || '',
-      ownerName: 'Property Owner',
-      ownerEmail: '',
-      ownerPhone: '',
-      propertyName: application.property_name,
-      propertyAddress: '',
-      propertyCity: '',
-      propertyType: application.unit_type,
-      unitNumber: application.unit_number || application.unit_type,
-      leaseStart: application.move_in_date,
-      leaseEnd: leaseEndDate.toISOString(),
-      leaseDuration: 12,
-      monthlyRent: application.monthly_rent,
-      securityDeposit: application.monthly_rent * 2,
-      paymentDueDay: 5,
-      terms: [
-        'Tenant shall pay rent on or before the 5th day of each month.',
-        'A late fee of ₱500 or 5% of the monthly rent (whichever is higher) will be charged after 3 days.',
-        'The security deposit will be refunded at the end of the lease term, subject to property inspection.',
-        'Tenant is responsible for maintaining the property in good condition.',
-        'Tenant must notify the landlord of any maintenance issues promptly.',
-        'Subletting is not allowed without prior written consent from the landlord.',
-        'Tenant must comply with all building rules and regulations.',
-        'Either party may terminate this agreement with 30 days written notice.'
-      ],
-      amenities: []
-    };
+      if (error || !tenants || tenants.length === 0) {
+        toast.error('Failed to load lease details');
+        console.error('Tenant fetch error:', error);
+        return;
+      }
 
-    generateLeaseAgreementPDF(leaseData);
-    toast.success('Lease agreement downloaded!');
+      const tenant = tenants[0];
+
+      // Calculate lease duration in months
+      const leaseStart = new Date(tenant.lease_start);
+      const leaseEnd = new Date(tenant.lease_end);
+      const monthsDiff =
+        (leaseEnd.getFullYear() - leaseStart.getFullYear()) * 12 +
+        (leaseEnd.getMonth() - leaseStart.getMonth());
+
+      const property = tenant.property as any;
+      const owner = property?.owner as any;
+
+      const leaseData = {
+        tenantName:
+          authState.user?.firstName + ' ' + authState.user?.lastName || 'Tenant',
+        tenantEmail: authState.user?.email || '',
+        tenantPhone: authState.user?.phone || '',
+        ownerName: owner
+          ? `${owner.first_name} ${owner.last_name}`
+          : 'Property Owner',
+        ownerEmail: owner?.email || '',
+        ownerPhone: owner?.phone || '',
+        propertyName: property?.name || application.property_name,
+        propertyAddress: property?.address || '',
+        propertyCity: property?.city || '',
+        propertyType: property?.type || application.unit_type,
+        unitNumber: tenant.unit_number || application.unit_number || '',
+        leaseStart: tenant.lease_start,
+        leaseEnd: tenant.lease_end,
+        leaseDuration: monthsDiff,
+        monthlyRent: parseFloat(tenant.monthly_rent),
+        securityDeposit: parseFloat(tenant.security_deposit || tenant.monthly_rent * 2),
+        paymentDueDay: 5,
+        terms: [
+          'Tenant shall pay rent on or before the 5th day of each month.',
+          'A late fee of ₱500 or 5% of the monthly rent (whichever is higher) will be charged after 3 days.',
+          'The security deposit will be refunded at the end of the lease term, subject to property inspection.',
+          'Tenant is responsible for maintaining the property in good condition.',
+          'Tenant must notify the landlord of any maintenance issues promptly.',
+          'Subletting is not allowed without prior written consent from the landlord.',
+          'Tenant must comply with all building rules and regulations.',
+          'Either party may terminate this agreement with 30 days written notice.'
+        ],
+        amenities: property?.amenities || []
+      };
+
+      generateLeaseAgreementPDF(leaseData);
+      toast.success('Lease agreement downloaded!');
+    } catch (error) {
+      console.error('Download lease error:', error);
+      toast.error('Failed to generate lease agreement');
+    }
   };
 
   if (loading) {

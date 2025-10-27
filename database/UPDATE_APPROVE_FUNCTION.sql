@@ -50,12 +50,16 @@ BEGIN
   v_lease_end := v_application.move_in_date + (lease_duration_months || ' months')::INTERVAL;
 
   -- Create tenant record
+  -- Philippine Rent Control Act (RA 9653) Compliance:
+  -- - Advance rent (deposit): Maximum 1 month
+  -- - Security deposit: Maximum 2 months
   INSERT INTO tenants (
     user_id,
     property_id,
     unit_number,
     monthly_rent,
     deposit,
+    security_deposit,
     lease_start,
     lease_end,
     status
@@ -64,7 +68,8 @@ BEGIN
     v_application.property_id,
     v_application.unit_number,
     v_property_monthly_rent,
-    v_property_monthly_rent * 2,  -- Default: 2 months rent as deposit
+    v_property_monthly_rent,      -- 1 month advance rent (RA 9653 compliant)
+    v_property_monthly_rent * 2,  -- 2 months security deposit (RA 9653 compliant)
     v_application.move_in_date,
     v_lease_end,
     'active'

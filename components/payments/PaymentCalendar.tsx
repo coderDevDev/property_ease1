@@ -2,8 +2,16 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CreditCard, Home, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Payment {
   id: string;
@@ -12,17 +20,23 @@ interface Payment {
   due_date: string;
   payment_status: string;
   late_fee?: number;
+  paid_date?: string;
+  payment_method?: string;
   property: {
     name: string;
+    address?: string;
   };
 }
 
 interface PaymentCalendarProps {
   payments: Payment[];
+  onPayNow?: (payment: Payment) => void;
 }
 
-export function PaymentCalendar({ payments }: PaymentCalendarProps) {
+export function PaymentCalendar({ payments, onPayNow }: PaymentCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedPayments, setSelectedPayments] = useState<Payment[]>([]);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -92,22 +106,42 @@ export function PaymentCalendar({ payments }: PaymentCalendarProps) {
       days.push(
         <div
           key={day}
-          className={`h-24 border border-gray-200 p-1 overflow-hidden hover:bg-gray-50 transition-colors ${
+          className={`h-24 border border-gray-200 p-1 overflow-hidden hover:bg-gray-50 transition-colors cursor-pointer ${
             isToday ? 'bg-blue-50 border-blue-300' : 'bg-white'
-          }`}>
+          }`}
+          onClick={() => {
+            if (dayPayments.length > 0) {
+              setSelectedPayments(dayPayments);
+              setShowDetailsDialog(true);
+            }
+          }}>
           <div className={`text-xs font-semibold mb-1 ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
             {day}
             {isToday && <span className="ml-1 text-[10px]">Today</span>}
           </div>
           <div className="space-y-0.5">
-            {dayPayments.slice(0, 2).map((payment) => (
-              <div
-                key={payment.id}
-                className={`${getStatusColor(payment)} text-white text-[10px] px-1 py-0.5 rounded truncate`}
-                title={`${payment.payment_type} - ${payment.property.name} (₱${payment.amount.toLocaleString()})`}>
-                {payment.payment_type === 'rent' ? '🏠' : '⚡'} ₱{(payment.amount / 1000).toFixed(1)}k
-              </div>
-            ))}
+            {dayPayments.slice(0, 2).map((payment) => {
+              const getPaymentIcon = (type: string) => {
+                switch (type) {
+                  case 'rent': return '🏠';
+                  case 'advance_rent': return '💰';
+                  case 'deposit': return '💰'; // Legacy support
+                  case 'security_deposit': return '🛡️';
+                  case 'utility': return '⚡';
+                  case 'penalty': return '⚠️';
+                  default: return '📄';
+                }
+              };
+              
+              return (
+                <div
+                  key={payment.id}
+                  className={`${getStatusColor(payment)} text-white text-[10px] px-1 py-0.5 rounded truncate`}
+                  title={`${payment.payment_type.replace('_', ' ')} - ${payment.property.name} (₱${payment.amount.toLocaleString()})`}>
+                  {getPaymentIcon(payment.payment_type)} ₱{(payment.amount / 1000).toFixed(1)}k
+                </div>
+              );
+            })}
             {dayPayments.length > 2 && (
               <div className="text-[10px] text-gray-600 font-medium">
                 +{dayPayments.length - 2} more
@@ -185,6 +219,126 @@ export function PaymentCalendar({ payments }: PaymentCalendarProps) {
           {renderCalendar()}
         </div>
       </CardContent>
+
+      {/* Payment Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5 text-blue-600" />
+              Payments on {selectedPayments.length > 0 && new Date(selectedPayments[0].due_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedPayments.length} payment{selectedPayments.length > 1 ? 's' : ''} due on this date
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 mt-4">
+            {selectedPayments.map((payment) => {
+              const getPaymentIcon = (type: string) => {
+                switch (type) {
+                  case 'rent': return '🏠';
+                  case 'advance_rent': return '💰';
+                  case 'deposit': return '💰';
+                  case 'security_deposit': return '🛡️';
+                  case 'utility': return '⚡';
+                  case 'penalty': return '⚠️';
+                  default: return '📄';
+                }
+              };
+
+              const getStatusBadge = (status: string) => {
+                switch (status) {
+                  case 'paid':
+                    return <Badge className="bg-green-500 text-white">Paid</Badge>;
+                  case 'pending':
+                    return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
+                  case 'overdue':
+                    return <Badge className="bg-red-500 text-white">Overdue</Badge>;
+                  default:
+                    return <Badge className="bg-gray-500 text-white">{status}</Badge>;
+                }
+              };
+
+              return (
+                <Card key={payment.id} className="border-2">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-2xl">{getPaymentIcon(payment.payment_type)}</span>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 capitalize">
+                              {payment.payment_type.replace('_', ' ')}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Home className="w-3 h-3 text-gray-500" />
+                              <p className="text-sm text-gray-600">{payment.property.name}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mt-3 text-sm">
+                          <div>
+                            <p className="text-gray-600">Amount</p>
+                            <p className="font-bold text-lg text-gray-900">
+                              ₱{payment.amount.toLocaleString()}
+                            </p>
+                          </div>
+                          
+                          {payment.late_fee && payment.late_fee > 0 && (
+                            <div>
+                              <p className="text-gray-600">Late Fee</p>
+                              <p className="font-semibold text-red-600">
+                                +₱{payment.late_fee.toLocaleString()}
+                              </p>
+                            </div>
+                          )}
+
+                          <div>
+                            <p className="text-gray-600">Status</p>
+                            <div className="mt-1">{getStatusBadge(payment.payment_status)}</div>
+                          </div>
+
+                          {payment.paid_date && (
+                            <div>
+                              <p className="text-gray-600">Paid On</p>
+                              <p className="font-medium text-green-600">
+                                {new Date(payment.paid_date).toLocaleDateString()}
+                              </p>
+                            </div>
+                          )}
+
+                          {payment.payment_method && (
+                            <div>
+                              <p className="text-gray-600">Method</p>
+                              <p className="font-medium text-gray-900 uppercase">
+                                {payment.payment_method}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {payment.payment_status === 'pending' && onPayNow && (
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700"
+                          onClick={() => {
+                            setShowDetailsDialog(false);
+                            onPayNow(payment);
+                          }}>
+                          Pay Now
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

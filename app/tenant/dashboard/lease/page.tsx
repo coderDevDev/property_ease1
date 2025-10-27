@@ -15,12 +15,16 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  RefreshCw,
+  XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TenantAPI } from '@/lib/api/tenant';
+import { LeaseRenewalsAPI } from '@/lib/api/lease-renewals';
 import { generateLeaseAgreementPDF } from '@/lib/pdf/leaseAgreementPDF';
 import { generatePaymentSchedulePDF } from '@/lib/pdf/paymentSchedulePDF';
+import { RequestRenewalDialog } from '@/components/tenant/RequestRenewalDialog';
 
 interface LeaseDocument {
   id: string;
@@ -43,6 +47,8 @@ interface LeasePayment {
 
 interface LeaseDetails {
   id: string;
+  tenant_id: string;
+  property_id: string;
   property_name: string;
   unit_number: string;
   lease_start: Date;
@@ -66,6 +72,9 @@ export default function LeasePage() {
   const { authState } = useAuth();
   const [loading, setLoading] = useState(true);
   const [lease, setLease] = useState<LeaseDetails | null>(null);
+  const [renewals, setRenewals] = useState<any[]>([]);
+  const [showRenewalDialog, setShowRenewalDialog] = useState(false);
+  const [tenantId, setTenantId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLeaseDetails = async () => {
@@ -77,6 +86,12 @@ export default function LeasePage() {
 
         if (result.success && result.data) {
           setLease(result.data);
+          // Get tenant ID from lease data
+          if (result.data.tenant_id) {
+            setTenantId(result.data.tenant_id);
+            // Fetch renewals
+            fetchRenewals(result.data.tenant_id);
+          }
         } else {
           toast.error('Failed to load lease details');
         }
@@ -90,6 +105,31 @@ export default function LeasePage() {
 
     fetchLeaseDetails();
   }, [authState.user?.id]);
+
+  const fetchRenewals = async (tid: string) => {
+    try {
+      const renewalsList = await LeaseRenewalsAPI.getTenantRenewals(tid);
+      setRenewals(renewalsList);
+    } catch (error) {
+      console.error('Error fetching renewals:', error);
+    }
+  };
+
+  const handleCancelRenewal = async (renewalId: string) => {
+    if (!tenantId) return;
+    
+    try {
+      const result = await LeaseRenewalsAPI.cancelRenewal(renewalId, tenantId);
+      if (result.success) {
+        toast.success('Renewal request cancelled');
+        fetchRenewals(tenantId);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error: any) {
+      toast.error('Failed to cancel renewal');
+    }
+  };
 
   const handleDownloadDocument = async (document: LeaseDocument) => {
     try {
@@ -275,6 +315,15 @@ export default function LeasePage() {
                     </>
                   )}
                 </Badge>
+                {isExpiringSoon && !renewals.find(r => r.status === 'pending') && tenantId && (
+                  <Button
+                    size="sm"
+                    onClick={() => setShowRenewalDialog(true)}
+                    className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-xs sm:text-sm">
+                    <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                    Request Renewal
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -287,6 +336,92 @@ export default function LeasePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Renewal Requests */}
+        {renewals.length > 0 && (
+          <Card className="bg-white/70 backdrop-blur-sm border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                </div>
+                Renewal Requests
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="space-y-3 sm:space-y-4">
+                {renewals.map((renewal) => (
+                  <div
+                    key={renewal.id}
+                    className="p-3 sm:p-4 bg-gray-50 rounded-lg border-l-4 border-purple-500">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge
+                            className={`${
+                              renewal.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : renewal.status === 'approved'
+                                ? 'bg-green-100 text-green-700'
+                                : renewal.status === 'rejected'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-gray-100 text-gray-700'
+                            } border-0 text-xs sm:text-sm`}>
+                            {renewal.status.toUpperCase()}
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            Submitted {new Date(renewal.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                          <div>
+                            <p className="text-gray-600">Duration:</p>
+                            <p className="font-medium text-gray-900">
+                              {renewal.duration_months} months
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Proposed Start:</p>
+                            <p className="font-medium text-gray-900">
+                              {new Date(renewal.proposed_lease_start).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Proposed Rent:</p>
+                            <p className="font-medium text-gray-900">
+                              ₱{renewal.proposed_rent.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        {renewal.tenant_notes && (
+                          <p className="text-sm text-gray-600 italic">
+                            Note: {renewal.tenant_notes}
+                          </p>
+                        )}
+                        {renewal.owner_notes && (
+                          <div className="p-2 bg-blue-50 rounded text-sm mt-2">
+                            <p className="font-medium text-blue-900">Owner Response:</p>
+                            <p className="text-blue-700">{renewal.owner_notes}</p>
+                          </div>
+                        )}
+                      </div>
+                      {renewal.status === 'pending' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCancelRenewal(renewal.id)}
+                          className="border-red-200 text-red-700 hover:bg-red-50 text-xs sm:text-sm">
+                          <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
@@ -601,6 +736,22 @@ export default function LeasePage() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Renewal Request Dialog */}
+        {showRenewalDialog && lease && tenantId && (
+          <RequestRenewalDialog
+            open={showRenewalDialog}
+            onClose={() => setShowRenewalDialog(false)}
+            onSuccess={() => {
+              if (tenantId) fetchRenewals(tenantId);
+            }}
+            tenantId={tenantId}
+            propertyId={lease.property_id}
+            currentLeaseEnd={lease.lease_end.toISOString().split('T')[0]}
+            currentRent={lease.monthly_rent}
+            propertyName={lease.property_name}
+          />
+        )}
       </div>
     </div>
   );

@@ -130,6 +130,9 @@ BEGIN
         WHERE id = application_id;
 
         -- Create tenant record
+        -- Philippine Rent Control Act (RA 9653) Compliance:
+        -- - Advance rent (deposit): Maximum 1 month
+        -- - Security deposit: Maximum 2 months
         INSERT INTO public.tenants (
             user_id,
             property_id,
@@ -148,8 +151,8 @@ BEGIN
             app_record.move_in_date,
             app_record.move_in_date + INTERVAL '1 year',
             app_record.monthly_rent,
-            app_record.monthly_rent * 2, -- 2 months deposit
-            app_record.monthly_rent, -- 1 month security deposit
+            app_record.monthly_rent, -- 1 month advance rent (RA 9653 compliant)
+            app_record.monthly_rent * 2, -- 2 months security deposit (RA 9653 compliant)
             'pending',
             app_record.move_in_date
         );

@@ -127,6 +127,30 @@ export default function NewTenantPage() {
       return;
     }
 
+    // Philippine Rent Control Act (RA 9653) Validation
+    const maxAdvanceRent = formData.monthly_rent; // Max 1 month
+    const maxSecurityDeposit = formData.monthly_rent * 2; // Max 2 months
+
+    if (formData.deposit > maxAdvanceRent) {
+      toast.error(
+        `Advance rent cannot exceed ₱${maxAdvanceRent.toLocaleString()}`,
+        {
+          description: 'Philippine Rent Control Act (RA 9653) limits advance rent to 1 month'
+        }
+      );
+      return;
+    }
+
+    if (formData.security_deposit > maxSecurityDeposit) {
+      toast.error(
+        `Security deposit cannot exceed ₱${maxSecurityDeposit.toLocaleString()}`,
+        {
+          description: 'Philippine Rent Control Act (RA 9653) limits security deposits to 2 months rent'
+        }
+      );
+      return;
+    }
+
     try {
       setIsLoading(true);
       const result = await TenantsAPI.createTenant(formData);
@@ -473,6 +497,43 @@ export default function NewTenantPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6 pt-0">
+                {/* RA 9653 Compliance Banner */}
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Shield className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-semibold text-blue-900 text-sm mb-1">
+                        Philippine Rent Control Act (RA 9653) Compliance
+                      </h4>
+                      <p className="text-sm text-blue-700 mb-2">
+                        Legal limits on upfront payments:
+                      </p>
+                      <ul className="text-sm text-blue-800 space-y-1">
+                        <li>• <strong>Advance Rent:</strong> Maximum 1 month (covers first month)</li>
+                        <li>• <strong>Security Deposit:</strong> Maximum 2 months (refundable)</li>
+                        <li>• <strong>Total Upfront:</strong> Maximum 3 months rent equivalent</li>
+                      </ul>
+                      {formData.monthly_rent > 0 && (
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                          <p className="text-sm text-blue-900 font-medium">
+                            Based on monthly rent of ₱{formData.monthly_rent.toLocaleString()}:
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                            <div className="bg-white/50 p-2 rounded">
+                              <span className="text-blue-600">Max Advance:</span>
+                              <span className="ml-1 font-semibold">₱{formData.monthly_rent.toLocaleString()}</span>
+                            </div>
+                            <div className="bg-white/50 p-2 rounded">
+                              <span className="text-blue-600">Max Deposit:</span>
+                              <span className="ml-1 font-semibold">₱{(formData.monthly_rent * 2).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <Label
@@ -499,27 +560,84 @@ export default function NewTenantPage() {
                   </div>
                   <div>
                     <Label
-                      htmlFor="security_deposit"
+                      htmlFor="deposit"
                       className="text-sm font-medium text-gray-700">
-                      Security Deposit (PHP)
+                      Advance Rent (PHP)
+                      <span className="text-xs text-gray-500 ml-1">(Max 1 month)</span>
                     </Label>
                     <Input
-                      id="security_deposit"
+                      id="deposit"
                       type="number"
-                      value={formData.security_deposit || ''}
+                      value={formData.deposit || ''}
                       onChange={e =>
                         handleInputChange(
-                          'security_deposit',
+                          'deposit',
                           parseFloat(e.target.value) || 0
                         )
                       }
-                      placeholder="30000"
+                      placeholder={formData.monthly_rent > 0 ? formData.monthly_rent.toString() : '15000'}
                       className="mt-1 text-sm sm:text-base"
                       min="0"
+                      max={formData.monthly_rent || undefined}
                       step="0.01"
                     />
+                    {formData.monthly_rent > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Legal maximum: ₱{formData.monthly_rent.toLocaleString()}
+                      </p>
+                    )}
                   </div>
                 </div>
+
+                <div>
+                  <Label
+                    htmlFor="security_deposit"
+                    className="text-sm font-medium text-gray-700">
+                    Security Deposit (PHP)
+                    <span className="text-xs text-gray-500 ml-1">(Max 2 months)</span>
+                  </Label>
+                  <Input
+                    id="security_deposit"
+                    type="number"
+                    value={formData.security_deposit || ''}
+                    onChange={e =>
+                      handleInputChange(
+                        'security_deposit',
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    placeholder={formData.monthly_rent > 0 ? (formData.monthly_rent * 2).toString() : '30000'}
+                    className="mt-1 text-sm sm:text-base"
+                    min="0"
+                    max={formData.monthly_rent ? formData.monthly_rent * 2 : undefined}
+                    step="0.01"
+                  />
+                  {formData.monthly_rent > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Legal maximum: ₱{(formData.monthly_rent * 2).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                {formData.monthly_rent > 0 && (formData.deposit > 0 || formData.security_deposit > 0) && (
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <h5 className="text-sm font-semibold text-gray-900 mb-2">Total Upfront Payment</h5>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Advance Rent:</span>
+                        <span className="font-medium">₱{(formData.deposit || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Security Deposit:</span>
+                        <span className="font-medium">₱{(formData.security_deposit || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-gray-300">
+                        <span className="font-semibold text-gray-900">Total:</span>
+                        <span className="font-bold text-blue-600">₱{((formData.deposit || 0) + (formData.security_deposit || 0)).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -139,7 +139,7 @@ export class UtilitiesAPI {
         .select(`
           *,
           property:properties(id, name, address),
-          tenant:tenants(id, user:users(id, full_name, email))
+          tenant:tenants(id, user:users(id, first_name, last_name, email))
         `)
         .eq('tenant_id', tenantId)
         .order('due_date', { ascending: false });
@@ -182,7 +182,7 @@ export class UtilitiesAPI {
         .select(`
           *,
           property:properties(id, name, address),
-          tenant:tenants(id, user:users(id, full_name, email))
+          tenant:tenants(id, user:users(id, first_name, last_name, email))
         `)
         .eq('id', billId)
         .single();
@@ -209,7 +209,7 @@ export class UtilitiesAPI {
         .select(`
           *,
           property:properties!inner(id, name, address, owner_id),
-          tenant:tenants(id, user:users(id, full_name, email, phone))
+          tenant:tenants(id, user:users(id, first_name, last_name, email, phone))
         `)
         .eq('property.owner_id', ownerId)
         .order('created_at', { ascending: false });
@@ -231,7 +231,7 @@ export class UtilitiesAPI {
         .from('utility_bills')
         .select(`
           *,
-          tenant:tenants(id, user:users(id, full_name, email))
+          tenant:tenants(id, user:users(id, first_name, last_name, email))
         `)
         .eq('property_id', propertyId)
         .order('billing_period_start', { ascending: false });
@@ -257,6 +257,20 @@ export class UtilitiesAPI {
         };
       }
 
+      // Calculate consumption and charges
+      const consumption = params.currentReading && params.previousReading
+        ? params.currentReading - params.previousReading
+        : null;
+
+      const consumptionCharge = consumption && params.ratePerUnit
+        ? consumption * params.ratePerUnit
+        : 0;
+
+      const totalAmount = 
+        (params.baseCharge || 0) + 
+        consumptionCharge + 
+        (params.additionalCharges || 0);
+
       const { data, error } = await supabase
         .from('utility_bills')
         .insert({
@@ -269,10 +283,14 @@ export class UtilitiesAPI {
           due_date: params.dueDate,
           previous_reading: params.previousReading,
           current_reading: params.currentReading,
+          consumption: consumption,
           unit: params.unit,
           rate_per_unit: params.ratePerUnit,
           base_charge: params.baseCharge || 0,
+          consumption_charge: consumptionCharge,
           additional_charges: params.additionalCharges || 0,
+          total_amount: totalAmount,
+          payment_status: 'pending',
           bill_image_url: params.billImageUrl,
           notes: params.notes,
         })
@@ -280,6 +298,27 @@ export class UtilitiesAPI {
         .single();
 
       if (error) throw error;
+
+      // Create corresponding payment record if tenant is assigned
+      if (data && params.tenantId) {
+        const { error: paymentError } = await supabase
+          .from('payments')
+          .insert({
+            tenant_id: params.tenantId,
+            property_id: params.propertyId,
+            payment_type: 'utility',
+            amount: totalAmount,
+            due_date: params.dueDate,
+            payment_status: 'pending',
+            created_by: params.createdBy,
+            notes: `${params.billType} utility bill - ${params.billingPeriodStart} to ${params.billingPeriodEnd}`,
+          });
+
+        if (paymentError) {
+          console.error('Error creating payment record:', paymentError);
+          // Don't fail the whole operation, just log
+        }
+      }
 
       return {
         success: true,

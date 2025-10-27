@@ -62,9 +62,13 @@ export default function OwnerAdvancePaymentsPage() {
   };
 
   const filteredPayments = payments.filter(payment => {
+    const tenantName = payment.tenant?.user 
+      ? `${payment.tenant.user.first_name} ${payment.tenant.user.last_name}`.toLowerCase()
+      : '';
+    
     const matchesSearch = 
       payment.property?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.tenant?.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      tenantName.includes(searchTerm.toLowerCase());
     
     const matchesStatus = filterStatus === 'all' || payment.status === filterStatus;
     
@@ -219,7 +223,9 @@ export default function OwnerAdvancePaymentsPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-gray-600 mb-1">
-                        Tenant: {payment.tenant?.user?.full_name || 'No tenant'}
+                        Tenant: {payment.tenant?.user 
+                          ? `${payment.tenant.user.first_name} ${payment.tenant.user.last_name}`
+                          : 'No tenant'}
                       </p>
                       <p className="text-xs text-gray-500">
                         {payment.months_covered} months • {new Date(payment.start_month).toLocaleDateString()} - {new Date(payment.end_month).toLocaleDateString()}

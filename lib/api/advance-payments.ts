@@ -92,7 +92,7 @@ export class AdvancePaymentsAPI {
         .select(`
           *,
           property:properties(id, name, address),
-          tenant:tenants(id, user:users(id, full_name, email))
+          tenant:tenants(id, user:users(id, first_name, last_name, email))
         `)
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
@@ -167,7 +167,7 @@ export class AdvancePaymentsAPI {
         .select(`
           *,
           property:properties!inner(id, name, address, owner_id),
-          tenant:tenants(id, user:users(id, full_name, email, phone))
+          tenant:tenants(id, user:users(id, first_name, last_name, email, phone))
         `)
         .eq('property.owner_id', ownerId)
         .order('created_at', { ascending: false });
@@ -195,22 +195,63 @@ export class AdvancePaymentsAPI {
         };
       }
 
-      // Calculate end month
-      const startDate = new Date(params.startMonth);
-      const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + params.monthsCovered - 1);
+      // Calculate start and end months safely from YYYY-MM
+      // Parse startMonth in the format YYYY-MM and construct proper Date objects
+      const [startYearStr, startMonthStr] = params.startMonth.split('-');
+      const startYear = Number(startYearStr);
+      const startMonthIndex = Number(startMonthStr) - 1; // 0-indexed month
 
+      const startDate = new Date(startYear, startMonthIndex, 1);
+      // End month is the last covered month start (inclusive)
+      const endDate = new Date(startYear, startMonthIndex + params.monthsCovered - 1, 1);
+
+      // Format as YYYY-MM-01 for DATE columns
+      const startMonthDateStr = `${startDate.getFullYear()}-${String(
+        startDate.getMonth() + 1
+      ).padStart(2, '0')}-01`;
+      const endMonthDateStr = `${endDate.getFullYear()}-${String(
+        endDate.getMonth() + 1
+      ).padStart(2, '0')}-01`;
+
+      // Get current user ID for created_by
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not authenticated',
+        };
+      }
+
+      // First, create a payment record
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          tenant_id: params.tenantId,
+          property_id: params.propertyId,
+          amount: params.totalAmount,
+          due_date: startMonthDateStr,
+          payment_type: 'deposit', // Using deposit type for advance payments
+          payment_status: 'pending',
+          notes: params.notes || `Advance payment for ${params.monthsCovered} months`,
+          created_by: user.id, // Add the required created_by field
+        })
+        .select()
+        .single();
+
+      if (paymentError) throw paymentError;
+
+      // Then create the advance payment record linked to the payment
       const { data, error } = await supabase
         .from('advance_payments')
         .insert({
           tenant_id: params.tenantId,
           property_id: params.propertyId,
-          payment_id: params.paymentId,
+          payment_id: paymentData.id, // Link to the payment record
           total_amount: params.totalAmount,
           remaining_balance: params.totalAmount,
           months_covered: params.monthsCovered,
-          start_month: params.startMonth,
-          end_month: endDate.toISOString().split('T')[0],
+          start_month: startMonthDateStr,
+          end_month: endMonthDateStr,
           notes: params.notes,
         })
         .select()
@@ -495,7 +536,7 @@ export class AdvancePaymentsAPI {
         .select(`
           *,
           property:properties(id, name, address),
-          tenant:tenants(id, user:users(id, full_name, email))
+          tenant:tenants(id, user:users(id, first_name, last_name, email))
         `)
         .eq('id', advancePaymentId)
         .single();

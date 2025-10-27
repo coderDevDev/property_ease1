@@ -49,7 +49,8 @@ import {
   Phone,
   Mail,
   Trash2,
-  PhilippinePeso
+  PhilippinePeso,
+  Plus,
 } from 'lucide-react';
 import { MaintenanceAPI } from '@/lib/api/maintenance';
 import { PropertiesAPI } from '@/lib/api/properties';

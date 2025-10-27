@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
       payer_email: customer_email,
       description: description || 'Property Payment',
       invoice_duration: 86400, // 24 hours
-      success_redirect_url: `${baseUrl}/tenant/dashboard/payments?payment=success`,
-      failure_redirect_url: `${baseUrl}/tenant/dashboard/payments?payment=failed`,
+      success_redirect_url: `${baseUrl}/tenant/dashboard/payments?payment=success&payment_id=${payment_id}`,
+      failure_redirect_url: `${baseUrl}/tenant/dashboard/payments?payment=failed&payment_id=${payment_id}`,
       currency: 'PHP',
       items: [
         {

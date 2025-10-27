@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Zap, Search, Plus, Eye, Trash2, DollarSign, AlertCircle } from 'lucide-react';
+import { Zap, Search, Plus, Eye, Trash2, DollarSign, AlertCircle, Clock, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreateBillDialog } from '@/components/owner/CreateBillDialog';
 import { ViewBillDialog } from '@/components/owner/ViewBillDialog';
@@ -85,10 +85,14 @@ export default function OwnerUtilityBillsPage() {
   };
 
   const filteredBills = bills.filter(bill => {
+    const tenantName = bill.tenant?.user 
+      ? `${bill.tenant.user.first_name} ${bill.tenant.user.last_name}`.toLowerCase()
+      : '';
+    
     const matchesSearch = 
       bill.bill_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
       bill.property?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bill.tenant?.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      tenantName.includes(searchTerm.toLowerCase());
     
     const matchesStatus = filterStatus === 'all' || bill.payment_status === filterStatus;
     
@@ -118,69 +122,103 @@ export default function OwnerUtilityBillsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Zap className="h-8 w-8 text-blue-600" />
-            Utility Bills
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Manage utility bills for your properties
-          </p>
+      <div className="bg-gradient-to-r from-white to-blue-50/50 shadow-sm border-b border-blue-100">
+        <div className="px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent flex items-center gap-2">
+                <Zap className="h-6 h-6 sm:h-8 sm:w-8 text-blue-600" />
+                Utility Bills
+              </h1>
+              <p className="text-blue-600/80 font-medium text-sm sm:text-base mt-1">
+                Manage utility bills for your properties
+              </p>
+            </div>
+            <Button 
+              onClick={() => setShowCreateDialog(true)}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Bill
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Bill
-        </Button>
       </div>
 
+      <div className="p-3 sm:p-4 lg:p-6 space-y-6">
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
-              <p className="text-sm text-gray-600">Total Bills</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600">Total Bills</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-              <p className="text-sm text-gray-600">Pending</p>
+        <Card className="bg-white/70 backdrop-blur-sm border-yellow-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600">Pending</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.pending}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">{stats.paid}</p>
-              <p className="text-sm text-gray-600">Paid</p>
+        <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600">Paid</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.paid}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
-              <p className="text-sm text-gray-600">Overdue</p>
+        <Card className="bg-white/70 backdrop-blur-sm border-red-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600">Overdue</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.overdue}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <p className="text-xl font-bold text-blue-600">
-                ₱{stats.pendingAmount.toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-600">Pending Amount</p>
+        <Card className="bg-white/70 backdrop-blur-sm border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600">Pending Amount</p>
+                <p className="text-lg sm:text-xl font-bold text-gray-900">
+                  ₱{stats.pendingAmount.toLocaleString()}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -275,7 +313,9 @@ export default function OwnerUtilityBillsPage() {
                           {bill.property?.name || 'Unknown Property'}
                         </p>
                         <p className="text-sm text-gray-500">
-                          Tenant: {bill.tenant?.user?.full_name || 'No tenant assigned'}
+                          Tenant: {bill.tenant?.user 
+                            ? `${bill.tenant.user.first_name} ${bill.tenant.user.last_name}`
+                            : 'No tenant assigned'}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           Period: {new Date(bill.billing_period_start).toLocaleDateString()} - {new Date(bill.billing_period_end).toLocaleDateString()}
@@ -369,6 +409,7 @@ export default function OwnerUtilityBillsPage() {
           onUpdate={fetchBills}
         />
       )}
+      </div>
     </div>
   );
 }

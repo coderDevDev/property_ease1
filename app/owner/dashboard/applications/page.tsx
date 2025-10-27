@@ -43,7 +43,8 @@ import {
   Eye,
   LayoutGrid,
   Table2,
-  Trash2
+  Trash2,
+  Shield 
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -51,6 +52,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { generateLeaseAgreementPDF } from '@/lib/pdf/leaseAgreementPDF';
 
 interface Application {
   id: string;
@@ -377,6 +379,103 @@ export default function OwnerApplicationsPage() {
     } catch (error) {
       console.error('Failed to download document:', error);
       toast.error('Failed to download document');
+    }
+  };
+
+  const handleDownloadLease = async (application: Application) => {
+    if (application.status !== 'approved') {
+      toast.error('Lease agreement is only available for approved applications');
+      return;
+    }
+
+    try {
+      // Fetch tenant record with complete data
+      // Get the most recent active tenant record for this user and property
+      const { data: tenants, error } = await supabase
+        .from('tenants')
+        .select(
+          `
+          *,
+          user:users!tenants_user_id_fkey(
+            first_name,
+            last_name,
+            email,
+            phone
+          ),
+          property:properties(
+            name,
+            address,
+            city,
+            type,
+            amenities
+          )
+        `
+        )
+        .eq('user_id', application.user_id)
+        .eq('property_id', application.property_id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error || !tenants || tenants.length === 0) {
+        toast.error('Failed to load lease details');
+        console.error('Tenant fetch error:', error);
+        return;
+      }
+
+      const tenant = tenants[0];
+
+      // Calculate lease duration in months
+      const leaseStart = new Date(tenant.lease_start);
+      const leaseEnd = new Date(tenant.lease_end);
+      const monthsDiff =
+        (leaseEnd.getFullYear() - leaseStart.getFullYear()) * 12 +
+        (leaseEnd.getMonth() - leaseStart.getMonth());
+
+      const property = tenant.property as any;
+      const user = tenant.user as any;
+
+      const leaseData = {
+        tenantName: user
+          ? `${user.first_name} ${user.last_name}`
+          : application.user_name,
+        tenantEmail: user?.email || application.user_email,
+        tenantPhone: user?.phone || application.user_phone,
+        ownerName:
+          authState.user?.firstName + ' ' + authState.user?.lastName ||
+          'Property Owner',
+        ownerEmail: authState.user?.email || '',
+        ownerPhone: authState.user?.phone || '',
+        propertyName: property?.name || application.property_name,
+        propertyAddress: property?.address || '',
+        propertyCity: property?.city || '',
+        propertyType: property?.type || '',
+        unitNumber: tenant.unit_number || application.unit_number,
+        leaseStart: tenant.lease_start,
+        leaseEnd: tenant.lease_end,
+        leaseDuration: monthsDiff,
+        monthlyRent: parseFloat(tenant.monthly_rent),
+        securityDeposit: parseFloat(
+          tenant.security_deposit || tenant.monthly_rent * 2
+        ),
+        paymentDueDay: 5,
+        terms: [
+          'Tenant shall pay rent on or before the 5th day of each month.',
+          'A late fee of ₱500 or 5% of the monthly rent (whichever is higher) will be charged after 3 days.',
+          'The security deposit will be refunded at the end of the lease term, subject to property inspection.',
+          'Tenant is responsible for maintaining the property in good condition.',
+          'Tenant must notify the landlord of any maintenance issues promptly.',
+          'Subletting is not allowed without prior written consent from the landlord.',
+          'Tenant must comply with all building rules and regulations.',
+          'Either party may terminate this agreement with 30 days written notice.'
+        ],
+        amenities: property?.amenities || []
+      };
+
+      generateLeaseAgreementPDF(leaseData);
+      toast.success('Lease agreement downloaded!');
+    } catch (error) {
+      console.error('Download lease error:', error);
+      toast.error('Failed to generate lease agreement');
     }
   };
 
@@ -990,6 +1089,21 @@ export default function OwnerApplicationsPage() {
                 </div>
               )}
 
+              {/* Download Lease Button for Approved Applications */}
+              {selectedApplication.status === 'approved' && (
+                <div className="pt-4">
+                  <Button
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                    onClick={() => handleDownloadLease(selectedApplication)}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Lease Agreement
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Download the signed lease agreement with correct dates and terms
+                  </p>
+                </div>
+              )}
+
               {/* Delete Button */}
               <div className="pt-4 border-t">
                 <Button
@@ -1153,6 +1267,43 @@ export default function OwnerApplicationsPage() {
                 </Select>
               </div>
 
+              {/* RA 9653 Deposit Information */}
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Upfront Payment (RA 9653 Compliant)
+                </h4>
+                <p className="text-xs text-blue-700 mb-3">
+                  Philippine Rent Control Act limits: 1 month advance + 2 months security deposit
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-700">Advance Rent (1 month):</span>
+                    <span className="font-semibold text-blue-900">
+                      ₱{selectedApplication.monthly_rent.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-700">Security Deposit (2 months):</span>
+                    <span className="font-semibold text-blue-900">
+                      ₱{(selectedApplication.monthly_rent * 2).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-blue-300">
+                    <span className="text-blue-900 font-semibold">Total Upfront Payment:</span>
+                    <span className="font-bold text-lg text-blue-900">
+                      ₱{(selectedApplication.monthly_rent * 3).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <p className="text-xs text-blue-600">
+                    ✓ Advance rent covers the first month of tenancy<br/>
+                    ✓ Security deposit is refundable (minus damages/unpaid bills)
+                  </p>
+                </div>
+              </div>
+
               {/* Lease Summary Preview */}
               <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
                 <h4 className="font-medium text-green-900 mb-3 flex items-center gap-2">
@@ -1234,7 +1385,19 @@ export default function OwnerApplicationsPage() {
                 <ul className="space-y-1 text-sm text-yellow-800">
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 mt-0.5 text-yellow-600" />
-                    <span>Tenant record will be created</span>
+                    <span>Tenant record will be created with RA 9653 compliant deposits</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-yellow-600" />
+                    <span>
+                      Advance rent: ₱{selectedApplication.monthly_rent.toLocaleString()} (1 month)
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-yellow-600" />
+                    <span>
+                      Security deposit: ₱{(selectedApplication.monthly_rent * 2).toLocaleString()} (2 months)
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 mt-0.5 text-yellow-600" />

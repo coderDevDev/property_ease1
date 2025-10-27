@@ -152,9 +152,13 @@ export function PaymentTimeline({ payments, daysAhead = 30, onPayNow }: PaymentT
                               <p className="text-lg font-bold text-gray-900">
                                 ₱{payment.amount.toLocaleString()}
                               </p>
-                              {payment.late_fee && payment.late_fee > 0 && (
+                              {payment.late_fee && payment.late_fee > 0 ? (
                                 <p className="text-xs text-red-600 font-medium">
                                   +₱{payment.late_fee.toLocaleString()} late fee
+                                </p>
+                              ) : (
+                                <p className="text-xs text-gray-600 font-medium">
+                                 
                                 </p>
                               )}
                             </div>
