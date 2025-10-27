@@ -1,12 +1,22 @@
 # 🏠 Complete Workflow Guide - Tenant & Owner Journey
 
 ## Overview
-This guide explains the **complete lifecycle** of a tenant-owner relationship in PropertyEase, from property search to move-out.
+This guide explains the **complete lifecycle** of a tenant-owner relationship in PropertyEase, from property search to move-out. The process involves multiple stages where both tenants and owners interact through the platform.
 
 ---
 
 ## 📍 **THE COMPLETE JOURNEY**
 
+### Tenant Journey
+[View Tenant Journey Diagram](../diagrams/tenant_journey.md)
+
+### Owner Workflow
+[View Owner Workflow Diagram](../diagrams/owner_workflow.md)
+
+### Tenant-Owner Interaction
+[View Interaction Diagram](../diagrams/tenant_owner_interaction.md)
+
+### Process Flow
 ```
 1. TENANT SEARCHES → 2. APPLIES → 3. OWNER APPROVES → 4. LEASE STARTS
                                                               ↓
@@ -20,7 +30,7 @@ This guide explains the **complete lifecycle** of a tenant-owner relationship in
                                                               ↓
                                                     9. MOVE-OUT INSPECTION
                                                               ↓
-                                                    10. DEPOSIT REFUND
+                                                   10. DEPOSIT REFUND
 ```
 
 ---
