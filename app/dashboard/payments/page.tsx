@@ -49,7 +49,10 @@ import {
   AlertCircle,
   PhilippinePeso,
   RefreshCw,
-  X
+  X,
+  Eye,
+  Download,
+  FileCheck
 } from 'lucide-react';
 import { AdminAPI } from '@/lib/api/admin';
 import { toast } from 'sonner';
@@ -72,13 +75,13 @@ interface Payment {
 
 interface PaymentWithDetails extends Payment {
   tenant: {
-    first_name: string;
-    last_name: string;
-    email: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
   } | null;
   property: {
-    name: string;
-    address: string;
+    name?: string;
+    address?: string;
   } | null;
 }
 
@@ -137,16 +140,17 @@ export default function PaymentsPage() {
   const filteredPayments = payments.filter(payment => {
     const matchesSearch =
       payment.tenant?.first_name
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       payment.tenant?.last_name
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      payment.tenant?.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.property?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.tenant?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.property?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.reference_number
         ?.toLowerCase()
-        .includes(searchTerm.toLowerCase());
+        .includes(searchTerm.toLowerCase()) ||
+      !searchTerm; // If no search term, include all
 
     const matchesType = typeFilter === 'all' || payment.type === typeFilter;
     const matchesMethod =
@@ -410,6 +414,7 @@ export default function PaymentsPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Due Date</TableHead>
                   <TableHead>Paid Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -417,6 +422,8 @@ export default function PaymentsPage() {
                   <TableRow key={payment.id}>
                     <TableCell>
                       <div>
+
+                        {console.log({payment})}
                         {payment.reference_number && (
                           <div className="font-medium text-gray-900">
                             #{payment.reference_number}
@@ -437,11 +444,11 @@ export default function PaymentsPage() {
                       {payment.tenant ? (
                         <div>
                           <div className="font-medium text-gray-900">
-                            {payment.tenant.first_name}{' '}
-                            {payment.tenant.last_name}
+                            {payment.tenant.first_name || 'N/A'}{' '}
+                            {payment.tenant.last_name || ''}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {payment.tenant.email}
+                            {payment.tenant.email || 'No email'}
                           </div>
                         </div>
                       ) : (
@@ -452,10 +459,10 @@ export default function PaymentsPage() {
                       {payment.property ? (
                         <div>
                           <div className="font-medium text-gray-900">
-                            {payment.property.name}
+                            {payment.property.name || 'Unnamed Property'}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {payment.property.address}
+                            {payment.property.address || 'No address'}
                           </div>
                         </div>
                       ) : (
@@ -513,6 +520,47 @@ export default function PaymentsPage() {
                       ) : (
                         <span className="text-gray-500">-</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          title="View Details"
+                          onClick={() => {
+                            // Navigate to payment details or open dialog
+                            window.open(`/dashboard/payments/${payment.id}`, '_blank');
+                          }}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        {payment.status === 'completed' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                            title="Mark as Verified"
+                            onClick={() => {
+                              toast.success('Payment marked as verified');
+                            }}>
+                            <FileCheck className="w-4 h-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                          title="Export Receipt"
+                          onClick={() => {
+                            if (payment.receipt_url) {
+                              window.open(payment.receipt_url, '_blank');
+                            } else {
+                              toast.info('No receipt available');
+                            }
+                          }}>
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

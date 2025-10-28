@@ -137,8 +137,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message:
-        'Registration successful! Please check your email to verify your account.',
+      message: 'Registration successful! .',
       user: {
         id: authData.user.id,
         email: authData.user.email,

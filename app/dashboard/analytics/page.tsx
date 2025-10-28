@@ -258,76 +258,91 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Analytics & Reporting
-          </h1>
-          <p className="text-gray-600">
-            Comprehensive system analytics and insights
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              Analytics & Reporting
+            </h1>
+            <p className="text-blue-600/70 mt-1 text-sm sm:text-base">
+              Comprehensive system analytics and insights
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Time Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+                <SelectItem value="1y">Last year</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={loadAnalytics}
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+              className="bg-white/70 backdrop-blur-sm border-blue-200/50 hover:bg-white">
+              <RefreshCw
+                className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+              />
+              {isLoading ? 'Loading...' : 'Refresh'}
+            </Button>
+            <Button
+              size="sm"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              onClick={() => toast.info('Export functionality coming soon!')}>
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Time Range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="1y">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            onClick={loadAnalytics}
-            variant="outline"
-            size="sm"
-            disabled={isLoading}>
-            <RefreshCw
-              className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
-            />
-            {isLoading ? 'Loading...' : 'Refresh'}
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => toast.info('Export functionality coming soon!')}>
-            <Download className="w-4 h-4 mr-2" />
-            Export Report
-          </Button>
-        </div>
-      </div>
 
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="revenue">Revenue</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="properties">Properties</TabsTrigger>
-          <TabsTrigger value="operations">Operations</TabsTrigger>
+        className="space-y-4 sm:space-y-6">
+        <TabsList className="bg-white/70 backdrop-blur-sm border-blue-200/50 grid w-full grid-cols-5">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="revenue" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            Revenue
+          </TabsTrigger>
+          <TabsTrigger value="users" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            Users
+          </TabsTrigger>
+          <TabsTrigger value="properties" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            Properties
+          </TabsTrigger>
+          <TabsTrigger value="operations" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            Operations
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-4 sm:space-y-6">
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-blue-100">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  Total Revenue
-                </CardTitle>
-                <PhilippinePeso className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(analytics.revenue.total)}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <PhilippinePeso className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                      ₱{(analytics.revenue.total / 1000).toFixed(0)}K
+                    </p>
+                    <p className="text-xs sm:text-sm text-gray-600">Total Revenue</p>
+                  </div>
                 </div>
-                <div className="flex items-center mt-1">
+                <div className="flex items-center mt-2">
                   {getTrendIcon(
                     analytics.revenue.trend,
                     analytics.revenue.growth
@@ -337,82 +352,87 @@ export default function AnalyticsPage() {
                       analytics.revenue.growth
                     )}`}>
                     {analytics.revenue.growth > 0 ? '+' : ''}
-                    {analytics.revenue.growth}% from last period
+                    {analytics.revenue.growth}%
                   </span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-blue-100">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  Active Users
-                </CardTitle>
-                <Users className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
-                  {analytics.users.active.toLocaleString()}
+            <Card className="bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                      {analytics.users.active.toLocaleString()}
+                    </p>
+                    <p className="text-xs sm:text-sm text-gray-600">Active Users</p>
+                  </div>
                 </div>
-                <div className="flex items-center mt-1">
+                <div className="flex items-center mt-2">
                   {getTrendIcon('up', analytics.users.growth)}
                   <span
                     className={`text-xs ml-1 ${getTrendColor(
                       analytics.users.growth
                     )}`}>
-                    +{analytics.users.growth}% growth
+                    +{analytics.users.growth}%
                   </span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-blue-100">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  Occupancy Rate
-                </CardTitle>
-                <Building2 className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
-                  {analytics.properties.occupancyRate}%
+            <Card className="bg-white/70 backdrop-blur-sm border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                      {analytics.properties.occupancyRate}%
+                    </p>
+                    <p className="text-xs sm:text-sm text-gray-600">Occupancy</p>
+                  </div>
                 </div>
-                <div className="flex items-center mt-1">
+                <div className="flex items-center mt-2">
                   {getTrendIcon('up', analytics.properties.growth)}
                   <span
                     className={`text-xs ml-1 ${getTrendColor(
                       analytics.properties.growth
                     )}`}>
-                    +{analytics.properties.growth}% from last period
+                    +{analytics.properties.growth}%
                   </span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-blue-100">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  Payment Success
-                </CardTitle>
-                <Target className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
-                  {analytics.payments.successRate}%
+            <Card className="bg-white/70 backdrop-blur-sm border-cyan-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center">
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                      {analytics.payments.successRate}%
+                    </p>
+                    <p className="text-xs sm:text-sm text-gray-600">Success Rate</p>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-600 mt-1">
-                  {analytics.payments.successful} of {analytics.payments.total}{' '}
-                  payments
+                <p className="text-xs text-gray-500 mt-2">
+                  {analytics.payments.successful} of {analytics.payments.total}
                 </p>
               </CardContent>
             </Card>
           </div>
 
           {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-blue-700">
                   <PieChart className="w-5 h-5" />
                   User Distribution
                 </CardTitle>
@@ -487,9 +507,9 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-blue-700">
                   <BarChart3 className="w-5 h-5" />
                   Top Performing Cities
                 </CardTitle>
@@ -796,6 +816,7 @@ export default function AnalyticsPage() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

@@ -74,7 +74,12 @@ export function MessageForm({
           role
         );
         if (result.success) {
-          setAvailableRecipients(result.data || []);
+          // Remove duplicates based on ID
+          const uniqueRecipients = (result.data || []).filter(
+            (recipient, index, self) =>
+              index === self.findIndex(r => r.id === recipient.id)
+          );
+          setAvailableRecipients(uniqueRecipients);
         }
       } catch (error) {
         console.error('Failed to load recipients:', error);

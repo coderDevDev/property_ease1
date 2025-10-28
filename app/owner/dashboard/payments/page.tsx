@@ -51,6 +51,7 @@ import { PropertiesAPI } from '@/lib/api/properties';
 import { PaymentCard } from '@/components/payments/payment-card';
 import { PaymentFilters } from '@/components/payments/payment-filters';
 import { PaymentForm } from '@/components/payments/payment-form';
+import { PaymentDetailsModal } from '@/components/payments/payment-details-modal';
 import { toast } from 'sonner';
 
 interface Property {
@@ -89,6 +90,7 @@ export default function OwnerPaymentsPage() {
   const [selectedPayment, setSelectedPayment] =
     useState<PaymentWithDetails | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   // Load data
   useEffect(() => {
@@ -141,17 +143,21 @@ export default function OwnerPaymentsPage() {
   // Filter payments
   const filteredPayments = payments.filter(payment => {
     const matchesSearch =
-      payment.payment_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.tenant.user.first_name
-        .toLowerCase()
+      payment.payment_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.tenant?.user?.first_name
+        ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      payment.tenant.user.last_name
-        .toLowerCase()
+      payment.tenant?.user?.last_name
+        ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      payment.property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.tenant?.user?.email
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      payment.property?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.reference_number
         ?.toLowerCase()
-        .includes(searchTerm.toLowerCase());
+        .includes(searchTerm.toLowerCase()) ||
+      !searchTerm;
 
     const matchesStatus =
       filterStatus === 'all' || payment.payment_status === filterStatus;
@@ -201,7 +207,8 @@ export default function OwnerPaymentsPage() {
 
   // Handle view payment
   const handleViewPayment = (payment: PaymentWithDetails) => {
-    router.push(`/owner/dashboard/payments/${payment.id}`);
+    setSelectedPayment(payment);
+    setIsDetailsModalOpen(true);
   };
 
   // Handle edit payment
@@ -601,21 +608,26 @@ export default function OwnerPaymentsPage() {
                       <TableCell className="p-3 sm:p-4 hidden sm:table-cell">
                         <div>
                           <p className="font-medium text-gray-900 text-xs sm:text-sm">
-                            {payment.tenant.user.first_name}{' '}
-                            {payment.tenant.user.last_name}
+                            {payment.tenant?.user?.first_name || 'N/A'}{' '}
+                            {payment.tenant?.user?.last_name || ''}
                           </p>
                           <p className="text-xs text-gray-600">
-                            Unit {payment.tenant.unit_number}
+                            {payment.tenant?.user?.email || 'No email'}
                           </p>
+                          {payment.tenant?.unit_number && (
+                            <p className="text-xs text-gray-500">
+                              Unit {payment.tenant.unit_number}
+                            </p>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="p-3 sm:p-4 hidden md:table-cell">
                         <div>
                           <p className="font-medium text-gray-900 text-xs sm:text-sm">
-                            {payment.property.name}
+                            {payment.property?.name || 'Unnamed Property'}
                           </p>
                           <p className="text-xs text-gray-600">
-                            {payment.property.city}
+                            {payment.property?.city || payment.property?.address || 'No address'}
                           </p>
                         </div>
                       </TableCell>
@@ -778,6 +790,16 @@ export default function OwnerPaymentsPage() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Payment Details Modal */}
+        <PaymentDetailsModal
+          payment={selectedPayment}
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            setIsDetailsModalOpen(false);
+            setSelectedPayment(null);
+          }}
+        />
       </div>
     </div>
   );

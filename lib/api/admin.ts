@@ -414,6 +414,59 @@ export class AdminAPI {
     }
   }
 
+  static async getPaymentDetails(paymentId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select(
+          `
+          *,
+          tenant:tenants(
+            id,
+            user:users(first_name, last_name, email)
+          ),
+          property:properties(
+            id,
+            name,
+            address
+          )
+        `
+        )
+        .eq('id', paymentId)
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Flatten the nested structure for easier access
+      const flattenedData = {
+        ...data,
+        tenant: data.tenant?.user ? {
+          first_name: data.tenant.user.first_name,
+          last_name: data.tenant.user.last_name,
+          email: data.tenant.user.email
+        } : null,
+        property: data.property ? {
+          name: data.property.name,
+          address: data.property.address
+        } : null
+      };
+
+      return { success: true, data: flattenedData };
+    } catch (error) {
+      console.error('Get payment details error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch payment details',
+        data: null
+      };
+    }
+  }
+
   // Maintenance Oversight
   static async getAllMaintenanceRequests(status?: string, priority?: string) {
     try {

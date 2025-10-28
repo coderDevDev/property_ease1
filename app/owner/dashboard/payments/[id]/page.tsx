@@ -461,28 +461,32 @@ export default function OwnerPaymentDetailsPage() {
               <CardContent className="space-y-4">
                 <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-200/50">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {payment.tenant.user.first_name}{' '}
-                    {payment.tenant.user.last_name}
+                    {payment.tenant?.user?.first_name || 'N/A'}{' '}
+                    {payment.tenant?.user?.last_name || ''}
                   </h3>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600">Unit:</span>
-                      <span className="text-gray-900 font-medium">
-                        {payment.tenant.unit_number}
-                      </span>
-                    </div>
+                    {payment.tenant?.unit_number && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">Unit:</span>
+                        <span className="text-gray-900 font-medium">
+                          {payment.tenant.unit_number}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <span className="text-gray-600">Email:</span>
                       <span className="text-gray-900 font-medium">
-                        {payment.tenant.user.email}
+                        {payment.tenant?.user?.email || 'No email'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600">Phone:</span>
-                      <span className="text-gray-900 font-medium">
-                        {payment.tenant.user.phone}
-                      </span>
-                    </div>
+                    {payment.tenant?.user?.phone && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">Phone:</span>
+                        <span className="text-gray-900 font-medium">
+                          {payment.tenant.user.phone}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -501,27 +505,33 @@ export default function OwnerPaymentDetailsPage() {
               <CardContent className="space-y-4">
                 <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-200/50">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {payment.property.name}
+                    {payment.property?.name || 'Unnamed Property'}
                   </h3>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600">Address:</span>
-                      <span className="text-gray-900 font-medium">
-                        {payment.property.address}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600">City:</span>
-                      <span className="text-gray-900 font-medium">
-                        {payment.property.city}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600">Type:</span>
-                      <span className="text-gray-900 font-medium capitalize">
-                        {payment.property.type}
-                      </span>
-                    </div>
+                    {payment.property?.address && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">Address:</span>
+                        <span className="text-gray-900 font-medium">
+                          {payment.property.address}
+                        </span>
+                      </div>
+                    )}
+                    {payment.property?.city && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">City:</span>
+                        <span className="text-gray-900 font-medium">
+                          {payment.property.city}
+                        </span>
+                      </div>
+                    )}
+                    {payment.property?.type && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">Type:</span>
+                        <span className="text-gray-900 font-medium capitalize">
+                          {payment.property.type}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -559,8 +569,8 @@ export default function OwnerPaymentDetailsPage() {
                     Created By
                   </Label>
                   <p className="text-gray-900 font-medium">
-                    {payment.created_by_user.first_name}{' '}
-                    {payment.created_by_user.last_name}
+                    {payment.created_by_user?.first_name || 'N/A'}{' '}
+                    {payment.created_by_user?.last_name || ''}
                   </p>
                 </div>
               </CardContent>

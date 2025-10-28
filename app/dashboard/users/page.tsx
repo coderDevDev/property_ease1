@@ -35,12 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Users,
   Search,
@@ -228,8 +223,12 @@ export default function UsersPage() {
                   <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.total}</p>
-                  <p className="text-xs sm:text-sm text-gray-600">Total Users</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {stats.total}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Total Users
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -242,7 +241,9 @@ export default function UsersPage() {
                   <Building className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.owners}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {stats.owners}
+                  </p>
                   <p className="text-xs sm:text-sm text-gray-600">Owners</p>
                 </div>
               </div>
@@ -256,7 +257,9 @@ export default function UsersPage() {
                   <Home className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.tenants}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {stats.tenants}
+                  </p>
                   <p className="text-xs sm:text-sm text-gray-600">Tenants</p>
                 </div>
               </div>
@@ -270,7 +273,9 @@ export default function UsersPage() {
                   <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.admins}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    {stats.admins}
+                  </p>
                   <p className="text-xs sm:text-sm text-gray-600">Admins</p>
                 </div>
               </div>
@@ -327,13 +332,22 @@ export default function UsersPage() {
         </Card>
 
         {/* Users Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-4">
           <TabsList className="bg-white/70 backdrop-blur-sm border-blue-200/50">
-            <TabsTrigger value="all" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            <TabsTrigger
+              value="all"
+              className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
               All Users
-              <Badge className="ml-2 bg-blue-100 text-blue-700">{users.length}</Badge>
+              <Badge className="ml-2 bg-blue-100 text-blue-700">
+                {users.length}
+              </Badge>
             </TabsTrigger>
-            <TabsTrigger value="unverified" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
+            <TabsTrigger
+              value="unverified"
+              className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
               Unverified
               <Badge className="ml-2 bg-yellow-100 text-yellow-700">
                 {users.filter(u => !u.is_verified).length}
@@ -342,149 +356,151 @@ export default function UsersPage() {
           </TabsList>
 
           <TabsContent value="all">
-        {/* All Users Table */}
-        <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Users ({filteredUsers.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Verified</TableHead>
-                    <TableHead>Last Login</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map(user => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {user.first_name} {user.last_name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {user.email}
-                          </div>
-                          {user.phone && (
-                            <div className="text-xs text-gray-400">
-                              {user.phone}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`${getRoleBadgeColor(
-                            user.role
-                          )} capitalize`}>
-                          {getRoleIcon(user.role)}
-                          <span className="ml-1">{user.role}</span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={user.is_active ? 'default' : 'secondary'}
-                          className={
-                            user.is_active
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-700'
-                          }>
-                          {user.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={user.is_verified ? 'default' : 'secondary'}
-                          className={
-                            user.is_verified
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-yellow-100 text-yellow-700'
-                          }>
-                          {user.is_verified ? 'Verified' : 'Pending'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.last_login
-                          ? new Date(user.last_login).toLocaleDateString()
-                          : 'Never'}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setIsViewDialogOpen(true);
-                              }}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setIsEditDialogOpen(true);
-                              }}>
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit Role
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleStatusChange(user.id, !user.is_active)
-                              }>
-                              {user.is_active ? (
-                                <>
-                                  <UserX className="w-4 h-4 mr-2" />
-                                  Deactivate
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="w-4 h-4 mr-2" />
-                                  Activate
-                                </>
+            {/* All Users Table */}
+            <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Users ({filteredUsers.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Verified</TableHead>
+                        <TableHead>Last Login</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map(user => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {user.first_name} {user.last_name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {user.email}
+                              </div>
+                              {user.phone && (
+                                <div className="text-xs text-gray-400">
+                                  {user.phone}
+                                </div>
                               )}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            {filteredUsers.length === 0 && (
-              <div className="text-center py-8">
-                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No users found
-                </h3>
-                <p className="text-gray-600">
-                  {searchTerm
-                    ? 'Try adjusting your search criteria.'
-                    : 'No users match the current filters.'}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={`${getRoleBadgeColor(
+                                user.role
+                              )} capitalize`}>
+                              {getRoleIcon(user.role)}
+                              <span className="ml-1">{user.role}</span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={user.is_active ? 'default' : 'secondary'}
+                              className={
+                                user.is_active
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }>
+                              {user.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                user.is_verified ? 'default' : 'secondary'
+                              }
+                              className={
+                                user.is_verified
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-yellow-100 text-yellow-700'
+                              }>
+                              {user.is_verified ? 'Verified' : 'Pending'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {user.last_login
+                              ? new Date(user.last_login).toLocaleDateString()
+                              : 'Never'}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setIsViewDialogOpen(true);
+                                  }}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setIsEditDialogOpen(true);
+                                  }}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Edit Role
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleStatusChange(user.id, !user.is_active)
+                                  }>
+                                  {user.is_active ? (
+                                    <>
+                                      <UserX className="w-4 h-4 mr-2" />
+                                      Deactivate
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UserCheck className="w-4 h-4 mr-2" />
+                                      Activate
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {filteredUsers.length === 0 && (
+                  <div className="text-center py-8">
+                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      No users found
+                    </h3>
+                    <p className="text-gray-600">
+                      {searchTerm
+                        ? 'Try adjusting your search criteria.'
+                        : 'No users match the current filters.'}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="unverified">
@@ -509,75 +525,85 @@ export default function UsersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users.filter(u => !u.is_verified).map(user => (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium text-gray-900">
-                                {user.first_name} {user.last_name}
+                      {users
+                        .filter(u => !u.is_verified)
+                        .map(user => (
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium text-gray-900">
+                                  {user.first_name} {user.last_name}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {user.email}
+                                </div>
+                                {user.phone && (
+                                  <div className="text-xs text-gray-400">
+                                    {user.phone}
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-sm text-gray-500">{user.email}</div>
-                              {user.phone && (
-                                <div className="text-xs text-gray-400">{user.phone}</div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={`${getRoleBadgeColor(user.role)} capitalize`}>
-                              {getRoleIcon(user.role)}
-                              <span className="ml-1">{user.role}</span>
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={user.is_active ? 'default' : 'secondary'}
-                              className={
-                                user.is_active
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-gray-100 text-gray-700'
-                              }>
-                              {user.is_active ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-gray-500">
-                              {new Date(user.created_at).toLocaleDateString()}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
+                            </TableCell>
+                            <TableCell>
+                              <Badge
                                 variant="outline"
-                                className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setIsViewDialogOpen(true);
-                                }}>
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                                onClick={() => handleVerifyUser(user.id)}>
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Verify
-                              </Button>
-                              <Button
+                                className={`${getRoleBadgeColor(
+                                  user.role
+                                )} capitalize`}>
+                                {getRoleIcon(user.role)}
+                                <span className="ml-1">{user.role}</span>
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  user.is_active ? 'default' : 'secondary'
+                                }
+                                className={
+                                  user.is_active
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-gray-100 text-gray-700'
+                                }>
+                                {user.is_active ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-500">
+                                {new Date(user.created_at).toLocaleDateString()}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setIsViewDialogOpen(true);
+                                  }}>
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  onClick={() => handleVerifyUser(user.id)}>
+                                  <CheckCircle className="w-4 h-4 mr-1" />
+                                  Verify
+                                </Button>
+                                {/* <Button
                                 size="sm"
                                 variant="outline"
                                 className="border-yellow-200 text-yellow-700 hover:bg-yellow-50"
                                 onClick={() => handleRequestDocuments(user.id)}>
                                 <AlertCircle className="w-4 h-4 mr-1" />
                                 Request Docs
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                              </Button> */}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                   {users.filter(u => !u.is_verified).length === 0 && (
@@ -586,7 +612,9 @@ export default function UsersPage() {
                       <h3 className="text-lg font-medium text-gray-900 mb-2">
                         All users verified!
                       </h3>
-                      <p className="text-gray-600">No users pending verification at this time.</p>
+                      <p className="text-gray-600">
+                        No users pending verification at this time.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -620,13 +648,17 @@ export default function UsersPage() {
                 <TabsContent value="profile" className="space-y-4">
                   <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50">
                     <CardHeader>
-                      <CardTitle className="text-lg">Personal Information</CardTitle>
+                      <CardTitle className="text-lg">
+                        Personal Information
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label className="text-gray-600">Full Name</Label>
-                          <p className="font-medium">{selectedUser.first_name} {selectedUser.last_name}</p>
+                          <p className="font-medium">
+                            {selectedUser.first_name} {selectedUser.last_name}
+                          </p>
                         </div>
                         <div>
                           <Label className="text-gray-600">Email</Label>
@@ -634,24 +666,39 @@ export default function UsersPage() {
                         </div>
                         <div>
                           <Label className="text-gray-600">Phone</Label>
-                          <p className="font-medium">{selectedUser.phone || 'Not provided'}</p>
+                          <p className="font-medium">
+                            {selectedUser.phone || 'Not provided'}
+                          </p>
                         </div>
                         <div>
                           <Label className="text-gray-600">Role</Label>
-                          <Badge className={getRoleBadgeColor(selectedUser.role)}>
+                          <Badge
+                            className={getRoleBadgeColor(selectedUser.role)}>
                             {getRoleIcon(selectedUser.role)}
-                            <span className="ml-1 capitalize">{selectedUser.role}</span>
+                            <span className="ml-1 capitalize">
+                              {selectedUser.role}
+                            </span>
                           </Badge>
                         </div>
                         <div>
                           <Label className="text-gray-600">Status</Label>
-                          <Badge className={selectedUser.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                          <Badge
+                            className={
+                              selectedUser.is_active
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-gray-100 text-gray-700'
+                            }>
                             {selectedUser.is_active ? 'Active' : 'Inactive'}
                           </Badge>
                         </div>
                         <div>
                           <Label className="text-gray-600">Verification</Label>
-                          <Badge className={selectedUser.is_verified ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}>
+                          <Badge
+                            className={
+                              selectedUser.is_verified
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-yellow-100 text-yellow-700'
+                            }>
                             {selectedUser.is_verified ? 'Verified' : 'Pending'}
                           </Badge>
                         </div>
@@ -661,7 +708,11 @@ export default function UsersPage() {
                         </div>
                         <div>
                           <Label className="text-gray-600">Member Since</Label>
-                          <p className="font-medium">{new Date(selectedUser.created_at).toLocaleDateString()}</p>
+                          <p className="font-medium">
+                            {new Date(
+                              selectedUser.created_at
+                            ).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
                     </CardContent>
@@ -676,28 +727,38 @@ export default function UsersPage() {
                     <CardContent>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between py-2 border-b">
-                          <span className="text-sm text-gray-600">Last Login</span>
+                          <span className="text-sm text-gray-600">
+                            Last Login
+                          </span>
                           <span className="font-medium">
                             {selectedUser.last_login
-                              ? new Date(selectedUser.last_login).toLocaleString()
+                              ? new Date(
+                                  selectedUser.last_login
+                                ).toLocaleString()
                               : 'Never logged in'}
                           </span>
                         </div>
                         <div className="flex items-center justify-between py-2 border-b">
-                          <span className="text-sm text-gray-600">Account Created</span>
+                          <span className="text-sm text-gray-600">
+                            Account Created
+                          </span>
                           <span className="font-medium">
                             {new Date(selectedUser.created_at).toLocaleString()}
                           </span>
                         </div>
                         <div className="flex items-center justify-between py-2 border-b">
-                          <span className="text-sm text-gray-600">Last Updated</span>
+                          <span className="text-sm text-gray-600">
+                            Last Updated
+                          </span>
                           <span className="font-medium">
                             {new Date(selectedUser.updated_at).toLocaleString()}
                           </span>
                         </div>
                         <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                           <p className="text-sm text-blue-700">
-                            📊 <strong>Note:</strong> Detailed activity logs (login history, actions performed) will be available in the next update.
+                            📊 <strong>Note:</strong> Detailed activity logs
+                            (login history, actions performed) will be available
+                            in the next update.
                           </p>
                         </div>
                       </div>
@@ -708,35 +769,58 @@ export default function UsersPage() {
                 <TabsContent value="security" className="space-y-4">
                   <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50">
                     <CardHeader>
-                      <CardTitle className="text-lg">Security Settings</CardTitle>
+                      <CardTitle className="text-lg">
+                        Security Settings
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">Email Verified</p>
-                            <p className="text-sm text-gray-600">User email verification status</p>
+                            <p className="text-sm text-gray-600">
+                              User email verification status
+                            </p>
                           </div>
-                          <Badge className={selectedUser.is_verified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
-                            {selectedUser.is_verified ? '✓ Verified' : '⏳ Pending'}
+                          <Badge
+                            className={
+                              selectedUser.is_verified
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-yellow-100 text-yellow-700'
+                            }>
+                            {selectedUser.is_verified
+                              ? '✓ Verified'
+                              : '⏳ Pending'}
                           </Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">Account Status</p>
-                            <p className="text-sm text-gray-600">Current account access status</p>
+                            <p className="text-sm text-gray-600">
+                              Current account access status
+                            </p>
                           </div>
-                          <Badge className={selectedUser.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
-                            {selectedUser.is_active ? '✓ Active' : '✗ Suspended'}
+                          <Badge
+                            className={
+                              selectedUser.is_active
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-red-100 text-red-700'
+                            }>
+                            {selectedUser.is_active
+                              ? '✓ Active'
+                              : '✗ Suspended'}
                           </Badge>
                         </div>
                         <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
                           <p className="text-sm text-yellow-700">
-                            🔐 <strong>Security Features Coming Soon:</strong><br/>
-                            • Two-Factor Authentication (2FA)<br/>
-                            • Login History & Device Tracking<br/>
-                            • Password Reset Management<br/>
-                            • Session Management
+                            🔐 <strong>Security Features Coming Soon:</strong>
+                            <br />
+                            • Two-Factor Authentication (2FA)
+                            <br />
+                            • Login History & Device Tracking
+                            <br />
+                            • Password Reset Management
+                            <br />• Session Management
                           </p>
                         </div>
                       </div>
@@ -754,21 +838,32 @@ export default function UsersPage() {
                         <div className="p-4 bg-blue-50 rounded-lg">
                           <p className="text-sm text-gray-600">Account Age</p>
                           <p className="text-2xl font-bold text-blue-700">
-                            {Math.floor((new Date().getTime() - new Date(selectedUser.created_at).getTime()) / (1000 * 60 * 60 * 24))} days
+                            {Math.floor(
+                              (new Date().getTime() -
+                                new Date(selectedUser.created_at).getTime()) /
+                                (1000 * 60 * 60 * 24)
+                            )}{' '}
+                            days
                           </p>
                         </div>
                         <div className="p-4 bg-green-50 rounded-lg">
                           <p className="text-sm text-gray-600">Role Type</p>
-                          <p className="text-2xl font-bold text-green-700 capitalize">{selectedUser.role}</p>
+                          <p className="text-2xl font-bold text-green-700 capitalize">
+                            {selectedUser.role}
+                          </p>
                         </div>
                         <div className="col-span-2 mt-4 p-4 bg-purple-50 rounded-lg">
                           <p className="text-sm text-purple-700">
-                            📈 <strong>Advanced Statistics Coming Soon:</strong><br/>
-                            • Properties managed (for owners)<br/>
-                            • Rental history (for tenants)<br/>
-                            • Payment statistics<br/>
-                            • Maintenance requests submitted<br/>
-                            • Platform engagement metrics
+                            📈 <strong>Advanced Statistics Coming Soon:</strong>
+                            <br />
+                            • Properties managed (for owners)
+                            <br />
+                            • Rental history (for tenants)
+                            <br />
+                            • Payment statistics
+                            <br />
+                            • Maintenance requests submitted
+                            <br />• Platform engagement metrics
                           </p>
                         </div>
                       </div>
@@ -797,7 +892,9 @@ export default function UsersPage() {
                   <div className="mt-1">
                     <Badge className={getRoleBadgeColor(selectedUser.role)}>
                       {getRoleIcon(selectedUser.role)}
-                      <span className="ml-1 capitalize">{selectedUser.role}</span>
+                      <span className="ml-1 capitalize">
+                        {selectedUser.role}
+                      </span>
                     </Badge>
                   </div>
                 </div>

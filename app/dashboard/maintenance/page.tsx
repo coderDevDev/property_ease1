@@ -111,15 +111,20 @@ export default function MaintenancePage() {
 
   const filteredRequests = requests.filter(request => {
     const matchesSearch =
-      request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.tenant?.first_name
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       request.tenant?.last_name
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      request.property?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      request.tenant?.email
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      request.property?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.property?.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      !searchTerm;
 
     const matchesCategory =
       categoryFilter === 'all' || request.category === categoryFilter;
@@ -533,11 +538,11 @@ export default function MaintenancePage() {
                           <div>
                             <div className="font-medium text-gray-900 flex items-center">
                               <User className="w-3 h-3 mr-1" />
-                              {request.tenant.first_name}{' '}
-                              {request.tenant.last_name}
+                              {request.tenant.first_name || 'N/A'}{' '}
+                              {request.tenant.last_name || ''}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {request.tenant.email}
+                              {request.tenant.email || 'No email'}
                             </div>
                           </div>
                         ) : (
@@ -550,10 +555,10 @@ export default function MaintenancePage() {
                           <div>
                             <div className="font-medium text-gray-900 flex items-center">
                               <Building2 className="w-3 h-3 mr-1" />
-                              {request.property.name}
+                              {request.property.name || 'Unnamed Property'}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {request.property.address}
+                              {request.property.address || 'No address'}
                             </div>
                           </div>
                         ) : (

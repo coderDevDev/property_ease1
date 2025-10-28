@@ -14,29 +14,29 @@ type PaymentInsert = Database['public']['Tables']['payments']['Insert'];
 type PaymentUpdate = Database['public']['Tables']['payments']['Update'];
 
 export interface PaymentWithDetails extends Payment {
-  tenant: {
+  tenant?: {
     id: string;
-    unit_number: string;
-    user: {
+    unit_number?: string;
+    user?: {
       id: string;
-      first_name: string;
-      last_name: string;
-      email: string;
-      phone: string;
+      first_name?: string;
+      last_name?: string;
+      email?: string;
+      phone?: string;
     };
   };
-  property: {
+  property?: {
     id: string;
-    name: string;
-    address: string;
-    city: string;
-    type: string;
+    name?: string;
+    address?: string;
+    city?: string;
+    type?: string;
   };
-  created_by_user: {
+  created_by_user?: {
     id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
   };
   // Refund tracking fields (from migration)
   is_refunded?: boolean;
