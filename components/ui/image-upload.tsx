@@ -62,7 +62,7 @@ export function ImageUpload({
       });
 
       const uploadedImages = await Promise.all(uploadPromises);
-      onImagesChange([...images, ...uploadedImages]);
+      onImagesChange([...(images || []), ...uploadedImages]);
       toast.success(`${uploadedImages.length} image(s) uploaded successfully`);
     } catch (error) {
       console.error('Upload error:', error);
@@ -75,7 +75,7 @@ export function ImageUpload({
   };
 
   const removeImage = (index: number) => {
-    const newImages = images.filter((_, i) => i !== index);
+    const newImages = (images || []).filter((_, i) => i !== index);
     onImagesChange(newImages);
   };
 
@@ -114,7 +114,7 @@ export function ImageUpload({
                 variant="outline"
                 size="sm"
                 onClick={() => cameraInputRef.current?.click()}
-                disabled={disabled || isUploading || images.length >= maxImages}
+                disabled={disabled || isUploading || (images || []).length >= maxImages}
                 className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50">
                 <Camera className="w-4 h-4 mr-2" />
                 Take Photo
@@ -124,7 +124,7 @@ export function ImageUpload({
                 variant="outline"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={disabled || isUploading || images.length >= maxImages}
+                disabled={disabled || isUploading || (images || []).length >= maxImages}
                 className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50">
                 <ImageIcon className="w-4 h-4 mr-2" />
                 Choose Files
@@ -161,9 +161,9 @@ export function ImageUpload({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-gray-700">
-              Attached Images ({images.length}/{maxImages})
+              Attached Images ({(images || []).length}/{maxImages})
             </p>
-            {images.length >= maxImages && (
+            {(images || []).length >= maxImages && (
               <div className="flex items-center gap-1 text-amber-600">
                 <AlertCircle className="w-4 h-4" />
                 <span className="text-xs">Maximum reached</span>
@@ -171,7 +171,7 @@ export function ImageUpload({
             )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {images.map((image, index) => (
+            {(images || []).map((image, index) => (
               <div key={index} className="relative group">
                 <img
                   src={image}

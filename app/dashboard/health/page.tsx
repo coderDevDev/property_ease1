@@ -19,7 +19,6 @@ import {
   Database,
   HardDrive,
   Cpu,
-  Memory,
   Network,
   CheckCircle,
   XCircle,

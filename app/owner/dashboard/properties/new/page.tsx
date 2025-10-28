@@ -34,28 +34,153 @@ import { PropertiesAPI, type PropertyFormData } from '@/lib/api/properties';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { toast } from 'sonner';
 
-const philippineProvinces = [
-  'Metro Manila',
-  'Cebu',
-  'Davao del Sur',
-  'Laguna',
-  'Cavite',
-  'Bulacan',
-  'Negros Occidental',
-  'Pampanga',
-  'Pangasinan',
-  'Rizal',
-  'Batangas',
-  'Iloilo',
-  'Nueva Ecija',
-  'Quezon',
-  'Camarines Sur',
-  'Albay',
-  'Bohol',
-  'Leyte',
-  'Misamis Oriental',
-  'Cagayan'
-];
+// Bicol Region Location Data
+const bicolLocationData: Record<string, { capital: string; cities: string[] }> = {
+  'Albay': {
+    capital: 'Legazpi City',
+    cities: [
+      'Legazpi City',
+      'Ligao City',
+      'Tabaco City',
+      'Bacacay',
+      'Camalig',
+      'Daraga',
+      'Guinobatan',
+      'Jovellar',
+      'Libon',
+      'Malilipot',
+      'Malinao',
+      'Manito',
+      'Oas',
+      'Pio Duran',
+      'Polangui',
+      'Rapu-Rapu',
+      'Santo Domingo'
+    ]
+  },
+  'Camarines Norte': {
+    capital: 'Daet',
+    cities: [
+      'Basud',
+      'Capalonga',
+      'Daet',
+      'Jose Panganiban',
+      'Labo',
+      'Mercedes',
+      'Paracale',
+      'San Lorenzo Ruiz',
+      'San Vicente',
+      'Santa Elena',
+      'Talisay',
+      'Vinzons'
+    ]
+  },
+  'Camarines Sur': {
+    capital: 'Pili',
+    cities: [
+      'Iriga City',
+      'Naga City',
+      'Baao',
+      'Balatan',
+      'Bato',
+      'Bombon',
+      'Buhi',
+      'Bula',
+      'Cabusao',
+      'Calabanga',
+      'Camaligan',
+      'Canaman',
+      'Caramoan',
+      'Del Gallego',
+      'Gainza',
+      'Garchitorena',
+      'Goa',
+      'Lagonoy',
+      'Libmanan',
+      'Lupi',
+      'Magarao',
+      'Milaor',
+      'Minalabac',
+      'Nabua',
+      'Ocampo',
+      'Pamplona',
+      'Pasacao',
+      'Pili',
+      'Presentacion',
+      'Ragay',
+      'San Fernando',
+      'San Jose',
+      'Sipocot',
+      'Siruma',
+      'Tigaon',
+      'Tinambac'
+    ]
+  },
+  'Catanduanes': {
+    capital: 'Virac',
+    cities: [
+      'Bagamanoc',
+      'Baras',
+      'Bato',
+      'Caramoran',
+      'Gigmoto',
+      'Pandan',
+      'Panganiban',
+      'San Andres',
+      'San Miguel',
+      'Viga',
+      'Virac'
+    ]
+  },
+  'Masbate': {
+    capital: 'Masbate City',
+    cities: [
+      'Masbate City',
+      'Aroroy',
+      'Baleno',
+      'Balud',
+      'Batuan',
+      'Cataingan',
+      'Cawayan',
+      'Claveria',
+      'Dimasalang',
+      'Esperanza',
+      'Mandaon',
+      'Milagros',
+      'Mobo',
+      'Monreal',
+      'Palanas',
+      'Pio V. Corpuz',
+      'Placer',
+      'San Fernando',
+      'San Jacinto',
+      'San Pascual',
+      'Uson'
+    ]
+  },
+  'Sorsogon': {
+    capital: 'Sorsogon City',
+    cities: [
+      'Sorsogon City',
+      'Barcelona',
+      'Bulan',
+      'Bulusan',
+      'Casiguran',
+      'Castilla',
+      'Donsol',
+      'Gubat',
+      'Irosin',
+      'Juban',
+      'Magallanes',
+      'Matnog',
+      'Pilar',
+      'Prieto Diaz',
+      'Santa Magdalena'
+    ]
+  }
+};
+
+const bicolProvinces = Object.keys(bicolLocationData).sort();
 
 const commonAmenities = [
   'WiFi',
@@ -102,6 +227,8 @@ export default function NewPropertyPage() {
     floor_plan: '',
     property_rules: ''
   });
+
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
 
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [customAmenity, setCustomAmenity] = useState('');
@@ -244,6 +371,17 @@ export default function NewPropertyPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleProvinceChange = (province: string) => {
+    setFormData(prev => ({ ...prev, province, city: '' }));
+    setAvailableCities(bicolLocationData[province]?.cities || []);
+    if (errors.province) {
+      setErrors(prev => ({ ...prev, province: '' }));
+    }
+    if (errors.city) {
+      setErrors(prev => ({ ...prev, city: '' }));
     }
   };
 
@@ -415,43 +553,20 @@ export default function NewPropertyPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={e => handleInputChange('city', e.target.value)}
-                      placeholder="e.g., Makati"
-                      className={
-                        errors.city
-                          ? 'border-red-500'
-                          : 'border-blue-200 focus:ring-blue-500'
-                      }
-                    />
-                    {errors.city && (
-                      <p className="text-red-500 text-sm flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {errors.city}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
                     <Label htmlFor="province">Province *</Label>
                     <Select
                       value={formData.province}
-                      onValueChange={value =>
-                        handleInputChange('province', value)
-                      }>
+                      onValueChange={handleProvinceChange}>
                       <SelectTrigger
                         className={
                           errors.province
                             ? 'border-red-500'
                             : 'border-blue-200 focus:ring-blue-500'
                         }>
-                        <SelectValue placeholder="Select province" />
+                        <SelectValue placeholder="Select province first" />
                       </SelectTrigger>
                       <SelectContent>
-                        {philippineProvinces.map(province => (
+                        {bicolProvinces.map(province => (
                           <SelectItem key={province} value={province}>
                             {province}
                           </SelectItem>
@@ -462,6 +577,40 @@ export default function NewPropertyPage() {
                       <p className="text-red-500 text-sm flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
                         {errors.province}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City/Municipality *</Label>
+                    <Select
+                      value={formData.city}
+                      onValueChange={value => handleInputChange('city', value)}
+                      disabled={!formData.province || availableCities.length === 0}>
+                      <SelectTrigger
+                        className={
+                          errors.city
+                            ? 'border-red-500'
+                            : 'border-blue-200 focus:ring-blue-500'
+                        }>
+                        <SelectValue placeholder={
+                          formData.province 
+                            ? "Select city/municipality" 
+                            : "Select province first"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCities.map(city => (
+                          <SelectItem key={city} value={city}>
+                            {city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.city && (
+                      <p className="text-red-500 text-sm flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" />
+                        {errors.city}
                       </p>
                     )}
                   </div>

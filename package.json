@@ -6,7 +6,18 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+      "cap:build": "npm run build && npx cap sync",
+    "cap:android": "npm run cap:build && npx cap open android",
+    "cap:ios": "npm run cap:build && npx cap open ios",
+    "cap:serve": "npm run cap:build && npx cap run android",
+    "cap:sync": "npx cap sync",
+    "mobile:dev": "npm run build && npx cap sync && npx cap run android --livereload --external",
+    "mobile:build:android": "npm run build && npx cap sync && cd android && gradlew assembleDebug",
+    "mobile:build:ios": "npm run build && npx cap sync && npx cap build ios",
+    "build:capacitor": "node scripts/build-capacitor.js",
+    "apk:build": "npm run build:capacitor && cd android && ./gradlew assembleDebug",
+    "apk:release": "npm run build:capacitor && cd android && ./gradlew assembleRelease"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

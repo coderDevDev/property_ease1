@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PropertiesAPI } from '@/lib/api/properties';
 import { toast } from 'sonner';
+import { DeletePropertyModal } from '@/components/properties/DeletePropertyModal';
 
 interface Property {
   id: string;
@@ -59,6 +60,9 @@ export default function PropertiesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const loadProperties = async () => {
@@ -129,6 +133,40 @@ export default function PropertiesPage() {
       currency: 'PHP',
       minimumFractionDigits: 0
     }).format(amount);
+  };
+
+  const handleDeleteClick = (property: Property) => {
+    setPropertyToDelete(property);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!propertyToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      const result = await PropertiesAPI.deleteProperty(propertyToDelete.id);
+      
+      if (result.success) {
+        toast.success('Property deleted successfully');
+        // Remove property from local state
+        setProperties(prev => prev.filter(p => p.id !== propertyToDelete.id));
+        setDeleteModalOpen(false);
+        setPropertyToDelete(null);
+      } else {
+        toast.error(result.message || 'Failed to delete property');
+      }
+    } catch (error) {
+      console.error('Delete property error:', error);
+      toast.error('Failed to delete property');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false);
+    setPropertyToDelete(null);
   };
 
   const getApprovalBadge = (property: Property) => {
@@ -294,7 +332,9 @@ export default function PropertiesPage() {
                           <Edit className="w-4 h-4 mr-2" />
                           Edit Property
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => handleDeleteClick(property)}>
                           <Trash2 className="w-4 h-4 mr-2" />
                           Delete Property
                         </DropdownMenuItem>
@@ -474,6 +514,15 @@ export default function PropertiesPage() {
           </Card>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeletePropertyModal
+        isOpen={deleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        propertyName={propertyToDelete?.name || ''}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PropertiesAPI, type PropertyAnalytics } from '@/lib/api/properties';
 import { toast } from 'sonner';
+import { DeletePropertyModal } from '@/components/properties/DeletePropertyModal';
 
 interface Property {
   id: string;
@@ -98,6 +99,8 @@ export default function PropertyDetailsPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const loadPropertyData = async () => {
@@ -142,17 +145,17 @@ export default function PropertyDetailsPage() {
     router.push(`/owner/dashboard/properties/${propertyId}/edit`);
   };
 
-  const handleDelete = async () => {
-    if (
-      !confirm(
-        'Are you sure you want to delete this property? This action cannot be undone.'
-      )
-    ) {
-      return;
-    }
+  const handleDeleteClick = () => {
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!property) return;
 
     try {
+      setIsDeleting(true);
       const result = await PropertiesAPI.deleteProperty(propertyId);
+      
       if (result.success) {
         toast.success('Property deleted successfully');
         router.push('/owner/dashboard/properties');
@@ -162,7 +165,13 @@ export default function PropertyDetailsPage() {
     } catch (error) {
       console.error('Delete property error:', error);
       toast.error('Failed to delete property');
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false);
   };
 
   const handleDuplicate = async () => {
@@ -359,7 +368,7 @@ export default function PropertyDetailsPage() {
                     Duplicate Property
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={handleDelete}
+                    onClick={handleDeleteClick}
                     className="text-red-600">
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete Property
@@ -834,6 +843,15 @@ export default function PropertyDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeletePropertyModal
+        isOpen={deleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        propertyName={property?.name || ''}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
