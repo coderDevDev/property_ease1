@@ -1,4 +1,4 @@
-package com.scims.seniorapp;
+package com.stinaga.propertyease;
 
 import com.getcapacitor.BridgeActivity;
 

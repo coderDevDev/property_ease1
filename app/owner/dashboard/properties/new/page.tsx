@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,11 +28,17 @@ import {
   AlertCircle,
   Camera,
   Image as ImageIcon,
-  FileImage
+  FileImage,
+  Upload,
+  CheckCircle,
+  Trash2
 } from 'lucide-react';
 import { PropertiesAPI, type PropertyFormData } from '@/lib/api/properties';
+import { DocumentsAPI, DocumentRequirement } from '@/lib/api/documents';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 
 // Bicol Region Location Data
 const bicolLocationData: Record<string, { capital: string; cities: string[] }> = {
@@ -245,6 +251,17 @@ export default function NewPropertyPage() {
     floor_plan: []
   });
 
+  // Document upload state
+  const [currentStep, setCurrentStep] = useState(0);
+  const [documentRequirements, setDocumentRequirements] = useState<DocumentRequirement[]>([]);
+  const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, File>>({});
+  const [documentErrors, setDocumentErrors] = useState<Record<string, string>>({});
+
+  // Mapbox state
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -261,10 +278,176 @@ export default function NewPropertyPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Load document requirements on mount
+  useEffect(() => {
+    loadDocumentRequirements();
+  }, []);
+
+  // Initialize Mapbox
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    // Load Mapbox CSS and JS
+    const loadMapbox = async () => {
+      // Add Mapbox CSS
+      if (!document.getElementById('mapbox-css')) {
+        const link = document.createElement('link');
+        link.id = 'mapbox-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+        document.head.appendChild(link);
+      }
+
+      // Load Mapbox GL JS
+      if (!(window as any).mapboxgl) {
+        const script = document.createElement('script');
+        script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+        script.async = true;
+        document.body.appendChild(script);
+
+        await new Promise((resolve) => {
+          script.onload = resolve;
+        });
+      }
+
+      const mapboxgl = (window as any).mapboxgl;
+      mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+
+      // Default to Naga City, Camarines Sur center
+      const defaultCenter: [number, number] = [123.1815, 13.6218];
+      const initialCenter = formData.coordinates?.lng && formData.coordinates?.lat
+        ? [formData.coordinates.lng, formData.coordinates.lat]
+        : defaultCenter;
+
+      // Initialize map
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: initialCenter,
+        zoom: 13
+      });
+
+      // Add navigation controls
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      // Add marker if coordinates exist
+      if (formData.coordinates?.lng && formData.coordinates?.lat) {
+        const marker = new mapboxgl.Marker({ draggable: true })
+          .setLngLat([formData.coordinates.lng, formData.coordinates.lat])
+          .addTo(map);
+
+        marker.on('dragend', () => {
+          const lngLat = marker.getLngLat();
+          handleInputChange('coordinates', {
+            lat: lngLat.lat,
+            lng: lngLat.lng
+          });
+        });
+
+        markerRef.current = marker;
+      }
+
+      // Add click handler to place/move marker
+      map.on('click', (e: any) => {
+        const { lng, lat } = e.lngLat;
+
+        if (markerRef.current) {
+          markerRef.current.setLngLat([lng, lat]);
+        } else {
+          const marker = new mapboxgl.Marker({ draggable: true })
+            .setLngLat([lng, lat])
+            .addTo(map);
+
+          marker.on('dragend', () => {
+            const lngLat = marker.getLngLat();
+            handleInputChange('coordinates', {
+              lat: lngLat.lat,
+              lng: lngLat.lng
+            });
+          });
+
+          markerRef.current = marker;
+        }
+
+        handleInputChange('coordinates', { lat, lng });
+      });
+
+      mapRef.current = map;
+    };
+
+    loadMapbox();
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+      }
+    };
+  }, []);
+
+  const loadDocumentRequirements = async () => {
+    const result = await DocumentsAPI.getDocumentRequirements();
+    if (result.success) {
+      setDocumentRequirements(result.data.filter(req => req.is_required));
+    }
+  };
+
+  const handleDocumentUpload = (documentType: string, file: File) => {
+    // Validate file
+    const requirement = documentRequirements.find(r => r.document_type === documentType);
+    if (!requirement) return;
+
+    if (file.size > requirement.max_file_size) {
+      setDocumentErrors(prev => ({
+        ...prev,
+        [documentType]: `File size exceeds ${(requirement.max_file_size / 1024 / 1024).toFixed(0)}MB limit`
+      }));
+      return;
+    }
+
+    if (!requirement.allowed_mime_types.includes(file.type)) {
+      setDocumentErrors(prev => ({
+        ...prev,
+        [documentType]: 'Invalid file type. Only PDF, JPG, and PNG are allowed'
+      }));
+      return;
+    }
+
+    setUploadedDocuments(prev => ({ ...prev, [documentType]: file }));
+    setDocumentErrors(prev => ({ ...prev, [documentType]: '' }));
+  };
+
+  const removeDocument = (documentType: string) => {
+    setUploadedDocuments(prev => {
+      const newDocs = { ...prev };
+      delete newDocs[documentType];
+      return newDocs;
+    });
+  };
+
+  const allRequiredDocsUploaded = () => {
+    return documentRequirements.every(req => uploadedDocuments[req.document_type]);
+  };
+
+  const handleNext = () => {
+    if (currentStep === 0 && !validateForm()) return;
+    setCurrentStep(prev => Math.min(prev + 1, 4));
+  };
+
+  const handleBack = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm() || !authState.user?.id) return;
+
+    // Check if all required documents are uploaded
+    if (!allRequiredDocsUploaded()) {
+      toast.error('Please upload all required documents before submitting');
+      setCurrentStep(4); // Go to documents step
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -354,7 +537,23 @@ export default function NewPropertyPage() {
           );
         }
 
-        toast.success('Property created successfully!');
+        // Upload documents after property creation
+        const documentUploadPromises = Object.entries(uploadedDocuments).map(
+          ([documentType, file]) =>
+            DocumentsAPI.uploadPropertyDocument(propertyId, documentType, file)
+        );
+
+        const documentResults = await Promise.all(documentUploadPromises);
+        const failedDocs = documentResults.filter(r => !r.success);
+
+        if (failedDocs.length > 0) {
+          toast.warning(
+            `Property created but ${failedDocs.length} document(s) failed to upload. You can upload them later.`
+          );
+        } else {
+          toast.success('Property and documents uploaded successfully!');
+        }
+
         router.push('/owner/dashboard/properties');
       } else {
         toast.error(result.message || 'Failed to create property');
@@ -798,55 +997,71 @@ export default function NewPropertyPage() {
               </CardContent>
             </Card>
 
-            {/* Location Coordinates */}
+            {/* Property Location Map */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-blue-600" />
-                  GPS Coordinates (Optional)
+                  Pin Property Location
                 </CardTitle>
+                <p className="text-sm text-gray-600 mt-2">
+                  Click on the map to pin your property's exact location. You can drag the marker to adjust.
+                </p>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="latitude">Latitude</Label>
-                    <Input
-                      id="latitude"
-                      type="number"
-                      step="any"
-                      value={formData.coordinates?.lat || ''}
-                      onChange={e =>
-                        handleInputChange('coordinates', {
-                          ...formData.coordinates,
-                          lat: parseFloat(e.target.value) || 0
-                        })
-                      }
-                      placeholder="e.g., 14.5995"
-                      className="border-blue-200 focus:ring-blue-500"
-                    />
+              <CardContent className="space-y-4">
+                {/* Map Container */}
+                <div 
+                  ref={mapContainerRef}
+                  className="w-full h-[400px] rounded-lg border-2 border-blue-200 overflow-hidden"
+                  style={{ minHeight: '400px' }}
+                />
+
+                {/* Coordinates Display */}
+                {formData.coordinates?.lat && formData.coordinates?.lng && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-blue-900 mb-1">
+                          📍 Selected Location
+                        </p>
+                        <p className="text-xs text-gray-600 font-mono">
+                          Latitude: {formData.coordinates.lat.toFixed(6)}
+                        </p>
+                        <p className="text-xs text-gray-600 font-mono">
+                          Longitude: {formData.coordinates.lng.toFixed(6)}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={() => {
+                          handleInputChange('coordinates', { lat: 0, lng: 0 });
+                          if (markerRef.current) {
+                            markerRef.current.remove();
+                            markerRef.current = null;
+                          }
+                        }}>
+                        <X className="w-4 h-4 mr-1" />
+                        Clear Pin
+                      </Button>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="longitude">Longitude</Label>
-                    <Input
-                      id="longitude"
-                      type="number"
-                      step="any"
-                      value={formData.coordinates?.lng || ''}
-                      onChange={e =>
-                        handleInputChange('coordinates', {
-                          ...formData.coordinates,
-                          lng: parseFloat(e.target.value) || 0
-                        })
-                      }
-                      placeholder="e.g., 120.9842"
-                      className="border-blue-200 focus:ring-blue-500"
-                    />
+                )}
+
+                <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-yellow-800">
+                    <p className="font-medium mb-1">How to pin your location:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>Click anywhere on the map to place a marker</li>
+                      <li>Drag the marker to adjust the exact location</li>
+                      <li>Use the +/- buttons to zoom in/out for precision</li>
+                      <li>This helps tenants find your property easily</li>
+                    </ul>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">
-                  GPS coordinates help tenants find your property more easily.
-                  You can get these from Google Maps.
-                </p>
               </CardContent>
             </Card>
 
@@ -1071,6 +1286,142 @@ export default function NewPropertyPage() {
               </CardContent>
             </Card>
 
+            {/* Required Documents Section */}
+            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  Required Documents for Verification
+                </CardTitle>
+                <p className="text-sm text-gray-600 mt-2">
+                  Upload the following documents to verify your property. All documents are required before submission.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {documentRequirements.map((requirement) => {
+                  const hasDocument = uploadedDocuments[requirement.document_type];
+                  const error = documentErrors[requirement.document_type];
+
+                  return (
+                    <div key={requirement.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-semibold text-gray-900">
+                              {requirement.display_name}
+                              <span className="text-red-500 ml-1">*</span>
+                            </h4>
+                            {hasDocument && (
+                              <Badge className="bg-green-100 text-green-700">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Uploaded
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">
+                            {requirement.description}
+                          </p>
+
+                          {hasDocument ? (
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                              <FileText className="w-8 h-8 text-blue-600" />
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">
+                                  {uploadedDocuments[requirement.document_type].name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {(
+                                    uploadedDocuments[requirement.document_type].size /
+                                    1024 /
+                                    1024
+                                  ).toFixed(2)}{' '}
+                                  MB
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => removeDocument(requirement.document_type)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div>
+                              <label
+                                htmlFor={`doc-${requirement.document_type}`}
+                                className="block w-full p-6 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                              >
+                                <Upload className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                                <p className="text-sm font-medium text-gray-700">
+                                  Click to upload or drag and drop
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  PDF, JPG, PNG (Max{' '}
+                                  {(requirement.max_file_size / 1024 / 1024).toFixed(0)}MB)
+                                </p>
+                              </label>
+                              <input
+                                id={`doc-${requirement.document_type}`}
+                                type="file"
+                                className="hidden"
+                                accept={requirement.allowed_mime_types.join(',')}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    handleDocumentUpload(requirement.document_type, file);
+                                  }
+                                }}
+                              />
+                            </div>
+                          )}
+
+                          {error && (
+                            <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                              <AlertCircle className="w-4 h-4" />
+                              {error}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Document Upload Progress */}
+                {documentRequirements.length > 0 && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-blue-900">
+                        Documents Uploaded: {Object.keys(uploadedDocuments).length} /{' '}
+                        {documentRequirements.length}
+                      </p>
+                      {allRequiredDocsUploaded() && (
+                        <Badge className="bg-green-100 text-green-700">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          All Documents Ready
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${(
+                            (Object.keys(uploadedDocuments).length /
+                              documentRequirements.length) *
+                            100
+                          ).toFixed(0)}%`
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Submit Button */}
             <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
               <Button
@@ -1082,8 +1433,9 @@ export default function NewPropertyPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base">
+                disabled={isLoading || !allRequiredDocsUploaded()}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!allRequiredDocsUploaded() ? 'Please upload all required documents' : ''}>
                 {isLoading ? (
                   <>
                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
@@ -1092,7 +1444,7 @@ export default function NewPropertyPage() {
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
-                    Create Property
+                    Create Property & Submit Documents
                   </>
                 )}
               </Button>

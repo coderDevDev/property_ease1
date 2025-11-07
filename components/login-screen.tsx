@@ -121,7 +121,7 @@ export function LoginScreen({
   const roleConfig = {
     owner: {
       icon: Building,
-      title: 'Property Owner',
+      title: 'Owner',
       color: 'bg-blue-500',
       description: 'Manage your properties and tenants'
     },
@@ -133,7 +133,7 @@ export function LoginScreen({
     },
     admin: {
       icon: Users,
-      title: 'System Administrator',
+      title: 'Admin',
       color: 'bg-blue-600',
       description: 'System oversight and management'
     }

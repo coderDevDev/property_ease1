@@ -48,6 +48,8 @@ interface Application {
   id: string;
   property_id: string;
   property_name: string;
+  property_thumbnail?: string;
+  property_image?: string;
   unit_type: string;
   unit_number?: string;
   monthly_rent: number;
@@ -472,26 +474,29 @@ export default function ApplicationsPage() {
           <>
             {/* Card View */}
             {viewMode === 'card' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredApplications.map(application => (
                   <Card
                     key={application.id}
-                    className="bg-white/80 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group"
+                    className="bg-white/80 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group overflow-hidden"
                     onClick={() =>
                       router.push(`/tenant/dashboard/rental/${application.id}`)
                     }>
-                    <CardContent className="p-6">
-                      {/* Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
-                            {application.property_name}
-                          </h3>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Building className="w-4 h-4" />
-                            <span>{application.unit_type}</span>
-                          </div>
+                    {/* Property Image */}
+                    <div className="relative h-48 overflow-hidden bg-gradient-to-br from-blue-100 to-blue-50">
+                      {application.property_thumbnail || application.property_image ? (
+                        <img
+                          src={application.property_thumbnail || application.property_image}
+                          alt={application.property_name}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Building className="w-16 h-16 text-blue-300" />
                         </div>
+                      )}
+                      {/* Status Badge Overlay */}
+                      <div className="absolute top-3 right-3">
                         <Badge className={getStatusColor(application.status)}>
                           <span className="flex items-center gap-1">
                             {getStatusIcon(application.status)}
@@ -500,19 +505,31 @@ export default function ApplicationsPage() {
                           </span>
                         </Badge>
                       </div>
+                      {/* Property Type Badge */}
+                      <div className="absolute top-3 left-3">
+                        <Badge className="bg-blue-600 text-white">
+                          {application.unit_type}
+                        </Badge>
+                      </div>
+                    </div>
 
-                      {/* Details */}
-                      <div className="space-y-3 mb-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 flex items-center gap-2">
-                            <CreditCard className="w-4 h-4" />
-                            Monthly Rent:
-                          </span>
-                          <span className="font-semibold text-gray-900">
-                            ₱{application.monthly_rent.toLocaleString()}
+                    <CardContent className="p-6">
+                      {/* Header */}
+                      <div className="mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                          {application.property_name}
+                        </h3>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CreditCard className="w-4 h-4" />
+                          <span className="font-semibold text-lg text-gray-900">
+                            ₱{application.monthly_rent.toLocaleString()}/mo
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
+                      </div>
+
+                      {/* Details */}
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
                           <span className="text-gray-600 flex items-center gap-2">
                             <Calendar className="w-4 h-4" />
                             Move-in Date:
@@ -523,7 +540,7 @@ export default function ApplicationsPage() {
                             ).toLocaleDateString()}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
                           <span className="text-gray-600 flex items-center gap-2">
                             <FileText className="w-4 h-4" />
                             Documents:
@@ -532,7 +549,7 @@ export default function ApplicationsPage() {
                             {application.documents.length} files
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
                           <span className="text-gray-600 flex items-center gap-2">
                             <Clock className="w-4 h-4" />
                             Submitted:

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
+
+export const dynamic = 'force-static';
 console.log({ dex: process.env.XENDIT_SECRET_KEY });
 export async function POST(req: NextRequest) {
   const body = await req.json();

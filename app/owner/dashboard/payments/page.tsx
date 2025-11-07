@@ -648,12 +648,12 @@ export default function OwnerPaymentsPage() {
                           <p className="font-semibold text-gray-900 text-xs sm:text-sm">
                             ₱{Number(payment.amount).toLocaleString()}
                           </p>
-                          {payment.late_fee && payment.late_fee > 0 && (
+                          {payment.late_fee && payment.late_fee > 0 ? (
                             <p className="text-xs text-red-600">
                               +₱{Number(payment.late_fee).toLocaleString()} late
                               fee
                             </p>
-                          )}
+                          ):''}
                         </div>
                       </TableCell>
                       <TableCell className="p-3 sm:p-4 hidden lg:table-cell">

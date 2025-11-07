@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-admin';
 import type { RegisterData } from '@/types/auth';
 
+
+export const dynamic = 'force-static';
 export async function POST(request: NextRequest) {
   try {
     const data: RegisterData = await request.json();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +34,8 @@ import {
   Eye,
   Star,
   MoreHorizontal,
-  Edit
+  Edit,
+  Navigation
 } from 'lucide-react';
 import {
   Dialog,
@@ -58,6 +59,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { AdminAPI } from '@/lib/api/admin';
 import { toast } from 'sonner';
+import { DocumentReviewModal } from '@/components/admin/document-review-modal';
+import { FileText } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -78,6 +81,13 @@ interface Property {
   amenities?: string[];
   is_featured?: boolean;
   is_verified?: boolean;
+  documents_submitted?: boolean;
+  documents_complete?: boolean;
+  documents_approved?: boolean;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 interface PropertyWithOwner extends Property {
@@ -99,10 +109,111 @@ export default function PropertiesPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [isDocumentReviewOpen, setIsDocumentReviewOpen] = useState(false);
+  const [reviewingProperty, setReviewingProperty] = useState<PropertyWithOwner | null>(null);
+
+  // Mapbox ref for admin modal
+  const adminMapContainerRef = useRef<HTMLDivElement>(null);
+  const adminMapRef = useRef<any>(null);
 
   useEffect(() => {
     loadProperties();
-  }, [statusFilter]);
+  }, []);
+
+  // Initialize Mapbox for admin modal when property is selected
+  useEffect(() => {
+    if (!isViewDialogOpen || !selectedProperty?.coordinates) {
+      // Cleanup map when dialog closes
+      if (adminMapRef.current) {
+        adminMapRef.current.remove();
+        adminMapRef.current = null;
+      }
+      return;
+    }
+
+    const loadMapbox = async () => {
+      try {
+        // Wait for container to be in DOM
+        if (!adminMapContainerRef.current) {
+          console.log('Map container not ready yet');
+          return;
+        }
+
+        // Add Mapbox CSS
+        if (!document.getElementById('mapbox-css')) {
+          const link = document.createElement('link');
+          link.id = 'mapbox-css';
+          link.rel = 'stylesheet';
+          link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+          document.head.appendChild(link);
+        }
+
+        // Load Mapbox GL JS
+        if (!(window as any).mapboxgl) {
+          const script = document.createElement('script');
+          script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+          script.async = true;
+          document.body.appendChild(script);
+
+          await new Promise((resolve) => {
+            script.onload = resolve;
+          });
+        }
+
+        const mapboxgl = (window as any).mapboxgl;
+        if (!mapboxgl) {
+          console.error('Mapbox GL not loaded');
+          return;
+        }
+
+        mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+
+        console.log('Initializing map with coordinates:', selectedProperty.coordinates);
+
+        // Initialize map
+        const map = new mapboxgl.Map({
+          container: adminMapContainerRef.current,
+          style: 'mapbox://styles/mapbox/streets-v12',
+          center: [selectedProperty.coordinates.lng, selectedProperty.coordinates.lat],
+          zoom: 15
+        });
+
+        // Wait for map to load
+        map.on('load', () => {
+          console.log('Map loaded successfully');
+        });
+
+        // Add navigation controls
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        // Add marker
+        new mapboxgl.Marker({ color: '#3B82F6' })
+          .setLngLat([selectedProperty.coordinates.lng, selectedProperty.coordinates.lat])
+          .setPopup(
+            new mapboxgl.Popup({ offset: 25 })
+              .setHTML(`<strong>${selectedProperty.name}</strong><br/>${selectedProperty.address}`)
+          )
+          .addTo(map);
+
+        adminMapRef.current = map;
+      } catch (error) {
+        console.error('Error loading map:', error);
+      }
+    };
+
+    // Longer delay to ensure dialog animation completes
+    const timer = setTimeout(() => {
+      loadMapbox();
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      if (adminMapRef.current) {
+        adminMapRef.current.remove();
+        adminMapRef.current = null;
+      }
+    };
+  }, [isViewDialogOpen, selectedProperty]);
 
   const loadProperties = async () => {
     try {
@@ -590,10 +701,25 @@ export default function PropertiesPage() {
                                 <Eye className="w-4 h-4 mr-1" />
                                 View
                               </Button>
+                              {property.documents_complete && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-purple-200 text-purple-700 hover:bg-purple-50"
+                                  onClick={() => {
+                                    setReviewingProperty(property);
+                                    setIsDocumentReviewOpen(true);
+                                  }}>
+                                  <FileText className="w-4 h-4 mr-1" />
+                                  Review Docs
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 className="bg-green-600 hover:bg-green-700 text-white"
-                                onClick={() => handleApproveProperty(property.id)}>
+                                onClick={() => handleApproveProperty(property.id)}
+                                disabled={!property.documents_approved}
+                                title={!property.documents_approved ? 'All documents must be approved first' : ''}>
                                 <CheckCircle className="w-4 h-4 mr-1" />
                                 Approve
                               </Button>
@@ -673,6 +799,17 @@ export default function PropertiesPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Document Review Modal */}
+        {reviewingProperty && (
+          <DocumentReviewModal
+            propertyId={reviewingProperty.id}
+            propertyName={reviewingProperty.name}
+            open={isDocumentReviewOpen}
+            onOpenChange={setIsDocumentReviewOpen}
+            onDocumentsUpdated={loadProperties}
+          />
+        )}
+
         {/* View Property Details Dialog */}
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -751,6 +888,88 @@ export default function PropertiesPage() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Unit Statistics */}
+              <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    Unit Availability
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 bg-blue-50 rounded-lg text-center">
+                      <p className="text-sm text-gray-600 mb-1">Total Units</p>
+                      <p className="text-3xl font-bold text-blue-700">{selectedProperty.total_units}</p>
+                    </div>
+                    <div className="p-4 bg-green-50 rounded-lg text-center">
+                      <p className="text-sm text-gray-600 mb-1">Occupied</p>
+                      <p className="text-3xl font-bold text-green-700">{selectedProperty.occupied_units}</p>
+                    </div>
+                    <div className="p-4 bg-purple-50 rounded-lg text-center">
+                      <p className="text-sm text-gray-600 mb-1">Available</p>
+                      <p className="text-3xl font-bold text-purple-700">{selectedProperty.available_units}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-gray-600">Occupancy Rate</Label>
+                      <span className="font-bold text-lg">
+                        {Math.round((selectedProperty.occupied_units / selectedProperty.total_units) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className="bg-blue-600 h-3 rounded-full transition-all"
+                        style={{
+                          width: `${(selectedProperty.occupied_units / selectedProperty.total_units) * 100}%`
+                        }}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Property Location Map */}
+              {selectedProperty.coordinates && (
+                <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                      Property Location
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <Label className="text-gray-600">GPS Coordinates</Label>
+                      <p className="text-sm font-mono text-gray-700">
+                        {selectedProperty.coordinates.lat.toFixed(6)}, {selectedProperty.coordinates.lng.toFixed(6)}
+                      </p>
+                    </div>
+                    
+                    {/* Mapbox Container */}
+                    <div 
+                      ref={adminMapContainerRef}
+                      className="w-full h-[300px] rounded-lg border-2 border-blue-200 overflow-hidden"
+                    />
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (selectedProperty.coordinates) {
+                          const url = `https://www.google.com/maps?q=${selectedProperty.coordinates.lat},${selectedProperty.coordinates.lng}`;
+                          window.open(url, '_blank');
+                        }
+                      }}
+                      className="w-full text-blue-600 border-blue-200 hover:bg-blue-50">
+                      <Navigation className="w-4 h-4 mr-2" />
+                      Open in Google Maps
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="units" className="space-y-4">

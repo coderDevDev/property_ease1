@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-admin';
 
+
+export const dynamic = 'force-static';
 export async function POST(request: NextRequest) {
   try {
     console.log('🧪 Testing auth creation...');

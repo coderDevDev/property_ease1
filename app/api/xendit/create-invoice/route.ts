@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+
+export const dynamic = 'force-static';
 /**
  * Xendit Create Invoice API Route
  * Creates a payment invoice and returns the payment URL

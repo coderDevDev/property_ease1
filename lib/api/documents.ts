@@ -11,6 +11,34 @@ export interface Document {
   category: 'lease' | 'id' | 'payment' | 'other';
 }
 
+// Property Document Interfaces
+export interface DocumentRequirement {
+  id: string;
+  document_type: string;
+  display_name: string;
+  description: string;
+  is_required: boolean;
+  max_file_size: number;
+  allowed_mime_types: string[];
+  display_order: number;
+}
+
+export interface PropertyDocument {
+  id: string;
+  property_id: string;
+  document_type: string;
+  document_name: string;
+  file_url: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_by: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejection_reason?: string;
+  uploaded_at: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+}
+
 export class DocumentsAPI {
   static async getTenantDocuments(tenantId: string) {
     try {
@@ -166,6 +194,244 @@ export class DocumentsAPI {
     } catch (error) {
       console.error('Failed to delete document:', error);
       return { success: false, message: 'Failed to delete document' };
+    }
+  }
+
+  // ============================================================================
+  // PROPERTY DOCUMENT VERIFICATION FUNCTIONS
+  // ============================================================================
+
+  /**
+   * Get all document requirements
+   */
+  static async getDocumentRequirements() {
+    try {
+      const { data, error } = await supabase
+        .from('document_requirements')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order');
+
+      if (error) throw error;
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Get requirements error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get requirements',
+        data: []
+      };
+    }
+  }
+
+  /**
+   * Get documents for a property
+   */
+  static async getPropertyDocuments(propertyId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('property_documents')
+        .select('*')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Get documents error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get documents',
+        data: []
+      };
+    }
+  }
+
+  /**
+   * Upload a property document
+   */
+  static async uploadPropertyDocument(
+    propertyId: string,
+    documentType: string,
+    file: File
+  ) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Validate file size (10MB)
+      if (file.size > 10485760) {
+        throw new Error('File size exceeds 10MB limit');
+      }
+
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Invalid file type. Only PDF, JPG, and PNG are allowed');
+      }
+
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${propertyId}/${documentType}_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('property-documents')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('property-documents')
+        .getPublicUrl(fileName);
+
+      // Create document record
+      const { data, error } = await supabase
+        .from('property_documents')
+        .insert({
+          property_id: propertyId,
+          document_type: documentType,
+          document_name: file.name,
+          file_url: publicUrl,
+          file_size: file.size,
+          mime_type: file.type,
+          uploaded_by: user.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: 'Document uploaded successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Upload document error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to upload document',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Delete a property document
+   */
+  static async deletePropertyDocument(documentId: string) {
+    try {
+      // Get document info first
+      const { data: doc, error: fetchError } = await supabase
+        .from('property_documents')
+        .select('file_url, property_id, document_type')
+        .eq('id', documentId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Extract file path from URL
+      const urlParts = doc.file_url.split('/property-documents/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1];
+
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from('property-documents')
+          .remove([filePath]);
+
+        if (storageError) console.error('Storage delete error:', storageError);
+      }
+
+      // Delete database record
+      const { error } = await supabase
+        .from('property_documents')
+        .delete()
+        .eq('id', documentId);
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: 'Document deleted successfully'
+      };
+    } catch (error) {
+      console.error('Delete document error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete document'
+      };
+    }
+  }
+
+  /**
+   * Approve a document (Admin only)
+   */
+  static async approveDocument(documentId: string) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.rpc('approve_document', {
+        p_document_id: documentId,
+        p_admin_id: user.id
+      });
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: 'Document approved successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Approve document error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to approve document',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Reject a document (Admin only)
+   */
+  static async rejectDocument(documentId: string, reason: string) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      if (!reason || reason.trim().length === 0) {
+        throw new Error('Rejection reason is required');
+      }
+
+      const { data, error } = await supabase.rpc('reject_document', {
+        p_document_id: documentId,
+        p_admin_id: user.id,
+        p_reason: reason
+      });
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: 'Document rejected successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Reject document error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to reject document',
+        data: null
+      };
     }
   }
 }

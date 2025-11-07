@@ -38,6 +38,7 @@ import {
   BedDouble
 } from 'lucide-react';
 import { TenantAPI, type PropertyListing } from '@/lib/api/tenant';
+import { DocumentsAPI, type PropertyDocument } from '@/lib/api/documents';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +55,7 @@ export default function TenantPropertyDetailsPage() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [hasPendingApplication, setHasPendingApplication] = useState(false);
+  const [propertyDocuments, setPropertyDocuments] = useState<PropertyDocument[]>([]);
 
   useEffect(() => {
     const loadPropertyData = async () => {
@@ -79,6 +81,14 @@ export default function TenantPropertyDetailsPage() {
           propertyId
         );
         setHasPendingApplication(hasPending);
+
+        // Load property documents
+        const docsResult = await DocumentsAPI.getPropertyDocuments(propertyId);
+        if (docsResult.success && docsResult.data) {
+          // Only show approved documents to tenants
+          const approvedDocs = docsResult.data.filter(doc => doc.status === 'approved');
+          setPropertyDocuments(approvedDocs);
+        }
       } catch (error) {
         console.error('Failed to load property data:', error);
         toast.error('Failed to load property data');
@@ -343,7 +353,7 @@ export default function TenantPropertyDetailsPage() {
             value={activeTab}
             onValueChange={setActiveTab}
             className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur-sm border border-blue-100">
+            <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm border border-blue-100">
               <TabsTrigger
                 value="overview"
                 className="data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs sm:text-sm">
@@ -358,6 +368,11 @@ export default function TenantPropertyDetailsPage() {
                 value="location"
                 className="data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs sm:text-sm">
                 Location
+              </TabsTrigger>
+              <TabsTrigger
+                value="documents"
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs sm:text-sm">
+                Documents
               </TabsTrigger>
             </TabsList>
 
@@ -648,6 +663,94 @@ export default function TenantPropertyDetailsPage() {
                       </div>
                     )}
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="documents" className="mt-6">
+              <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                    Property Documents
+                  </CardTitle>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2">
+                    Official documents for this property verified by the owner
+                  </p>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-6 pt-0">
+                  {propertyDocuments.length > 0 ? (
+                    <div className="space-y-3 sm:space-y-4">
+                      {propertyDocuments.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between gap-3 sm:gap-4">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                                    {doc.document_name}
+                                  </h4>
+                                  <Badge className="bg-green-100 text-green-700 border-0 text-xs flex-shrink-0">
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Verified
+                                  </Badge>
+                                </div>
+                                <p className="text-xs sm:text-sm text-gray-600 mb-2">
+                                  {doc.document_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                  <span>
+                                    {(doc.file_size / 1024 / 1024).toFixed(2)} MB
+                                  </span>
+                                  <span>•</span>
+                                  <span>
+                                    Uploaded {new Date(doc.uploaded_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-blue-200 text-blue-700 hover:bg-blue-50 flex-shrink-0 text-xs sm:text-sm"
+                              onClick={() => window.open(doc.file_url, '_blank')}>
+                              <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                              <span className="hidden sm:inline">View</span>
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      <div className="mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs sm:text-sm font-medium text-green-800">
+                              All Documents Verified
+                            </p>
+                            <p className="text-xs text-green-700 mt-1">
+                              These documents have been reviewed and approved by the property owner and admin.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 sm:py-12">
+                      <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-2">
+                        No Documents Available
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-600">
+                        The property owner hasn't uploaded any documents yet.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

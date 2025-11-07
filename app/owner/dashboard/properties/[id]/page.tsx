@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,8 +42,10 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { PropertiesAPI, type PropertyAnalytics } from '@/lib/api/properties';
+import { DocumentsAPI, PropertyDocument, DocumentRequirement } from '@/lib/api/documents';
 import { toast } from 'sonner';
 import { DeletePropertyModal } from '@/components/properties/DeletePropertyModal';
+import { Upload, Clock, XCircle } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -95,12 +97,18 @@ export default function PropertyDetailsPage() {
   const [property, setProperty] = useState<Property | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [analytics, setAnalytics] = useState<PropertyAnalytics | null>(null);
+  const [documents, setDocuments] = useState<PropertyDocument[]>([]);
+  const [documentRequirements, setDocumentRequirements] = useState<DocumentRequirement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Mapbox ref
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
 
   useEffect(() => {
     const loadPropertyData = async () => {
@@ -109,12 +117,14 @@ export default function PropertyDetailsPage() {
       try {
         setIsLoading(true);
 
-        // Load property details, tenants, and analytics in parallel
-        const [propertyResult, tenantsResult, analyticsResult] =
+        // Load property details, tenants, analytics, and documents in parallel
+        const [propertyResult, tenantsResult, analyticsResult, docsResult, reqResult] =
           await Promise.all([
             PropertiesAPI.getProperty(propertyId),
             PropertiesAPI.getPropertyTenants(propertyId),
-            PropertiesAPI.getPropertyAnalytics(propertyId)
+            PropertiesAPI.getPropertyAnalytics(propertyId),
+            DocumentsAPI.getPropertyDocuments(propertyId),
+            DocumentsAPI.getDocumentRequirements()
           ]);
 
         if (propertyResult.success) {
@@ -130,6 +140,14 @@ export default function PropertyDetailsPage() {
         if (analyticsResult.success && analyticsResult.data) {
           setAnalytics(analyticsResult.data);
         }
+
+        if (docsResult.success) {
+          setDocuments(docsResult.data);
+        }
+
+        if (reqResult.success) {
+          setDocumentRequirements(reqResult.data.filter(req => req.is_required));
+        }
       } catch (error) {
         console.error('Failed to load property data:', error);
         toast.error('Failed to load property data');
@@ -140,6 +158,67 @@ export default function PropertyDetailsPage() {
 
     loadPropertyData();
   }, [propertyId]);
+
+  // Initialize Mapbox when property is loaded
+  useEffect(() => {
+    if (!property?.coordinates || !mapContainerRef.current) return;
+
+    const loadMapbox = async () => {
+      // Add Mapbox CSS
+      if (!document.getElementById('mapbox-css')) {
+        const link = document.createElement('link');
+        link.id = 'mapbox-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+        document.head.appendChild(link);
+      }
+
+      // Load Mapbox GL JS
+      if (!(window as any).mapboxgl) {
+        const script = document.createElement('script');
+        script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+        script.async = true;
+        document.body.appendChild(script);
+
+        await new Promise((resolve) => {
+          script.onload = resolve;
+        });
+      }
+
+      const mapboxgl = (window as any).mapboxgl;
+      mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+
+      // Initialize map
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [property.coordinates.lng, property.coordinates.lat],
+        zoom: 15
+      });
+
+      // Add navigation controls
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      // Add marker at property location
+      new mapboxgl.Marker({ color: '#3B82F6' })
+        .setLngLat([property.coordinates.lng, property.coordinates.lat])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 25 })
+            .setHTML(`<strong>${property.name}</strong><br/>${property.address}`)
+        )
+        .addTo(map);
+
+      mapRef.current = map;
+    };
+
+    loadMapbox();
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+      }
+    };
+  }, [property]);
 
   const handleEdit = () => {
     router.push(`/owner/dashboard/properties/${propertyId}/edit`);
@@ -460,7 +539,7 @@ export default function PropertyDetailsPage() {
             value={activeTab}
             onValueChange={setActiveTab}
             className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm border border-blue-100">
+            <TabsList className="grid w-full grid-cols-5 bg-white/80 backdrop-blur-sm border border-blue-100">
               <TabsTrigger
                 value="overview"
                 className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
@@ -470,6 +549,11 @@ export default function PropertyDetailsPage() {
                 value="tenants"
                 className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
                 Tenants ({tenants.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="documents"
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                Documents ({documents.length})
               </TabsTrigger>
               <TabsTrigger
                 value="analytics"
@@ -515,6 +599,116 @@ export default function PropertyDetailsPage() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Unit Statistics */}
+                <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-blue-600" />
+                      Unit Availability
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="p-4 bg-blue-50 rounded-lg text-center">
+                        <p className="text-sm text-gray-600 mb-1">Total Units</p>
+                        <p className="text-3xl font-bold text-blue-700">{property.total_units}</p>
+                      </div>
+                      <div className="p-4 bg-green-50 rounded-lg text-center">
+                        <p className="text-sm text-gray-600 mb-1">Occupied</p>
+                        <p className="text-3xl font-bold text-green-700">{property.occupied_units}</p>
+                      </div>
+                      <div className="p-4 bg-purple-50 rounded-lg text-center">
+                        <p className="text-sm text-gray-600 mb-1">Available</p>
+                        <p className="text-3xl font-bold text-purple-700">
+                          {property.total_units - property.occupied_units}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm text-gray-600">Occupancy Rate</p>
+                        <span className="font-bold text-lg">
+                          {getOccupancyRate()}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-blue-600 h-3 rounded-full transition-all"
+                          style={{ width: `${getOccupancyRate()}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Unit Details List */}
+                    <div className="mt-6 border-t pt-4">
+                      <h4 className="font-semibold text-gray-900 mb-3">Unit Details</h4>
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                        {tenants.length > 0 ? (
+                          // Show occupied units with tenant info
+                          tenants.map((tenant) => (
+                            <div
+                              key={tenant.id}
+                              className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                  {tenant.unit_number}
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-sm">
+                                    {tenant.user.first_name} {tenant.user.last_name}
+                                  </p>
+                                  <p className="text-xs text-gray-600">
+                                    Unit {tenant.unit_number} • Occupied
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <Badge className="bg-green-100 text-green-700 border-0 text-xs">
+                                  Occupied
+                                </Badge>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  ₱{tenant.monthly_rent.toLocaleString()}/mo
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 text-center py-4">
+                            No tenant data available
+                          </p>
+                        )}
+                        
+                        {/* Show available units */}
+                        {Array.from({ length: property.total_units - property.occupied_units }, (_, i) => (
+                          <div
+                            key={`available-${i}`}
+                            className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                {property.occupied_units + i + 1}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-sm">Available Unit</p>
+                                <p className="text-xs text-gray-600">
+                                  Unit {property.occupied_units + i + 1} • Ready to rent
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <Badge className="bg-purple-100 text-purple-700 border-0 text-xs">
+                                Available
+                              </Badge>
+                              <p className="text-xs text-gray-600 mt-1">
+                                ₱{property.monthly_rent.toLocaleString()}/mo
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Property Information */}
@@ -575,28 +769,33 @@ export default function PropertyDetailsPage() {
                         </div>
                       )}
 
-                      {/* GPS Coordinates */}
+                      {/* Property Location Map */}
                       {property.coordinates && (
                         <div className="border-t pt-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm text-gray-600 mb-1">
-                                GPS Coordinates
-                              </p>
-                              <p className="text-sm font-mono text-gray-700">
-                                {property.coordinates.lat.toFixed(6)},{' '}
-                                {property.coordinates.lng.toFixed(6)}
-                              </p>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={openGoogleMaps}
-                              className="text-blue-600 border-blue-200 hover:bg-blue-50">
-                              <Navigation className="w-4 h-4 mr-2" />
-                              View Map
-                            </Button>
+                          <div className="mb-3">
+                            <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-blue-600" />
+                              Property Location
+                            </p>
+                            <p className="text-xs font-mono text-gray-500">
+                              {property.coordinates.lat.toFixed(6)}, {property.coordinates.lng.toFixed(6)}
+                            </p>
                           </div>
+                          
+                          {/* Mapbox Container */}
+                          <div 
+                            ref={mapContainerRef}
+                            className="w-full h-[250px] rounded-lg border-2 border-blue-200 overflow-hidden mb-3"
+                          />
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={openGoogleMaps}
+                            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50">
+                            <Navigation className="w-4 h-4 mr-2" />
+                            Open in Google Maps
+                          </Button>
                         </div>
                       )}
                     </CardContent>
@@ -713,6 +912,165 @@ export default function PropertyDetailsPage() {
                     <div className="text-center py-8">
                       <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-500">No tenants currently</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="documents" className="mt-6">
+              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    Submitted Documents
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {documents.length > 0 ? (
+                    <div className="space-y-4">
+                      {documentRequirements.map((requirement) => {
+                        const doc = documents.find(
+                          (d) => d.document_type === requirement.document_type
+                        );
+
+                        return (
+                          <div
+                            key={requirement.id}
+                            className="border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-start gap-3 flex-1">
+                                <FileText className="w-8 h-8 text-blue-600 flex-shrink-0 mt-1" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="font-semibold text-gray-900">
+                                      {requirement.display_name}
+                                    </h4>
+                                    {doc ? (
+                                      doc.status === 'approved' ? (
+                                        <Badge className="bg-green-100 text-green-700 border-green-200">
+                                          <CheckCircle className="w-3 h-3 mr-1" />
+                                          Approved
+                                        </Badge>
+                                      ) : doc.status === 'rejected' ? (
+                                        <Badge className="bg-red-100 text-red-700 border-red-200">
+                                          <XCircle className="w-3 h-3 mr-1" />
+                                          Rejected
+                                        </Badge>
+                                      ) : (
+                                        <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                                          <Clock className="w-3 h-3 mr-1" />
+                                          Pending Review
+                                        </Badge>
+                                      )
+                                    ) : (
+                                      <Badge variant="outline" className="bg-gray-100 text-gray-700">
+                                        <Upload className="w-3 h-3 mr-1" />
+                                        Not Uploaded
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-600 mb-2">
+                                    {requirement.description}
+                                  </p>
+
+                                  {doc && (
+                                    <>
+                                      <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                                        <span className="font-medium">
+                                          {doc.document_name}
+                                        </span>
+                                        <span>•</span>
+                                        <span>
+                                          {(doc.file_size / 1024 / 1024).toFixed(2)} MB
+                                        </span>
+                                        <span>•</span>
+                                        <span>
+                                          Uploaded{' '}
+                                          {new Date(doc.uploaded_at).toLocaleDateString()}
+                                        </span>
+                                      </div>
+
+                                      {doc.status === 'rejected' &&
+                                        doc.rejection_reason && (
+                                          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
+                                            <p className="text-sm font-medium text-red-800 mb-1">
+                                              Rejection Reason:
+                                            </p>
+                                            <p className="text-sm text-red-700">
+                                              {doc.rejection_reason}
+                                            </p>
+                                          </div>
+                                        )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              {doc && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                                  onClick={() => window.open(doc.file_url, '_blank')}>
+                                  <Download className="w-4 h-4 mr-1" />
+                                  View
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Document Status Summary */}
+                      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h4 className="font-semibold text-blue-900 mb-2">
+                          Document Status Summary
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-600">Total</p>
+                            <p className="text-2xl font-bold text-gray-900">
+                              {documents.length}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Approved</p>
+                            <p className="text-2xl font-bold text-green-600">
+                              {documents.filter((d) => d.status === 'approved').length}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Pending</p>
+                            <p className="text-2xl font-bold text-yellow-600">
+                              {documents.filter((d) => d.status === 'pending').length}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Rejected</p>
+                            <p className="text-2xl font-bold text-red-600">
+                              {documents.filter((d) => d.status === 'rejected').length}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500 mb-4">
+                        No documents uploaded yet
+                      </p>
+                      <Button
+                        onClick={() =>
+                          router.push(
+                            `/owner/dashboard/properties/${propertyId}/documents`
+                          )
+                        }
+                        className="bg-blue-600 hover:bg-blue-700">
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Documents
+                      </Button>
                     </div>
                   )}
                 </CardContent>

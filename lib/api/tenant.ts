@@ -2504,7 +2504,9 @@ export class TenantAPI {
           `
           *,
           properties(
-            name
+            name,
+            thumbnail,
+            images
           ),
           documents:application_documents(
             id,
@@ -2526,6 +2528,8 @@ export class TenantAPI {
             id: application.id,
             property_id: application.property_id,
             property_name: (application.properties as any).name,
+            property_thumbnail: (application.properties as any).thumbnail,
+            property_image: (application.properties as any).images?.[0],
             unit_type: application.unit_type,
             monthly_rent: parseFloat(application.monthly_rent),
             move_in_date: application.move_in_date,
