@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -57,15 +58,13 @@ export function SimpleChatInterface({
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastMessageCountRef = useRef(0);
 
   // Get the other participant (not current user)
   const otherParticipant = conversation.participants_data.find(
     p => p.id !== currentUserId
   );
 
-  // Load messages initially
+  // Load messages initially and set up real-time subscription
   useEffect(() => {
     const loadMessages = async () => {
       setIsLoading(true);
@@ -76,8 +75,7 @@ export function SimpleChatInterface({
         );
         if (result.success && result.data) {
           setMessages(result.data);
-          lastMessageCountRef.current = result.data.length;
-          console.log('Initial messages loaded:', result.data.length);
+          console.log('✅ Initial messages loaded:', result.data.length);
         } else {
           toast.error(result.message || 'Failed to load messages');
         }
@@ -90,66 +88,115 @@ export function SimpleChatInterface({
     };
 
     loadMessages();
-  }, [conversation.id, currentUserId]);
 
-  // OPTIMIZED: Fast polling for active conversations (2 seconds)
-  useEffect(() => {
-    const pollForNewMessages = async () => {
-      try {
-        const result = await MessagesAPI.getConversationMessages(
-          conversation.id,
-          currentUserId
-        );
+    // 🔥 REAL-TIME: Subscribe to new messages in this conversation
+    console.log('🔌 Setting up real-time subscription for conversation:', conversation.id);
+    
+    const channel = supabase
+      .channel(`conversation-${conversation.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversation.id}`
+        },
+        async (payload) => {
+          console.log('🔥 Real-time: New message received!', payload);
+          const newMessage = payload.new as any;
 
-        if (result.success && result.data) {
-          const currentCount = result.data.length;
+          // Fetch full message details with sender/recipient data
+          const { data: fullMessage } = await supabase
+            .from('messages')
+            .select(`
+              *,
+              sender:users!messages_sender_id_fkey(id, first_name, last_name, email, avatar_url, role),
+              recipient:users!messages_recipient_id_fkey(id, first_name, last_name, email, avatar_url, role),
+              property:properties(id, name, address)
+            `)
+            .eq('id', newMessage.id)
+            .single();
 
-          // If we have new messages, update the state
-          if (currentCount > lastMessageCountRef.current) {
-            console.log('New messages detected via polling:', currentCount);
-            setMessages(result.data);
-            lastMessageCountRef.current = currentCount;
+          if (fullMessage) {
+            setMessages(prev => {
+              // Avoid duplicates
+              if (prev.some(m => m.id === fullMessage.id)) {
+                return prev;
+              }
+              return [...prev, fullMessage as Message];
+            });
 
-            // Show notification for new messages (not sent by current user)
-            const newMessages = result.data.slice(
-              lastMessageCountRef.current -
-                (currentCount - lastMessageCountRef.current)
-            );
-            const hasNewIncomingMessages = newMessages.some(
-              msg => msg.sender_id !== currentUserId
-            );
+            // Auto-scroll to bottom
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
 
-            if (hasNewIncomingMessages) {
-              toast.success('New message received!');
+            // Mark as read if recipient is current user
+            if (fullMessage.recipient_id === currentUserId && !fullMessage.is_read) {
+              await MessagesAPI.markMessageAsRead(fullMessage.id);
             }
           }
         }
-      } catch (error) {
-        console.error('Polling error:', error);
-      }
-    };
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversation.id}`
+        },
+        (payload) => {
+          console.log('🔄 Real-time: Message updated!', payload);
+          const updatedMessage = payload.new as any;
 
-    // OPTIMIZED: Poll every 2 seconds for faster message receiving
-    const startPolling = () => {
-      pollingIntervalRef.current = setInterval(pollForNewMessages, 2000);
-    };
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === updatedMessage.id
+                ? { ...msg, ...updatedMessage }
+                : msg
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversation.id}`
+        },
+        (payload) => {
+          console.log('🗑️ Real-time: Message deleted!', payload);
+          const deletedId = payload.old.id;
 
-    // Start immediately - no delay
-    startPolling();
+          setMessages(prev => prev.filter(msg => msg.id !== deletedId));
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time connected for conversation:', conversation.id);
+        }
+      });
 
+    // Cleanup subscription on unmount
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
+      console.log('🔌 Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
     };
   }, [conversation.id, currentUserId]);
+
+  // ❌ REMOVED: Polling is no longer needed - using real-time subscriptions instead!
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Manual refresh function
+  // Manual refresh function (optional - real-time should handle everything)
   const refreshMessages = async () => {
     try {
       const result = await MessagesAPI.getConversationMessages(
@@ -158,7 +205,6 @@ export function SimpleChatInterface({
       );
       if (result.success && result.data) {
         setMessages(result.data);
-        lastMessageCountRef.current = result.data.length;
         toast.success('Messages refreshed');
       }
     } catch (error) {
@@ -185,30 +231,14 @@ export function SimpleChatInterface({
       const result = await MessagesAPI.sendMessage(messageData, currentUserId);
 
       if (result.success && result.data) {
-        console.log('Message sent successfully:', result.data);
+        console.log('✅ Message sent successfully:', result.data);
 
-        // Immediately add the message to the local state
-        setMessages(prev => {
-          const newMessages = [...prev, result.data!];
-          lastMessageCountRef.current = newMessages.length;
-          return newMessages;
-        });
-
+        // Clear input immediately - real-time will add the message
         setNewMessage('');
         setReplyingTo(null);
         onMessageSent?.(result.data);
 
-        // OPTIMIZATION: Poll immediately after sending (expect quick reply)
-        setTimeout(async () => {
-          const refreshResult = await MessagesAPI.getConversationMessages(
-            conversation.id,
-            currentUserId
-          );
-          if (refreshResult.success && refreshResult.data) {
-            setMessages(refreshResult.data);
-            lastMessageCountRef.current = refreshResult.data.length;
-          }
-        }, 500); // Check for reply after 500ms
+        // Note: No need to manually add to state - real-time subscription will handle it!
       } else {
         console.error('Failed to send message:', result.message);
         toast.error(result.message || 'Failed to send message');

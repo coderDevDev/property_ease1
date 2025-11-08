@@ -91,28 +91,8 @@ export default function OwnerMessagesPage() {
     loadData();
   }, [authState.user?.id]);
 
-  // Optimized: Poll for conversation updates every 10 seconds (reduced frequency)
-  useEffect(() => {
-    if (!authState.user?.id) return;
-
-    const pollConversations = async () => {
-      try {
-        const conversationsResult = await MessagesAPI.getConversations(
-          authState.user?.id || ''
-        );
-        if (conversationsResult.success) {
-          setConversations(conversationsResult.data || []);
-        }
-      } catch (error) {
-        console.error('Failed to poll conversations:', error);
-      }
-    };
-
-    // Start polling after initial load - REDUCED to every 10 seconds
-    const interval = setInterval(pollConversations, 10000);
-
-    return () => clearInterval(interval);
-  }, [authState.user?.id]);
+  // ❌ REMOVED: Polling is no longer needed!
+  // Real-time subscriptions in useRealtimeMessages hook handle all updates
 
   // Load messages for selected conversation
   useEffect(() => {

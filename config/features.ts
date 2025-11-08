@@ -15,7 +15,7 @@ export const FEATURE_FLAGS = {
    * Performance Impact: HIGH (constant database polling)
    * Recommended: Disable for development, Enable for production
    */
-  REALTIME_NOTIFICATIONS: false,
+  REALTIME_NOTIFICATIONS: true,
 
   /**
    * Real-time Messages
@@ -26,7 +26,7 @@ export const FEATURE_FLAGS = {
    * Performance Impact: HIGH (constant database polling)
    * Recommended: Disable for development, Enable for production
    */
-  REALTIME_MESSAGES: false,
+  REALTIME_MESSAGES: true,
 
   /**
    * Auto-refresh Interval (milliseconds)

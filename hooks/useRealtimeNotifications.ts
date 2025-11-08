@@ -59,7 +59,34 @@ export function useRealtimeNotifications({
   useEffect(() => {
     if (!userId) return;
 
-    loadNotifications();
+    // Load initial notifications ONCE
+    const loadInitialNotifications = async () => {
+      try {
+        setIsLoading(true);
+        const [notificationsResult, statsResult] = await Promise.all([
+          NotificationsAPI.getUserNotifications(userId),
+          NotificationsAPI.getNotificationStats(userId)
+        ]);
+
+        if (notificationsResult.success) {
+          setNotifications(notificationsResult.data || []);
+        }
+
+        if (statsResult.success && statsResult.data) {
+          setStats({
+            total: statsResult.data.total_notifications,
+            unread: statsResult.data.unread_notifications,
+            urgent: statsResult.data.urgent_notifications
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load notifications:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialNotifications();
 
     // Subscribe to notifications for this user
     const channel = supabase
@@ -153,13 +180,7 @@ export function useRealtimeNotifications({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [
-    userId,
-    loadNotifications,
-    onNewNotification,
-    onNotificationUpdate,
-    onNotificationDelete
-  ]);
+  }, [userId]); // ⚠️ FIXED: Only depend on userId, not callbacks
 
   // Mark notification as read
   const markAsRead = useCallback(async (notificationId: string) => {

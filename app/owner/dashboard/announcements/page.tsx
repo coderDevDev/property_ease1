@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -114,27 +115,6 @@ export default function OwnerAnnouncementsPage() {
       setAnnouncements(prev => prev.filter(a => a.id !== deletedId));
     }
   });
-
-  // Poll for updates every 10 seconds
-  useEffect(() => {
-    if (!authState.user?.id) return;
-
-    const pollAnnouncements = async () => {
-      try {
-        const result = await AnnouncementsAPI.getOwnerAnnouncements(
-          authState.user?.id || ''
-        );
-        if (result.success) {
-          setAnnouncements(result.data || []);
-        }
-      } catch (error) {
-        console.error('Failed to poll announcements:', error);
-      }
-    };
-
-    const interval = setInterval(pollAnnouncements, 10000);
-    return () => clearInterval(interval);
-  }, [authState.user?.id]);
 
   // Filter announcements
   const filteredAnnouncements = announcements.filter(announcement => {

@@ -60,6 +60,7 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
   const [recentMessages, setRecentMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [, forceUpdate] = useState({});
 
   // Real-time notifications (disabled via config)
   const {
@@ -129,7 +130,16 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
     }
   };
 
-  // Real-time messages (disabled via config)
+  // 🔍 DEBUG: Log auth state
+  useEffect(() => {
+    console.log('🔑 NAVBAR: Auth state:', {
+      isAuthenticated: authState.isAuthenticated,
+      userId: authState.user?.id,
+      userExists: !!authState.user
+    });
+  }, [authState]);
+
+  // Real-time messages
   const {
     unreadCount: messageUnreadCount,
     isConnected: messagesConnected,
@@ -138,7 +148,10 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
   } = FEATURE_FLAGS.REALTIME_MESSAGES
     ? useRealtimeMessages({
         userId: authState.user?.id || '',
+        channelName: 'navbar-messages', // Unique channel for navbar
         onNewMessage: message => {
+          console.log('📨 NAVBAR: New message received!', message);
+          
           // Show toast for new messages
           if (FEATURE_FLAGS.ENABLE_TOAST_NOTIFICATIONS) {
             toast.info('New Message', {
@@ -164,6 +177,23 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
         markAsRead: async () => {},
         markAllAsRead: async () => {}
       };
+
+  // 🔍 DEBUG: Log unread count changes
+  useEffect(() => {
+    console.log('📨 NAVBAR: Unread count changed:', messageUnreadCount);
+    console.log('📨 NAVBAR: Type of messageUnreadCount:', typeof messageUnreadCount);
+    console.log('📨 NAVBAR: Is it > 0?', messageUnreadCount > 0);
+    // Force re-render
+    forceUpdate({});
+  }, [messageUnreadCount]);
+
+  // 🔍 DEBUG: Log connection status
+  useEffect(() => {
+    console.log('📡 NAVBAR: Messages connection status:', messagesConnected);
+    if (!messagesConnected) {
+      console.error('❌ NAVBAR: WebSocket NOT connected! Real-time won\'t work!');
+    }
+  }, [messagesConnected]);
 
   // Load recent messages when component mounts
   useEffect(() => {
@@ -348,11 +378,17 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                   size="sm"
                   className="relative text-gray-600 hover:text-blue-600 hover:bg-blue-50">
                   <MessageSquare className="w-5 h-5" />
+                  {/* 🔍 DEBUG: Always show badge to test */}
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-blue-500 text-white">
+                    {messageUnreadCount || '0'}
+                  </Badge>
+                  {/* Original code (commented for debugging):
                   {messageUnreadCount > 0 && (
                     <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-blue-500 text-white">
                       {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
                     </Badge>
                   )}
+                  */}
                 </Button>
               </PopoverTrigger>
               <PopoverContent

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -85,30 +86,65 @@ export default function TenantAnnouncementsPage() {
     };
 
     loadAnnouncements();
-  }, [authState.user?.id]);
 
-  // Poll for updates every 10 seconds
-  useEffect(() => {
+    // 🔥 REAL-TIME: Subscribe to announcements
     if (!authState.user?.id) return;
 
-    const pollAnnouncements = async () => {
-      try {
-        const tenantId = await getTenantId(authState.user?.id || '');
-        if (tenantId) {
-          const result = await AnnouncementsAPI.getTenantAnnouncements(
-            tenantId
-          );
+    console.log('🔌 Setting up real-time subscription for announcements');
+
+    const channel = supabase
+      .channel('tenant-announcements')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'announcements'
+        },
+        async (payload) => {
+          console.log('🔥 Real-time: New announcement!', payload);
+          // Reload announcements to get full data
+          const result = await AnnouncementsAPI.getTenantAnnouncements(authState.user?.id || '');
           if (result.success) {
             setAnnouncements(result.data || []);
           }
         }
-      } catch (error) {
-        console.error('Failed to poll announcements:', error);
-      }
-    };
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'announcements'
+        },
+        async (payload) => {
+          console.log('🔄 Real-time: Announcement updated!', payload);
+          const result = await AnnouncementsAPI.getTenantAnnouncements(authState.user?.id || '');
+          if (result.success) {
+            setAnnouncements(result.data || []);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'announcements'
+        },
+        (payload) => {
+          console.log('🗑️ Real-time: Announcement deleted!', payload);
+          setAnnouncements(prev => prev.filter(a => a.id !== payload.old.id));
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Announcements subscription status:', status);
+      });
 
-    const interval = setInterval(pollAnnouncements, 10000);
-    return () => clearInterval(interval);
+    return () => {
+      console.log('🔌 Cleaning up announcements subscription');
+      supabase.removeChannel(channel);
+    };
   }, [authState.user?.id]);
 
   // Filter announcements
