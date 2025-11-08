@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         success_redirect_url: `${process.env.NEXT_PUBLIC_APP_URL}/tenant/dashboard/payments`,
         failure_redirect_url: `${process.env.NEXT_PUBLIC_APP_URL}/tenant/dashboard/payments`,
         currency: 'PHP',
-        payment_methods: ['CREDIT_CARD', 'GCASH', 'PAYMAYA', 'BANK_TRANSFER']
+        payment_methods: [ 'GCASH']
       })
     });
 

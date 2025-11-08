@@ -1582,48 +1582,10 @@ export default function TenantPaymentsPage() {
                           <span className="text-xs font-medium">GCash</span>
                         </Button>
 
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={cn(
-                            'h-16 flex-col gap-1',
-                            selectedPaymentMethod === 'maya' &&
-                              'border-green-500 bg-green-50 border-2'
-                          )}
-                          onClick={() => setSelectedPaymentMethod('maya')}>
-                          <Zap className="w-5 h-5 text-green-600" />
-                          <span className="text-xs font-medium">Maya</span>
-                        </Button>
+                       
 
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={cn(
-                            'h-16 flex-col gap-1',
-                            selectedPaymentMethod === 'card' &&
-                              'border-purple-500 bg-purple-50 border-2'
-                          )}
-                          onClick={() => setSelectedPaymentMethod('card')}>
-                          <CreditCard className="w-5 h-5 text-purple-600" />
-                          <span className="text-xs font-medium">
-                            Credit/Debit
-                          </span>
-                        </Button>
 
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={cn(
-                            'h-16 flex-col gap-1',
-                            selectedPaymentMethod === 'bank' &&
-                              'border-orange-500 bg-orange-50 border-2'
-                          )}
-                          onClick={() => setSelectedPaymentMethod('bank')}>
-                          <Home className="w-5 h-5 text-orange-600" />
-                          <span className="text-xs font-medium">
-                            Bank Transfer
-                          </span>
-                        </Button>
+                       
                       </div>
                     </div>
 

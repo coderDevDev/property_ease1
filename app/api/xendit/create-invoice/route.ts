@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
                 value: late_fee
               }
             ]
-          : []
+          : [],
+      payment_method:['GCASH']
     };
 
     // Call Xendit API to create invoice
