@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import {
   Megaphone,
@@ -101,10 +100,12 @@ export default function TenantAnnouncementsPage() {
           schema: 'public',
           table: 'announcements'
         },
-        async (payload) => {
+        async payload => {
           console.log('🔥 Real-time: New announcement!', payload);
           // Reload announcements to get full data
-          const result = await AnnouncementsAPI.getTenantAnnouncements(authState.user?.id || '');
+          const result = await AnnouncementsAPI.getTenantAnnouncements(
+            authState.user?.id || ''
+          );
           if (result.success) {
             setAnnouncements(result.data || []);
           }
@@ -117,9 +118,11 @@ export default function TenantAnnouncementsPage() {
           schema: 'public',
           table: 'announcements'
         },
-        async (payload) => {
+        async payload => {
           console.log('🔄 Real-time: Announcement updated!', payload);
-          const result = await AnnouncementsAPI.getTenantAnnouncements(authState.user?.id || '');
+          const result = await AnnouncementsAPI.getTenantAnnouncements(
+            authState.user?.id || ''
+          );
           if (result.success) {
             setAnnouncements(result.data || []);
           }
@@ -132,12 +135,12 @@ export default function TenantAnnouncementsPage() {
           schema: 'public',
           table: 'announcements'
         },
-        (payload) => {
+        payload => {
           console.log('🗑️ Real-time: Announcement deleted!', payload);
           setAnnouncements(prev => prev.filter(a => a.id !== payload.old.id));
         }
       )
-      .subscribe((status) => {
+      .subscribe(status => {
         console.log('📡 Announcements subscription status:', status);
       });
 
