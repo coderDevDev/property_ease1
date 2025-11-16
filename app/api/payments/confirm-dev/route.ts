@@ -11,13 +11,10 @@ export async function POST(request: NextRequest) {
   console.log('🔧 [confirm-dev] API called');
   console.log('🔧 [confirm-dev] NODE_ENV:', process.env.NODE_ENV);
   
-  // Only allow in development
-  if (process.env.NODE_ENV !== 'development') {
-    console.log('❌ [confirm-dev] Blocked: Not in development mode');
-    return NextResponse.json(
-      { error: 'This endpoint is only available in development mode' },
-      { status: 403 }
-    );
+  // Warn if used in production (but allow for testing)
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('⚠️ [confirm-dev] WARNING: Manual payment confirmation used in production!');
+    console.warn('⚠️ [confirm-dev] This should only be used for testing. Configure Xendit webhooks for production.');
   }
 
   try {

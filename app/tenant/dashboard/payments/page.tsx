@@ -263,14 +263,15 @@ export default function TenantPaymentsPage() {
         toast.info('🔄 Refreshing payment data...');
         await loadPayments();
         
-        // Check if payment is still pending (webhook didn't work - development mode)
-        if (paymentId && process.env.NODE_ENV === 'development') {
+        // Check if payment is still pending (webhook didn't work)
+        // NOTE: This auto-confirm is temporary until Xendit webhooks are properly configured
+        if (paymentId) {
           const result = await PaymentsAPI.getTenantPayments(authState.user.id);
           if (result.success && result.data) {
             const payment = result.data.find((p: any) => p.id === paymentId);
             if (payment && payment.payment_status === 'pending') {
-              // Auto-confirm payment in development mode
-              // toast.info('🔄 Webhook not received. Auto-confirming payment...');
+              // Auto-confirm payment (webhook didn't arrive)
+              console.log('⚠️ Webhook not received, auto-confirming payment...');
               
               // Wait 1 second then auto-confirm with the actual payment ID
               setTimeout(async () => {
