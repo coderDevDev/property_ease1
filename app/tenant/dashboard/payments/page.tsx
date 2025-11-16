@@ -404,11 +404,8 @@ export default function TenantPaymentsPage() {
   };
 
   // Confirm specific payment by ID (for auto-confirm after Xendit redirect)
+  // NOTE: Temporarily enabled for production until webhooks are configured
   const confirmSpecificPayment = async (paymentId: string) => {
-    if (process.env.NODE_ENV !== 'development') {
-      return;
-    }
-
     try {
       console.log('Confirming specific payment:', paymentId);
 
