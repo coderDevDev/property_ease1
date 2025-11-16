@@ -84,6 +84,7 @@ export default function OwnerPaymentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
+  const [filterTenant, setFilterTenant] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -163,8 +164,10 @@ export default function OwnerPaymentsPage() {
       filterStatus === 'all' || payment.payment_status === filterStatus;
     const matchesType =
       filterType === 'all' || payment.payment_type === filterType;
+    const matchesTenant =
+      filterTenant === 'all' || payment.tenant_id === filterTenant;
 
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch && matchesStatus && matchesType && matchesTenant;
   });
 
   // Get status badge variant
@@ -542,6 +545,9 @@ export default function OwnerPaymentsPage() {
           onStatusChange={setFilterStatus}
           filterType={filterType}
           onTypeChange={setFilterType}
+          filterTenant={filterTenant}
+          onTenantChange={setFilterTenant}
+          tenants={tenants}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />

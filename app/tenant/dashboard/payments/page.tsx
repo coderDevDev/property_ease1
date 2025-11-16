@@ -170,45 +170,46 @@ export default function TenantPaymentsPage() {
   const [showAdvancePaymentDialog, setShowAdvancePaymentDialog] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
 
-  // Load tenant payments
-  useEffect(() => {
-    const loadPayments = async () => {
-      if (!authState.user?.id) return;
+  // Load tenant payments function (can be called manually)
+  const loadPayments = async () => {
+    if (!authState.user?.id) return;
 
-      try {
-        setIsLoading(true);
-        const result = await PaymentsAPI.getTenantPayments(authState.user.id);
+    try {
+      setIsLoading(true);
+      const result = await PaymentsAPI.getTenantPayments(authState.user.id);
 
-        if (result.success) {
-          setPayments(result.data || []);
-          // Get tenant ID from first payment
-          if (result.data && result.data.length > 0 && result.data[0].tenant_id) {
-            setTenantId(result.data[0].tenant_id);
-          }
-        } else {
-          // Show friendly error message
-          const errorMessage = result.message || 'Failed to load payments';
-
-          // Check if it's a connection issue
-          if (
-            errorMessage.includes('Failed to fetch') ||
-            errorMessage.includes('503')
-          ) {
-            toast.error(
-              '⚠️ Database connection issue. Please refresh the page.'
-            );
-          } else {
-            toast.error(errorMessage);
-          }
+      if (result.success) {
+        setPayments(result.data || []);
+        // Get tenant ID from first payment
+        if (result.data && result.data.length > 0 && result.data[0].tenant_id) {
+          setTenantId(result.data[0].tenant_id);
         }
-      } catch (error) {
-        console.error('Load payments error:', error);
-        toast.error('⚠️ Unable to connect to database. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      } else {
+        // Show friendly error message
+        const errorMessage = result.message || 'Failed to load payments';
 
+        // Check if it's a connection issue
+        if (
+          errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('503')
+        ) {
+          toast.error(
+            '⚠️ Database connection issue. Please refresh the page.'
+          );
+        } else {
+          toast.error(errorMessage);
+        }
+      }
+    } catch (error) {
+      console.error('Load payments error:', error);
+      toast.error('⚠️ Unable to connect to database. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load tenant payments on mount
+  useEffect(() => {
     loadPayments();
   }, [authState.user?.id]);
 
@@ -247,49 +248,56 @@ export default function TenantPaymentsPage() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const paymentStatus = searchParams.get('payment');
-      const paymentId = searchParams.get('payment_id');
+    const paymentId = searchParams.get('payment_id');
 
     if (paymentStatus === 'success') {
+      // Show success toast immediately
+      toast.success('✅ Payment confirmed successfully!');
+
       // Poll for updated payment status (webhook may take a few seconds)
       const checkPaymentStatus = async () => {
-        // Wait 3 seconds for webhook to process
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Wait 2 seconds for webhook to process
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Reload payments to get updated status
-        if (authState.user?.id) {
+        toast.info('🔄 Refreshing payment data...');
+        await loadPayments();
+        
+        // Check if payment is still pending (webhook didn't work - development mode)
+        if (paymentId && process.env.NODE_ENV === 'development') {
           const result = await PaymentsAPI.getTenantPayments(authState.user.id);
           if (result.success && result.data) {
-            setPayments(result.data);
-            
-            // Check if payment is still pending (webhook didn't work - development mode)
-            if (paymentId && process.env.NODE_ENV === 'development') {
-              const payment = result.data.find((p: any) => p.id === paymentId);
-              if (payment && payment.payment_status === 'pending') {
-                // Auto-confirm payment in development mode
-                toast.info('🔄 Webhook not received. Auto-confirming payment...');
-                
-                // Wait 1 second then auto-confirm with the actual payment ID
-                setTimeout(() => {
-                  confirmSpecificPayment(paymentId);
-                }, 1000);
-              }
+            const payment = result.data.find((p: any) => p.id === paymentId);
+            if (payment && payment.payment_status === 'pending') {
+              // Auto-confirm payment in development mode
+              toast.info('🔄 Webhook not received. Auto-confirming payment...');
+              
+              // Wait 1 second then auto-confirm with the actual payment ID
+              setTimeout(async () => {
+                await confirmSpecificPayment(paymentId);
+                // Refresh again after confirmation
+                await loadPayments();
+              }, 1000);
+            } else {
+              toast.success('✅ Payment status updated!');
             }
           }
+        } else {
+          toast.success('✅ Payment data refreshed!');
         }
       };
 
       checkPaymentStatus();
 
-      // Show success toast
-      toast.success('✅ Payment successful! Updating status...');
-
-      // Clean up URL
-      window.history.replaceState({}, '', '/tenant/dashboard/payments');
+      // Clean up URL after a short delay
+      setTimeout(() => {
+        window.history.replaceState({}, '', '/tenant/dashboard/payments');
+      }, 1000);
     } else if (paymentStatus === 'failed') {
       toast.error('❌ Payment failed. Please try again.');
       window.history.replaceState({}, '', '/tenant/dashboard/payments');
     }
-  }, [authState.user?.id]);
+  }, [typeof window !== 'undefined' ? window.location.search : '', authState.user?.id]);
 
   // Enhance payments with status
   const enhancedPayments: EnhancedPayment[] = payments.map(enhancePayment);
@@ -637,6 +645,19 @@ export default function TenantPaymentsPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 sm:gap-3">
+            {/* Refresh Button */}
+            <Button
+              onClick={async () => {
+                toast.info('Refreshing payment data...');
+                await loadPayments();
+                toast.success('Payment data refreshed!');
+              }}
+              variant="outline"
+              disabled={isLoading}
+              className="border-blue-600 text-blue-600 hover:bg-blue-50">
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
             {/* <Button
               onClick={() => setShowAdvancePaymentDialog(true)}
               className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white">

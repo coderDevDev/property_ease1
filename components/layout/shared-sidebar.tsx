@@ -153,6 +153,8 @@ export function SharedSidebar({ role }: SharedSidebarProps) {
             : [];
           const payments = paymentsResult.success ? paymentsResult.data : [];
 
+
+          console.log({payments})
           setStats({
             properties: {
               total: properties.length,
@@ -335,6 +337,7 @@ export function SharedSidebar({ role }: SharedSidebarProps) {
           description: 'Advance rent tracking',
           section: 'financial'
         },
+       
         {
           icon: MessageSquare,
           label: 'Messages',

@@ -11,7 +11,18 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Search, Table2, LayoutGrid } from 'lucide-react';
+import { Search, Table2, LayoutGrid, User } from 'lucide-react';
+
+interface Tenant {
+  id: string;
+  user: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  unit_number?: string;
+}
 
 interface PaymentFiltersProps {
   searchTerm: string;
@@ -22,6 +33,10 @@ interface PaymentFiltersProps {
   onTypeChange: (value: string) => void;
   viewMode: 'table' | 'grid';
   onViewModeChange: (mode: 'table' | 'grid') => void;
+  // Optional tenant filter (for owner view)
+  filterTenant?: string;
+  onTenantChange?: (value: string) => void;
+  tenants?: Tenant[];
   className?: string;
 }
 
@@ -34,6 +49,9 @@ export function PaymentFilters({
   onTypeChange,
   viewMode,
   onViewModeChange,
+  filterTenant,
+  onTenantChange,
+  tenants,
   className
 }: PaymentFiltersProps) {
   return (
@@ -83,6 +101,37 @@ export function PaymentFilters({
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Tenant Filter (only shown if tenants prop is provided) */}
+            {tenants && onTenantChange && (
+              <Select value={filterTenant || 'all'} onValueChange={onTenantChange}>
+                <SelectTrigger className="w-48 bg-white/50 border-blue-200/50">
+                  <SelectValue placeholder="Tenant" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      All Tenants
+                    </div>
+                  </SelectItem>
+                  {tenants.map(tenant => (
+                    <SelectItem key={tenant.id} value={tenant.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {tenant.user.first_name} {tenant.user.last_name}
+                        </span>
+                        {tenant.unit_number && (
+                          <span className="text-xs text-gray-500">
+                            Unit {tenant.unit_number}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             <div className="flex bg-white/50 border border-blue-200/50 rounded-lg p-1">
               <Button
