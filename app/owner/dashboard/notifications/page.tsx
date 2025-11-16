@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ import { toast } from 'sonner';
 
 export default function NotificationsPage() {
   const { authState } = useAuth();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
   const {
@@ -55,7 +57,7 @@ export default function NotificationsPage() {
     }
 
     if (notification.action_url) {
-      window.location.href = notification.action_url;
+      router.push(notification.action_url);
     }
   };
 

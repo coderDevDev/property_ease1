@@ -249,14 +249,37 @@ export function AnnouncementForm({
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      const fileUrls = Array.from(files).map(file => URL.createObjectURL(file));
+    if (!files || files.length === 0) return;
+
+    try {
+      // Convert files to base64 data URLs
+      const filePromises = Array.from(files).map(file => {
+        return new Promise<string>((resolve, reject) => {
+          // Validate file size (5MB limit)
+          if (file.size > 5 * 1024 * 1024) {
+            reject(new Error(`${file.name} is too large. Maximum size is 5MB`));
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+          reader.readAsDataURL(file);
+        });
+      });
+
+      const fileDataUrls = await Promise.all(filePromises);
       setFormData(prev => ({
         ...prev,
-        attachments: [...prev.attachments, ...fileUrls]
+        attachments: [...prev.attachments, ...fileDataUrls]
       }));
+    } catch (error) {
+      console.error('File upload error:', error);
+      if (error instanceof Error) {
+        alert(error.message);
+      }
     }
   };
 

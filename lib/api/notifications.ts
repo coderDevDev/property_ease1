@@ -327,13 +327,19 @@ export class NotificationsAPI {
     messageId: string,
     senderName: string,
     messagePreview: string,
-    recipientId: string
+    recipientId: string,
+    recipientRole: 'owner' | 'tenant' = 'tenant'
   ): Promise<{
     success: boolean;
     data?: Notification;
     message?: string;
   }> {
     try {
+      // Generate role-specific action URL
+      const actionUrl = recipientRole === 'owner' 
+        ? '/owner/dashboard/messages' 
+        : '/tenant/dashboard/messages';
+
       const { data, error } = await supabase
         .from('notifications')
         .insert({
@@ -342,7 +348,7 @@ export class NotificationsAPI {
           message: messagePreview,
           type: 'system',
           priority: 'medium',
-          action_url: '/dashboard/messages',
+          action_url: actionUrl,
           data: {
             message_id: messageId,
             sender_name: senderName
@@ -389,6 +395,11 @@ export class NotificationsAPI {
             ' '
           )}`;
 
+      // Generate role-specific action URL
+      const actionUrl = isOwner
+        ? `/owner/dashboard/maintenance/${maintenanceId}`
+        : `/tenant/dashboard/maintenance/${maintenanceId}`;
+
       const { data, error } = await supabase
         .from('notifications')
         .insert({
@@ -397,7 +408,7 @@ export class NotificationsAPI {
           message,
           type: 'maintenance',
           priority: status === 'urgent' ? 'high' : 'medium',
-          action_url: `/dashboard/maintenance/${maintenanceId}`,
+          action_url: actionUrl,
           data: {
             maintenance_id: maintenanceId,
             status,

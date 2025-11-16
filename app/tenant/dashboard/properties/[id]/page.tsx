@@ -55,6 +55,7 @@ export default function TenantPropertyDetailsPage() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [hasPendingApplication, setHasPendingApplication] = useState(false);
+  const [hasApprovedApplication, setHasApprovedApplication] = useState(false);
   const [propertyDocuments, setPropertyDocuments] = useState<PropertyDocument[]>([]);
 
   useEffect(() => {
@@ -82,6 +83,17 @@ export default function TenantPropertyDetailsPage() {
         );
         setHasPendingApplication(hasPending);
 
+        // Check if user has approved application (is currently renting)
+        const { data: approvedApp } = await supabase
+          .from('rental_applications')
+          .select('id')
+          .eq('user_id', authState.user.id)
+          .eq('property_id', propertyId)
+          .eq('status', 'approved')
+          .maybeSingle();
+        
+        setHasApprovedApplication(!!approvedApp);
+
         // Load property documents
         const docsResult = await DocumentsAPI.getPropertyDocuments(propertyId);
         if (docsResult.success && docsResult.data) {
@@ -103,6 +115,12 @@ export default function TenantPropertyDetailsPage() {
 
   const handleApplyToProperty = async () => {
     if (!authState.user?.id || !property) return;
+
+    if (hasApprovedApplication) {
+      toast.info('You are currently renting this property. View your rental details in Applications.');
+      router.push('/tenant/dashboard/applications');
+      return;
+    }
 
     if (hasPendingApplication) {
       toast.error(
@@ -765,8 +783,10 @@ export default function TenantPropertyDetailsPage() {
                     Ready to Apply?
                   </h3>
                   <p className="text-sm sm:text-base text-gray-600">
-                    {hasPendingApplication
-                      ? 'You have a pending application for this property.'
+                    {hasApprovedApplication
+                      ? 'You are currently renting a unit at this property.'
+                      : hasPendingApplication
+                      ? 'Your application is currently being reviewed by the property owner.'
                       : property.available_units > 0
                       ? 'This property has available units. Start your application today!'
                       : 'This property is currently fully occupied.'}
@@ -780,13 +800,17 @@ export default function TenantPropertyDetailsPage() {
                     }
                     className={cn(
                       'text-sm sm:text-base',
-                      hasPendingApplication
+                      hasApprovedApplication
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : hasPendingApplication
                         ? 'bg-yellow-500 hover:bg-yellow-600'
                         : property.available_units > 0
                         ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
                         : 'bg-gray-400'
                     )}>
-                    {hasPendingApplication
+                    {hasApprovedApplication
+                      ? 'Currently Renting'
+                      : hasPendingApplication
                       ? 'Application Pending'
                       : property.available_units > 0
                       ? 'Apply Now'

@@ -94,29 +94,44 @@ export default function TenantPropertiesPage() {
 
   const [favorites, setFavorites] = useState<string[]>([]);
   const [pendingApplications, setPendingApplications] = useState<string[]>([]);
+  const [approvedApplications, setApprovedApplications] = useState<string[]>([]);
 
-  // Fetch pending applications
+  // Fetch pending and approved applications
   useEffect(() => {
-    const fetchPendingApplications = async () => {
+    const fetchApplications = async () => {
       if (!authState.user?.id) return;
       try {
-        const { data: applications } = await supabase
+        // Fetch pending applications
+        const { data: pendingApps } = await supabase
           .from('rental_applications')
           .select('property_id')
           .eq('user_id', authState.user.id)
           .eq('status', 'pending');
 
-        if (applications) {
+        if (pendingApps) {
           setPendingApplications(
-            applications.map((app: { property_id: string }) => app.property_id)
+            pendingApps.map((app: { property_id: string }) => app.property_id)
+          );
+        }
+
+        // Fetch approved applications (active rentals)
+        const { data: approvedApps } = await supabase
+          .from('rental_applications')
+          .select('property_id')
+          .eq('user_id', authState.user.id)
+          .eq('status', 'approved');
+
+        if (approvedApps) {
+          setApprovedApplications(
+            approvedApps.map((app: { property_id: string }) => app.property_id)
           );
         }
       } catch (error) {
-        console.error('Failed to fetch pending applications:', error);
+        console.error('Failed to fetch applications:', error);
       }
     };
 
-    fetchPendingApplications();
+    fetchApplications();
   }, [authState.user?.id]);
 
   useEffect(() => {
@@ -605,16 +620,26 @@ export default function TenantPropertiesPage() {
                   <Button
                     className={cn(
                       'flex-1 text-xs sm:text-sm',
-                      pendingApplications.includes(property.id)
+                      approvedApplications.includes(property.id)
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : pendingApplications.includes(property.id)
                         ? 'bg-yellow-500 hover:bg-yellow-600'
                         : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
                     )}
-                    onClick={() => handleApplyToProperty(property)}
+                    onClick={() => {
+                      if (approvedApplications.includes(property.id)) {
+                        router.push('/tenant/dashboard/applications');
+                      } else {
+                        handleApplyToProperty(property);
+                      }
+                    }}
                     disabled={
                       property.available_units === 0 ||
                       pendingApplications.includes(property.id)
                     }>
-                    {pendingApplications.includes(property.id)
+                    {approvedApplications.includes(property.id)
+                      ? 'Currently Renting'
+                      : pendingApplications.includes(property.id)
                       ? 'Application Pending'
                       : property.available_units > 0
                       ? 'Apply Now'

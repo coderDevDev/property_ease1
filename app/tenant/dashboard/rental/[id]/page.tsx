@@ -459,7 +459,7 @@ export default function TenantRentalDetailsPage() {
       paymentDueDay: 5,
       terms: [
         'Tenant shall pay rent on or before the 5th day of each month.',
-        'A late fee of ₱500 or 5% of the monthly rent (whichever is higher) will be charged after 3 days.',
+        'A late fee of P500 or 5% of the monthly rent (whichever is higher) will be charged after 3 days.',
         'The security deposit will be refunded at the end of the lease term, subject to property inspection.',
         'Tenant is responsible for maintaining the property in good condition.',
         'Tenant must notify the landlord of any maintenance issues promptly.',

@@ -8,26 +8,64 @@ import { Upload, X, Image as ImageIcon, AlertCircle, Camera } from 'lucide-react
 import { toast } from 'sonner';
 
 interface ImageUploadProps {
-  images: string[];
-  onImagesChange: (images: string[]) => void;
+  // New props (preferred)
+  label?: string;
+  description?: string;
+  multiple?: boolean;
+  maxFiles?: number;
+  maxFileSize?: number;
+  existingImages?: string[];
+  onChange?: (images: string[]) => void;
+  imageType?: string;
+  propertyId?: string;
+  
+  // Legacy props (for backward compatibility)
+  images?: string[];
+  onImagesChange?: (images: string[]) => void;
   maxImages?: number;
   className?: string;
   disabled?: boolean;
 }
 
-export function ImageUpload({
-  images,
-  onImagesChange,
-  maxImages = 5,
-  className,
-  disabled = false
-}: ImageUploadProps) {
+export function ImageUpload(props: ImageUploadProps) {
+  // Support both old and new prop patterns
+  const {
+    // New props
+    label,
+    description,
+    multiple = true,
+    maxFiles,
+    maxFileSize = 5,
+    existingImages,
+    onChange,
+    imageType,
+    propertyId,
+    
+    // Legacy props
+    images: legacyImages,
+    onImagesChange: legacyOnImagesChange,
+    maxImages: legacyMaxImages,
+    className,
+    disabled = false
+  } = props;
+  
+  // Use new props if available, otherwise fall back to legacy props
+  const images = existingImages ?? legacyImages ?? [];
+  const onImagesChange = onChange ?? legacyOnImagesChange;
+  const maxImages = maxFiles ?? legacyMaxImages ?? 5;
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    
+    // Check if onImagesChange is a function
+    if (typeof onImagesChange !== 'function') {
+      console.error('onImagesChange is not a function');
+      toast.error('Image upload handler not configured properly');
+      return;
+    }
 
     const newFiles = Array.from(files);
     const totalImages = (images || []).length + newFiles.length;
@@ -46,9 +84,10 @@ export function ImageUpload({
           throw new Error(`${file.name} is not an image file`);
         }
 
-        // Validate file size (5MB limit)
-        if (file.size > 5 * 1024 * 1024) {
-          throw new Error(`${file.name} is too large. Maximum size is 5MB`);
+        // Validate file size (use maxFileSize from props)
+        const maxSizeBytes = maxFileSize * 1024 * 1024;
+        if (file.size > maxSizeBytes) {
+          throw new Error(`${file.name} is too large. Maximum size is ${maxFileSize}MB`);
         }
 
         // Convert to base64 for now (in production, upload to cloud storage)
@@ -75,6 +114,10 @@ export function ImageUpload({
   };
 
   const removeImage = (index: number) => {
+    if (typeof onImagesChange !== 'function') {
+      console.error('onImagesChange is not a function');
+      return;
+    }
     const newImages = (images || []).filter((_, i) => i !== index);
     onImagesChange(newImages);
   };
@@ -87,6 +130,14 @@ export function ImageUpload({
 
   return (
     <div className={cn('space-y-4', className)}>
+      {/* Optional Label and Description */}
+      {(label || description) && (
+        <div className="space-y-1">
+          {label && <h3 className="text-sm font-medium text-gray-900">{label}</h3>}
+          {description && <p className="text-xs text-gray-500">{description}</p>}
+        </div>
+      )}
+      
       {/* Upload Area */}
       <Card className="border-2 border-dashed border-blue-200 hover:border-blue-300 transition-colors">
         <CardContent className="p-6">
@@ -103,7 +154,7 @@ export function ImageUpload({
                 {isUploading ? 'Uploading...' : 'Upload images'}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                PNG, JPG, GIF up to 5MB each (max {maxImages} images)
+                PNG, JPG, GIF up to {maxFileSize}MB each (max {maxImages} images)
               </p>
             </div>
             
@@ -147,7 +198,7 @@ export function ImageUpload({
           <input
             ref={fileInputRef}
             type="file"
-            multiple
+            multiple={multiple}
             accept="image/*"
             onChange={e => handleFileSelect(e.target.files)}
             className="hidden"

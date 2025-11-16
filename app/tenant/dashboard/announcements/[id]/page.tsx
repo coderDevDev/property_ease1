@@ -106,6 +106,31 @@ export default function TenantAnnouncementDetailsPage() {
     });
   };
 
+  const handleDownloadAttachment = (attachment: string, index: number) => {
+    try {
+      // Check if it's a base64 data URL
+      if (attachment.startsWith('data:')) {
+        // Create a link element and trigger download
+        const link = document.createElement('a');
+        link.href = attachment;
+        link.download = `announcement-attachment-${index + 1}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('Download started');
+      } else if (attachment.startsWith('blob:')) {
+        // Old blob URLs won't work, show error
+        toast.error('This file is no longer available. Please ask the owner to re-upload it.');
+      } else {
+        // Try to open as URL
+        window.open(attachment, '_blank');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download file');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-6">
@@ -240,7 +265,7 @@ export default function TenantAnnouncementDetailsPage() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => window.open(attachment, '_blank')}
+                              onClick={() => handleDownloadAttachment(attachment, index)}
                               className="border-blue-200 text-blue-600 hover:bg-blue-50">
                               <Download className="w-4 h-4 mr-2" />
                               Download

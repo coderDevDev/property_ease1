@@ -140,13 +140,13 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       description: 'System insights',
       section: 'reports'
     },
-    {
-      icon: Settings,
-      label: 'Settings',
-      route: '/dashboard/settings',
-      description: 'Configuration',
-      section: 'system'
-    }
+    // {
+    //   icon: Settings,
+    //   label: 'Settings',
+    //   route: '/dashboard/settings',
+    //   description: 'Configuration',
+    //   section: 'system'
+    // }
   ];
 
   const handleSidebarItemClick = (route: string) => {
@@ -287,7 +287,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       </div>
 
       {/* System Status Footer */}
-      <div className="p-4 border-t border-blue-100">
+      {/* <div className="p-4 border-t border-blue-100">
         <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -306,7 +306,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* Sidebar Footer */}
       <div className="p-4 border-t border-blue-100 bg-gradient-to-r from-blue-50/50 to-white">

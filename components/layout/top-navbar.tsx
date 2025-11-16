@@ -301,7 +301,7 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
   };
 
   const getMessagesPath = () => {
-    if (role === 'admin') return '/dashboard/messages';
+    if (role === 'admin') return '/';
     return role === 'owner'
       ? '/owner/dashboard/messages'
       : '/tenant/dashboard/messages';

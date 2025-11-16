@@ -696,7 +696,8 @@ export default function NewPropertyPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="residential">Residential</SelectItem>
+                       <SelectItem value="boarding_house">Boarding House</SelectItem>
+
                         <SelectItem value="commercial">Commercial</SelectItem>
                         <SelectItem value="dormitory">Dormitory</SelectItem>
                       </SelectContent>

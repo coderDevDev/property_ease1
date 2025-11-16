@@ -234,7 +234,9 @@ export function PropertyForm({
                         <SelectValue placeholder="Select property type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="residential">Residential</SelectItem>
+                        
+                        <SelectItem value="boarding_house">Boarding House</SelectItem>
+                         <SelectItem value="dormitory">Dormitory</SelectItem>
                         <SelectItem value="commercial">Commercial</SelectItem>
                         <SelectItem value="dormitory">Dormitory</SelectItem>
                       </SelectContent>
