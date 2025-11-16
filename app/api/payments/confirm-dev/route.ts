@@ -2,14 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 /**
  * Development-only API route to manually confirm payments
  * Used when webhooks don't work on localhost
  */
 export async function POST(request: NextRequest) {
+  console.log('🔧 [confirm-dev] API called');
+  console.log('🔧 [confirm-dev] NODE_ENV:', process.env.NODE_ENV);
+  
   // Only allow in development
   if (process.env.NODE_ENV !== 'development') {
+    console.log('❌ [confirm-dev] Blocked: Not in development mode');
     return NextResponse.json(
       { error: 'This endpoint is only available in development mode' },
       { status: 403 }
@@ -18,11 +22,22 @@ export async function POST(request: NextRequest) {
 
   try {
     const { payment_id } = await request.json();
+    console.log('🔧 [confirm-dev] Payment ID:', payment_id);
 
     if (!payment_id) {
+      console.log('❌ [confirm-dev] No payment_id provided');
       return NextResponse.json(
         { error: 'payment_id is required' },
         { status: 400 }
+      );
+    }
+
+    // Check if service role key exists
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('❌ [confirm-dev] SUPABASE_SERVICE_ROLE_KEY not found in environment');
+      return NextResponse.json(
+        { error: 'Server configuration error: Missing service role key' },
+        { status: 500 }
       );
     }
 
@@ -31,6 +46,7 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+    console.log('✅ [confirm-dev] Supabase client created');
 
     // First check if payment exists
     const { data: existingPayment, error: checkError } = await supabase
@@ -40,14 +56,18 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (checkError || !existingPayment) {
-      console.error('Payment not found:', checkError);
+      console.error('❌ [confirm-dev] Payment not found:', checkError);
       return NextResponse.json(
         { error: 'Payment not found', details: checkError },
         { status: 404 }
       );
     }
 
-    console.log('Found payment:', existingPayment);
+    console.log('✅ [confirm-dev] Found payment:', {
+      id: existingPayment.id,
+      status: existingPayment.payment_status,
+      amount: existingPayment.amount
+    });
 
     // Update payment to paid
     const { data, error } = await supabase
@@ -63,7 +83,7 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Payment update error:', error);
+      console.error('❌ [confirm-dev] Payment update error:', error);
       return NextResponse.json(
         { error: 'Failed to update payment', details: error },
         { status: 500 }
@@ -71,14 +91,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data || data.length === 0) {
-      console.error('No rows updated');
+      console.error('❌ [confirm-dev] No rows updated');
       return NextResponse.json(
         { error: 'Payment update returned no rows' },
         { status: 500 }
       );
     }
 
-    console.log('✅ Payment confirmed (dev mode):', data[0].id);
+    console.log('✅ [confirm-dev] Payment confirmed successfully:', {
+      id: data[0].id,
+      status: data[0].payment_status,
+      paid_date: data[0].paid_date
+    });
 
     return NextResponse.json({
       success: true,
@@ -86,11 +110,12 @@ export async function POST(request: NextRequest) {
       message: 'Payment confirmed successfully'
     });
   } catch (error) {
-    console.error('Confirm payment error:', error);
+    console.error('❌ [confirm-dev] Unexpected error:', error);
     return NextResponse.json(
       {
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     );

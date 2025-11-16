@@ -270,7 +270,7 @@ export default function TenantPaymentsPage() {
             const payment = result.data.find((p: any) => p.id === paymentId);
             if (payment && payment.payment_status === 'pending') {
               // Auto-confirm payment in development mode
-              toast.info('🔄 Webhook not received. Auto-confirming payment...');
+              // toast.info('🔄 Webhook not received. Auto-confirming payment...');
               
               // Wait 1 second then auto-confirm with the actual payment ID
               setTimeout(async () => {
