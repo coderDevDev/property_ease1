@@ -141,34 +141,41 @@ export default function OwnerPaymentsPage() {
     loadData();
   }, [authState.user?.id]);
 
-  // Filter payments
-  const filteredPayments = payments.filter(payment => {
-    const matchesSearch =
-      payment.payment_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.tenant?.user?.first_name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      payment.tenant?.user?.last_name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      payment.tenant?.user?.email
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      payment.property?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.reference_number
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      !searchTerm;
+  // Filter and sort payments
+  const filteredPayments = payments
+    .filter(payment => {
+      const matchesSearch =
+        payment.payment_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.tenant?.user?.first_name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        payment.tenant?.user?.last_name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        payment.tenant?.user?.email
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        payment.property?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.reference_number
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        !searchTerm;
 
-    const matchesStatus =
-      filterStatus === 'all' || payment.payment_status === filterStatus;
-    const matchesType =
-      filterType === 'all' || payment.payment_type === filterType;
-    const matchesTenant =
-      filterTenant === 'all' || payment.tenant_id === filterTenant;
+      const matchesStatus =
+        filterStatus === 'all' || payment.payment_status === filterStatus;
+      const matchesType =
+        filterType === 'all' || payment.payment_type === filterType;
+      const matchesTenant =
+        filterTenant === 'all' || payment.tenant_id === filterTenant;
 
-    return matchesSearch && matchesStatus && matchesType && matchesTenant;
-  });
+      return matchesSearch && matchesStatus && matchesType && matchesTenant;
+    })
+    .sort((a, b) => {
+      // Sort by due date (most recent first)
+      const dateA = new Date(a.due_date).getTime();
+      const dateB = new Date(b.due_date).getTime();
+      return dateB - dateA;
+    });
 
   // Get status badge variant
   const getStatusBadge = (status: string) => {
