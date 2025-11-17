@@ -347,12 +347,23 @@ export class MessagesAPI {
         .then();
 
       // Create notification asynchronously (fire and forget)
-      NotificationsAPI.createMessageNotification(
-        data.id,
-        'New Message',
-        data.content.substring(0, 100),
-        data.recipient_id
-      ).then();
+      // Fetch recipient's role to generate correct action URL
+      supabase
+        .from('users')
+        .select('role')
+        .eq('id', data.recipient_id)
+        .single()
+        .then(({ data: recipientData }) => {
+          if (recipientData) {
+            NotificationsAPI.createMessageNotification(
+              data.id,
+              'New Message',
+              data.content.substring(0, 100),
+              data.recipient_id,
+              recipientData.role as 'owner' | 'tenant'
+            );
+          }
+        });
 
       // Return immediately without fetching extra data
       // The UI already has this data from context

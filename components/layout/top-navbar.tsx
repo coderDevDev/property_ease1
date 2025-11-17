@@ -52,6 +52,39 @@ interface TopNavbarProps {
   className?: string;
 }
 
+// Helper function to fix notification URLs based on user role
+function getCorrectActionUrl(
+  actionUrl: string | undefined,
+  userRole: 'owner' | 'tenant' | 'admin'
+): string | undefined {
+  if (!actionUrl) return undefined;
+
+  // Admin role doesn't need fixing
+  if (userRole === 'admin') return actionUrl;
+
+  // Fix old format: /dashboard/* -> /[role]/dashboard/*
+  if (actionUrl.startsWith('/dashboard/')) {
+    const path = actionUrl.replace('/dashboard/', '');
+    return userRole === 'owner'
+      ? `/owner/dashboard/${path}`
+      : `/tenant/dashboard/${path}`;
+  }
+
+  // Fix wrong role prefix: /tenant/* when user is owner, or /owner/* when user is tenant
+  if (userRole === 'owner' && actionUrl.startsWith('/tenant/dashboard/')) {
+    const path = actionUrl.replace('/tenant/dashboard/', '');
+    return `/owner/dashboard/${path}`;
+  }
+
+  if (userRole === 'tenant' && actionUrl.startsWith('/owner/dashboard/')) {
+    const path = actionUrl.replace('/owner/dashboard/', '');
+    return `/tenant/dashboard/${path}`;
+  }
+
+  // URL is already correct
+  return actionUrl;
+}
+
 export function TopNavbar({ role, className }: TopNavbarProps) {
   const { authState, logout } = useAuth();
   const router = useRouter();
@@ -81,7 +114,10 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                 label: 'View',
                 onClick: () => {
                   if (notification.action_url) {
-                    router.push(notification.action_url);
+                    const correctUrl = getCorrectActionUrl(notification.action_url, role);
+                    if (correctUrl) {
+                      router.push(correctUrl);
+                    }
                   }
                 }
               }
@@ -219,7 +255,10 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
     }
 
     if (notification.action_url) {
-      router.push(notification.action_url);
+      const correctUrl = getCorrectActionUrl(notification.action_url, role);
+      if (correctUrl) {
+        router.push(correctUrl);
+      }
     }
 
     setNotificationsOpen(false);
@@ -314,6 +353,8 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
       : '/tenant/dashboard/notifications';
   };
 
+
+  console.log({notifications})
 
 
   return (

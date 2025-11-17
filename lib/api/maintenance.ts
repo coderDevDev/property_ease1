@@ -400,7 +400,7 @@ export class MaintenanceAPI {
           type: 'maintenance',
           priority:
             maintenanceRequest.priority === 'urgent' ? 'high' : 'medium',
-          action_url: `/dashboard/maintenance/${maintenanceRequest.id}`,
+          action_url: `/owner/dashboard/maintenance/${maintenanceRequest.id}`,
           data: {
             maintenance_request_id: maintenanceRequest.id,
             property_id: maintenanceRequest.property_id

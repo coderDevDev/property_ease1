@@ -437,13 +437,19 @@ export class NotificationsAPI {
     paymentId: string,
     amount: number,
     dueDate: string,
-    userId: string
+    userId: string,
+    userRole: 'owner' | 'tenant' = 'tenant'
   ): Promise<{
     success: boolean;
     data?: Notification;
     message?: string;
   }> {
     try {
+      // Generate role-specific action URL
+      const actionUrl = userRole === 'owner'
+        ? '/owner/dashboard/payments'
+        : '/tenant/dashboard/payments';
+
       const { data, error } = await supabase
         .from('notifications')
         .insert({
@@ -454,7 +460,7 @@ export class NotificationsAPI {
           ).toLocaleDateString()}`,
           type: 'payment',
           priority: 'high',
-          action_url: '/dashboard/payments',
+          action_url: actionUrl,
           data: {
             payment_id: paymentId,
             amount,
@@ -474,6 +480,113 @@ export class NotificationsAPI {
       return {
         success: false,
         message: 'Failed to create payment reminder notification'
+      };
+    }
+  }
+
+  // Utility function to fix existing notifications with incorrect URLs
+  static async fixExistingNotificationUrls(): Promise<{
+    success: boolean;
+    fixed: number;
+    message?: string;
+  }> {
+    try {
+      // Get all notifications with potentially incorrect URLs
+      // This includes /dashboard/* URLs and role-specific URLs that might be wrong
+      const { data: allNotifications, error: fetchError } = await supabase
+        .from('notifications')
+        .select('id, user_id, action_url, type, data')
+        .or('action_url.like./dashboard/%,action_url.like./owner/dashboard/%,action_url.like./tenant/dashboard/%');
+
+      if (fetchError) throw fetchError;
+
+      if (!allNotifications || allNotifications.length === 0) {
+        return { success: true, fixed: 0, message: 'No notifications to fix' };
+      }
+
+      // Filter to only include notifications that need fixing
+      const notifications = allNotifications.filter(n => 
+        n.action_url?.startsWith('/dashboard/') || // Old format without role
+        n.action_url?.includes('/owner/dashboard/') || // Might have wrong role
+        n.action_url?.includes('/tenant/dashboard/') // Might have wrong role
+      );
+
+      // Get user roles for all affected users
+      const userIds = [...new Set(notifications.map(n => n.user_id))];
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, role')
+        .in('id', userIds);
+
+      if (usersError) throw usersError;
+
+      // Create a map of user roles
+      const userRoleMap = new Map(
+        users?.map(u => [u.id, u.role]) || []
+      );
+
+      // Update each notification
+      let fixedCount = 0;
+      for (const notification of notifications) {
+        const userRole = userRoleMap.get(notification.user_id);
+        if (!userRole) continue;
+
+        let newActionUrl = notification.action_url;
+
+        // Fix maintenance URLs
+        if (notification.action_url?.startsWith('/dashboard/maintenance/')) {
+          const maintenanceId = notification.action_url.replace('/dashboard/maintenance/', '');
+          newActionUrl = userRole === 'owner'
+            ? `/owner/dashboard/maintenance/${maintenanceId}`
+            : `/tenant/dashboard/maintenance/${maintenanceId}`;
+        }
+        // Fix payment URLs
+        else if (notification.action_url === '/dashboard/payments') {
+          newActionUrl = userRole === 'owner'
+            ? '/owner/dashboard/payments'
+            : '/tenant/dashboard/payments';
+        }
+        // Fix message URLs with wrong role prefix
+        else if (
+          (notification.action_url === '/tenant/dashboard/messages' && userRole === 'owner') ||
+          (notification.action_url === '/owner/dashboard/messages' && userRole === 'tenant')
+        ) {
+          newActionUrl = userRole === 'owner'
+            ? '/owner/dashboard/messages'
+            : '/tenant/dashboard/messages';
+        }
+        // Fix other dashboard URLs
+        else if (notification.action_url?.startsWith('/dashboard/')) {
+          const path = notification.action_url.replace('/dashboard/', '');
+          newActionUrl = userRole === 'owner'
+            ? `/owner/dashboard/${path}`
+            : `/tenant/dashboard/${path}`;
+        }
+
+        // Update the notification if URL changed
+        if (newActionUrl !== notification.action_url) {
+          const { error: updateError } = await supabase
+            .from('notifications')
+            .update({ action_url: newActionUrl })
+            .eq('id', notification.id);
+
+          if (!updateError) {
+            fixedCount++;
+          }
+        }
+      }
+
+      return {
+        success: true,
+        fixed: fixedCount,
+        message: `Fixed ${fixedCount} notification(s)`
+      };
+    } catch (error) {
+      console.error('Fix notification URLs error:', error);
+      return {
+        success: false,
+        fixed: 0,
+        message: 'Failed to fix notification URLs'
       };
     }
   }
