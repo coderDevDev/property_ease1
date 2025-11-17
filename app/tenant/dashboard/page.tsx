@@ -111,13 +111,13 @@ export default function TenantDashboardPage() {
       action: () => router.push('/tenant/dashboard/messages'),
       count: stats.quickStats.unreadMessages
     },
-    {
-      icon: FileText,
-      label: 'Documents',
-      color: 'from-purple-500 to-purple-600',
-      action: () => router.push('/tenant/dashboard/documents'),
-      count: stats.quickStats.documentsCount
-    },
+    // {
+    //   icon: FileText,
+    //   label: 'Documents',
+    //   color: 'from-purple-500 to-purple-600',
+    //   action: () => router.push('/tenant/dashboard/documents'),
+    //   count: stats.quickStats.documentsCount
+    // },
     {
       icon: Search,
       label: 'Find Properties',
