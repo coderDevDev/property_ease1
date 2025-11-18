@@ -58,6 +58,7 @@ export interface TenantDashboardStats {
 }
 
 export interface PropertyListing {
+  property_code: ReactNode;
   id: string;
   owner_id: string;
   name: string;
@@ -357,6 +358,7 @@ export class TenantAPI {
         .select(
           `
           id,
+          property_code,
           owner_id,
           name,
           type,

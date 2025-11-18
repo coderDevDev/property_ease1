@@ -22,6 +22,8 @@ import {
   FileCheck
 } from 'lucide-react';
 
+
+
 export default function PropertyDocumentsPage() {
   const params = useParams();
   const router = useRouter();
@@ -318,9 +320,16 @@ export default function PropertyDocumentsPage() {
                       <div className="flex items-center gap-3">
                         <FileText className="w-8 h-8 text-blue-600" />
                         <div>
-                          <p className="font-medium text-gray-900">
-                            {existingDoc.document_name}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">
+                              {existingDoc.document_name}
+                            </p>
+                            {(existingDoc as any).version && (existingDoc as any).version > 1 && (
+                              <Badge variant="outline" className="text-xs">
+                                v{(existingDoc as any).version}
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500">
                             {(existingDoc.file_size / 1024 / 1024).toFixed(2)} MB •{' '}
                             Uploaded {new Date(existingDoc.uploaded_at).toLocaleDateString()}
@@ -357,6 +366,10 @@ export default function PropertyDocumentsPage() {
                         <AlertCircle className="h-4 w-4 text-red-600" />
                         <AlertDescription className="text-red-800">
                           <strong>Rejection Reason:</strong> {existingDoc.rejection_reason}
+                          <p className="mt-2 text-sm">
+                            📤 Please upload a new version below addressing the issues mentioned above.
+                            Your previous document will be kept for reference.
+                          </p>
                         </AlertDescription>
                       </Alert>
                     )}
@@ -378,7 +391,12 @@ export default function PropertyDocumentsPage() {
                     >
                       <Upload className="w-12 h-12 mx-auto text-gray-400 mb-3" />
                       <p className="text-sm font-medium text-gray-700">
-                        {isUploading ? 'Uploading...' : 'Click to upload or drag and drop'}
+                        {isUploading
+                          ? 'Uploading...'
+                          : existingDoc?.status === 'rejected'
+                          ? '📤 Upload New Version (Previous version will be kept)'
+                          : 'Click to upload or drag and drop'
+                        }
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         PDF, JPG, PNG (Max {(requirement.max_file_size / 1024 / 1024).toFixed(0)}MB)

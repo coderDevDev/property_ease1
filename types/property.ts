@@ -1,5 +1,6 @@
 export interface Property {
   id: string;
+   property_code: string; // NEW: P-001, P-002, etc.
   name: string;
   type: 'residential' | 'commercial' | 'dormitory';
   address: string;

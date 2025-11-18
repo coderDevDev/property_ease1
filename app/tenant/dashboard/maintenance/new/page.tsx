@@ -171,7 +171,6 @@ export default function TenantNewMaintenancePage() {
     if (!formData.description.trim())
       newErrors.description = 'Description is required';
     if (!formData.category) newErrors.category = 'Category is required';
-    if (!formData.priority) newErrors.priority = 'Priority is required';
     if (!formData.property_id) newErrors.property_id = 'Property is required';
 
     setErrors(newErrors);
@@ -341,41 +340,7 @@ export default function TenantNewMaintenancePage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="priority"
-                    className="text-gray-700 font-medium">
-                    Priority *
-                  </Label>
-                  <Select
-                    value={formData.priority}
-                    onValueChange={value =>
-                      handleInputChange('priority', value)
-                    }>
-                    <SelectTrigger
-                      className={cn(
-                        'bg-white/50 border-blue-200/50 focus:border-blue-400',
-                        errors.priority && 'border-red-300 focus:border-red-400'
-                      )}>
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRIORITY_LEVELS.map(priority => (
-                        <SelectItem key={priority.value} value={priority.value}>
-                          <span className={priority.color}>
-                            {priority.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.priority && (
-                    <p className="text-red-600 text-sm">{errors.priority}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
+              <div className="space-y-2">
                   <Label
                     htmlFor="property_id"
                     className="text-gray-700 font-medium">
@@ -411,7 +376,6 @@ export default function TenantNewMaintenancePage() {
                     <p className="text-red-600 text-sm">{errors.property_id}</p>
                   )}
                 </div>
-              </div>
             </CardContent>
           </Card>
 

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Property, Tenant } from '@/types/property';
+import { formatPropertyType } from '@/lib/utils';
 import {
   ArrowLeft,
   Edit,
@@ -92,7 +93,7 @@ export function PropertyDetails({
             {property.status}
           </Badge>
           <Badge className={getTypeColor(property.type) + ' shadow'}>
-            {property.type}
+            {formatPropertyType(property.type)}
           </Badge>
         </div>
         <div className="absolute top-4 right-4 flex gap-2 z-10">

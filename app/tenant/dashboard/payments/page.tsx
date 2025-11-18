@@ -65,6 +65,9 @@ import { PaymentTimeline } from '@/components/payments/PaymentTimeline';
 import { DepositBalanceCard } from '@/components/tenant/DepositBalanceCard';
 import { CreateAdvancePaymentDialog } from '@/components/tenant/CreateAdvancePaymentDialog';
 
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 // Enhanced payment interface with status and calculations
 interface EnhancedPayment extends PaymentWithDetails {
   status: 'overdue' | 'due_soon' | 'pending' | 'paid';
@@ -169,6 +172,11 @@ export default function TenantPaymentsPage() {
   // Advance payment dialog
   const [showAdvancePaymentDialog, setShowAdvancePaymentDialog] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
+
+  // PDF Export dialog
+  const [isPdfExportDialogOpen, setIsPdfExportDialogOpen] = useState(false);
+  const [pdfExportStatus, setPdfExportStatus] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
+  const [pdfExportType, setPdfExportType] = useState<'all' | 'rent' | 'deposit' | 'security_deposit' | 'utility' | 'penalty' | 'other'>('all');
 
   // Load tenant payments function (can be called manually)
   const loadPayments = async () => {
@@ -629,6 +637,70 @@ export default function TenantPaymentsPage() {
     );
   }
 
+
+    const handleExportPDF = () => {
+    if (payments.length === 0) {
+      toast.error('No payments to export');
+      return;
+    }
+
+    // Filter payments based on selected criteria
+    let filteredForExport = enhancedPayments;
+
+    // Filter by status
+    if (pdfExportStatus !== 'all') {
+      if (pdfExportStatus === 'paid') {
+        filteredForExport = filteredForExport.filter(p => p.payment_status === 'paid');
+      } else if (pdfExportStatus === 'pending') {
+        filteredForExport = filteredForExport.filter(p => p.payment_status === 'pending' && p.status !== 'overdue');
+      } else if (pdfExportStatus === 'overdue') {
+        filteredForExport = filteredForExport.filter(p => p.status === 'overdue');
+      }
+    }
+
+    // Filter by type
+    if (pdfExportType !== 'all') {
+      filteredForExport = filteredForExport.filter(p => p.payment_type === pdfExportType);
+    }
+
+    if (filteredForExport.length === 0) {
+      toast.error('No payments match the selected filters');
+      return;
+    }
+
+    const firstPayment = filteredForExport[0];
+    const scheduleData = {
+      tenantName: `${authState.user?.firstName || ''} ${authState.user?.lastName || ''}`,
+      propertyName: firstPayment.property?.name || 'Property',
+      unitNumber: firstPayment.tenant?.unit_number || 'N/A',
+      leaseStart: firstPayment.tenant?.lease_start || '',
+      leaseEnd: firstPayment.tenant?.lease_end || '',
+      monthlyRent: Number(firstPayment.amount),
+      payments: filteredForExport.map(p => ({
+        id: p.id,
+        due_date: p.due_date,
+        amount: Number(p.amount),
+        payment_status: p.payment_status,
+        payment_type: p.payment_type,
+        paid_date: p.paid_date,
+        late_fee: Number(p.late_fee || 0)
+      }))
+    };
+
+    generatePaymentSchedulePDF(scheduleData);
+    
+    // Build success message
+    let filterMsg = '';
+    if (pdfExportStatus !== 'all' || pdfExportType !== 'all') {
+      const statusText = pdfExportStatus !== 'all' ? pdfExportStatus : '';
+      const typeText = pdfExportType !== 'all' ? pdfExportType.replace('_', ' ') : '';
+      filterMsg = ` (${[statusText, typeText].filter(Boolean).join(', ')})`;
+    }
+    
+    toast.success(`Payment report exported${filterMsg}!`);
+    setIsPdfExportDialogOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 p-3 sm:p-4 lg:p-6">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
@@ -663,32 +735,7 @@ export default function TenantPaymentsPage() {
               Create Advance Payment
             </Button> */}
             <Button
-              onClick={() => {
-                if (payments.length === 0) {
-                  toast.error('No payments to export');
-                  return;
-                }
-                const firstPayment = payments[0];
-                const scheduleData = {
-                  tenantName: `${authState.user?.firstName || ''} ${authState.user?.lastName || ''}}`,
-                  propertyName: firstPayment.property?.name || 'Property',
-                  unitNumber: firstPayment.tenant?.unit_number || 'N/A',
-                  leaseStart: firstPayment.tenant?.lease_start || '',
-                  leaseEnd: firstPayment.tenant?.lease_end || '',
-                  monthlyRent: Number(firstPayment.amount),
-                  payments: payments.map(p => ({
-                    id: p.id,
-                    due_date: p.due_date,
-                    amount: Number(p.amount),
-                    payment_status: p.payment_status,
-                    payment_type: p.payment_type,
-                    paid_date: p.paid_date,
-                    late_fee: Number(p.late_fee || 0)
-                  }))
-                };
-                generatePaymentSchedulePDF(scheduleData);
-                toast.success('Payment schedule exported!');
-              }}
+              onClick={() => setIsPdfExportDialogOpen(true)}
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-50">
               <Download className="w-4 h-4 mr-2" />
@@ -1763,6 +1810,94 @@ export default function TenantPaymentsPage() {
             tenantId={tenantId}
           />
         )}
+
+        {/* PDF Export Dialog */}
+        <Dialog open={isPdfExportDialogOpen} onOpenChange={setIsPdfExportDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Download className="w-5 h-5 text-blue-600" />
+                Export Payment Report
+              </DialogTitle>
+              <DialogDescription>
+                Select filters to customize your payment report
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="export-status">Payment Status</Label>
+                <Select value={pdfExportStatus} onValueChange={(value: any) => setPdfExportStatus(value)}>
+                  <SelectTrigger id="export-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Payments</SelectItem>
+                    <SelectItem value="paid">Paid Only</SelectItem>
+                    <SelectItem value="pending">Pending Only</SelectItem>
+                    <SelectItem value="overdue">Overdue Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="export-type">Payment Type</Label>
+                <Select value={pdfExportType} onValueChange={(value: any) => setPdfExportType(value)}>
+                  <SelectTrigger id="export-type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="rent">Rent</SelectItem>
+                    <SelectItem value="deposit">Deposit</SelectItem>
+                    <SelectItem value="security_deposit">Security Deposit</SelectItem>
+                    <SelectItem value="utility">Utility</SelectItem>
+                    <SelectItem value="penalty">Penalty</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Preview count */}
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-700">
+                  <strong>Preview:</strong> {(() => {
+                    let count = enhancedPayments;
+                    if (pdfExportStatus !== 'all') {
+                      if (pdfExportStatus === 'paid') {
+                        count = count.filter(p => p.payment_status === 'paid');
+                      } else if (pdfExportStatus === 'pending') {
+                        count = count.filter(p => p.payment_status === 'pending' && p.status !== 'overdue');
+                      } else if (pdfExportStatus === 'overdue') {
+                        count = count.filter(p => p.status === 'overdue');
+                      }
+                    }
+                    if (pdfExportType !== 'all') {
+                      count = count.filter(p => p.payment_type === pdfExportType);
+                    }
+                    return count.length;
+                  })()} payment(s) will be included
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsPdfExportDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleExportPDF}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Generate PDF
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
@@ -1812,6 +1947,8 @@ export default function TenantPaymentsPage() {
     }
   }
 
+  // Handle PDF Export with filters
+
   // Handle Xendit payment
   async function handlePayWithXendit() {
     if (!selectedPayment || !selectedPaymentMethod) {
@@ -1858,4 +1995,5 @@ export default function TenantPaymentsPage() {
       setIsProcessingPayment(false);
     }
   }
+
 }

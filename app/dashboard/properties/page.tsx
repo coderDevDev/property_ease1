@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/useAuth';
+import { cn, formatPropertyType } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -64,6 +66,7 @@ import { FileText } from 'lucide-react';
 
 interface Property {
   id: string;
+  property_code: string;
   name: string;
   address: string;
   city?: string;
@@ -236,6 +239,7 @@ export default function PropertiesPage() {
 
   const filteredProperties = properties.filter(property => {
     const matchesSearch =
+      property.property_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       property.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       property.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -492,6 +496,11 @@ export default function PropertiesPage() {
                       <TableRow key={property.id}>
                         <TableCell>
                           <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-300">
+                                {property.property_code}
+                              </Badge>
+                            </div>
                             <div className="font-medium text-gray-900 flex items-center gap-2">
                               {property.name}
                               {property.is_featured && (
@@ -523,8 +532,8 @@ export default function PropertiesPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {property.type}
+                          <Badge variant="outline">
+                            {formatPropertyType(property.type)}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -655,6 +664,11 @@ export default function PropertiesPage() {
                         <TableRow key={property.id}>
                           <TableCell>
                             <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-300">
+                                  {property.property_code}
+                                </Badge>
+                              </div>
                               <div className="font-medium text-gray-900">{property.name}</div>
                               <div className="text-sm text-gray-500">
                                 <MapPin className="w-3 h-3 inline mr-1" />
@@ -675,7 +689,7 @@ export default function PropertiesPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="capitalize">{property.type}</Badge>
+                            <Badge variant="outline">{formatPropertyType(property.type)}</Badge>
                           </TableCell>
                           <TableCell>
                             <div className="text-sm font-medium">{property.total_units} units</div>
@@ -873,7 +887,7 @@ export default function PropertiesPage() {
                     </div>
                     <div>
                       <Label className="text-gray-600">Property ID</Label>
-                      <p className="font-mono text-xs">{selectedProperty.id}</p>
+                      <p className="font-mono text-xs">{selectedProperty.property_code}</p>
                     </div>
                     <div>
                       <Label className="text-gray-600">Created Date</Label>

@@ -226,15 +226,21 @@ export class DocumentsAPI {
   }
 
   /**
-   * Get documents for a property
+   * Get documents for a property (latest versions only by default)
    */
-  static async getPropertyDocuments(propertyId: string) {
+  static async getPropertyDocuments(propertyId: string, includeAllVersions: boolean = false) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('property_documents')
         .select('*')
-        .eq('property_id', propertyId)
-        .order('created_at', { ascending: false });
+        .eq('property_id', propertyId);
+
+      // By default, only get latest versions
+      if (!includeAllVersions) {
+        query = query.or('is_latest.is.null,is_latest.eq.true');
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -250,7 +256,30 @@ export class DocumentsAPI {
   }
 
   /**
-   * Upload a property document
+   * Get version history for a specific document
+   */
+  static async getDocumentVersionHistory(documentId: string) {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_document_version_history', {
+          p_document_id: documentId
+        });
+
+      if (error) throw error;
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Get version history error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get version history',
+        data: []
+      };
+    }
+  }
+
+  /**
+   * Upload a property document (with versioning support)
    */
   static async uploadPropertyDocument(
     propertyId: string,
@@ -272,9 +301,22 @@ export class DocumentsAPI {
         throw new Error('Invalid file type. Only PDF, JPG, and PNG are allowed');
       }
 
+      // Check for existing document of this type
+      const { data: existingDocs } = await supabase
+        .from('property_documents')
+        .select('id, version, status, is_latest')
+        .eq('property_id', propertyId)
+        .eq('document_type', documentType)
+        .eq('is_latest', true)
+        .order('version', { ascending: false })
+        .limit(1);
+
+      const existingDoc = existingDocs?.[0];
+      const newVersion = existingDoc ? (existingDoc.version || 1) + 1 : 1;
+
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${propertyId}/${documentType}_${Date.now()}.${fileExt}`;
+      const fileName = `${propertyId}/${documentType}_v${newVersion}_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('property-documents')
@@ -290,7 +332,23 @@ export class DocumentsAPI {
         .from('property-documents')
         .getPublicUrl(fileName);
 
-      // Create document record
+      // If there's an existing document, mark it as superseded
+      if (existingDoc) {
+        const { error: updateError } = await supabase
+          .from('property_documents')
+          .update({
+            is_latest: false,
+            superseded_at: new Date().toISOString()
+          })
+          .eq('id', existingDoc.id);
+
+        if (updateError) {
+          console.error('Failed to update existing document:', updateError);
+          // Continue anyway - new document will be created
+        }
+      }
+
+      // Create new document record
       const { data, error } = await supabase
         .from('property_documents')
         .insert({
@@ -300,16 +358,29 @@ export class DocumentsAPI {
           file_url: publicUrl,
           file_size: file.size,
           mime_type: file.type,
-          uploaded_by: user.id
+          uploaded_by: user.id,
+          version: newVersion,
+          parent_document_id: existingDoc?.id || null,
+          is_latest: true
         })
         .select()
         .single();
 
       if (error) throw error;
 
+      // Update the superseded_by field of the old document
+      if (existingDoc && data) {
+        await supabase
+          .from('property_documents')
+          .update({ superseded_by: data.id })
+          .eq('id', existingDoc.id);
+      }
+
       return {
         success: true,
-        message: 'Document uploaded successfully',
+        message: existingDoc 
+          ? `Document uploaded successfully (Version ${newVersion})`
+          : 'Document uploaded successfully',
         data
       };
     } catch (error) {

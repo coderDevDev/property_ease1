@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ import {
   Camera
 } from 'lucide-react';
 import { PropertiesAPI, type PropertyFormData } from '@/lib/api/properties';
+import { DocumentsAPI, type DocumentRequirement } from '@/lib/api/documents';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { toast } from 'sonner';
 
@@ -142,6 +143,25 @@ export default function EditPropertyPage() {
   const [floorPlanImage, setFloorPlanImage] = useState<string[]>([]);
   const [availableCities, setAvailableCities] = useState<string[]>([]);
 
+
+  const [documentRequirements, setDocumentRequirements] = useState<DocumentRequirement[]>([]);
+
+
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+
+  // Load document requirements
+  useEffect(() => {
+    const loadDocumentRequirements = async () => {
+      const result = await DocumentsAPI.getDocumentRequirements();
+      if (result.success) {
+        setDocumentRequirements(result.data);
+      }
+    };
+    loadDocumentRequirements();
+  }, []);
+  
   useEffect(() => {
     const loadProperty = async () => {
       if (!propertyId) return;
@@ -193,6 +213,106 @@ export default function EditPropertyPage() {
 
     loadProperty();
   }, [propertyId, router]);
+
+  // Initialize Mapbox
+  useEffect(() => {
+    if (isLoadingData || !mapContainerRef.current || !formData.province) return;
+
+    const loadMapbox = async () => {
+      // Add Mapbox CSS
+      if (!document.getElementById('mapbox-css')) {
+        const link = document.createElement('link');
+        link.id = 'mapbox-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+        document.head.appendChild(link);
+      }
+
+      // Load Mapbox GL JS
+      if (!(window as any).mapboxgl) {
+        const script = document.createElement('script');
+        script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+        script.async = true;
+        document.body.appendChild(script);
+
+        await new Promise((resolve) => {
+          script.onload = resolve;
+        });
+      }
+
+      const mapboxgl = (window as any).mapboxgl;
+      mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+
+      // Default to Naga City center or use existing coordinates
+      const defaultCenter: [number, number] = [123.1815, 13.6218];
+      const initialCenter = formData.coordinates?.lng && formData.coordinates?.lat
+        ? [formData.coordinates.lng, formData.coordinates.lat]
+        : defaultCenter;
+
+      // Initialize map
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: initialCenter,
+        zoom: 13
+      });
+
+      // Add navigation controls
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      // Add marker if coordinates exist
+      if (formData.coordinates?.lng && formData.coordinates?.lat) {
+        const marker = new mapboxgl.Marker({ draggable: true })
+          .setLngLat([formData.coordinates.lng, formData.coordinates.lat])
+          .addTo(map);
+
+        marker.on('dragend', () => {
+          const lngLat = marker.getLngLat();
+          handleInputChange('coordinates', {
+            lat: lngLat.lat,
+            lng: lngLat.lng
+          });
+        });
+
+        markerRef.current = marker;
+      }
+
+      // Add click handler to place/move marker
+      map.on('click', (e: any) => {
+        const { lng, lat } = e.lngLat;
+
+        if (markerRef.current) {
+          markerRef.current.setLngLat([lng, lat]);
+        } else {
+          const marker = new mapboxgl.Marker({ draggable: true })
+            .setLngLat([lng, lat])
+            .addTo(map);
+
+          marker.on('dragend', () => {
+            const lngLat = marker.getLngLat();
+            handleInputChange('coordinates', {
+              lat: lngLat.lat,
+              lng: lngLat.lng
+            });
+          });
+
+          markerRef.current = marker;
+        }
+
+        handleInputChange('coordinates', { lat, lng });
+      });
+
+      mapRef.current = map;
+    };
+
+    loadMapbox();
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+      }
+    };
+  }, [formData.province]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -360,7 +480,7 @@ export default function EditPropertyPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                       
+                        <SelectItem value="residential">Residential</SelectItem>
                         <SelectItem value="boarding_house">Boarding House</SelectItem>
                         <SelectItem value="commercial">Commercial</SelectItem>
                         <SelectItem value="dormitory">Dormitory</SelectItem>
@@ -662,12 +782,67 @@ export default function EditPropertyPage() {
               </CardContent>
             </Card>
 
+            {/* Property Location Map */}
+            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-blue-600" />
+                  Pin Property Location
+                </CardTitle>
+                <p className="text-sm text-gray-600 mt-2">
+                  Click on the map to pin your property's exact location. You can drag the marker to adjust.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Map Container */}
+                <div 
+                  ref={mapContainerRef}
+                  className="w-full h-[400px] rounded-lg border-2 border-blue-200 overflow-hidden"
+                  style={{ minHeight: '400px' }}
+                />
+
+                {/* Coordinates Display */}
+                {formData.coordinates?.lat && formData.coordinates?.lng && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm font-medium text-blue-900 mb-2">
+                      📍 Selected Location:
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Latitude:</span>
+                        <span className="ml-2 font-mono text-blue-700">
+                          {formData.coordinates.lat.toFixed(6)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Longitude:</span>
+                        <span className="ml-2 font-mono text-blue-700">
+                          {formData.coordinates.lng.toFixed(6)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Instructions */}
+                <div className="text-xs text-gray-500 space-y-1">
+                  <p className="font-medium text-gray-700">💡 Tips:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Click anywhere on the map to place a marker</li>
+                    <li>Drag the marker to adjust the location</li>
+                    <li>Use the controls (+/-) to zoom in/out</li>
+                    <li>This helps tenants find your property easily</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Location Coordinates */}
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-blue-600" />
-                  GPS Coordinates (Optional)
+                  GPS Coordinates (Manual Entry)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -786,6 +961,53 @@ export default function EditPropertyPage() {
                     className="border-blue-200 focus:ring-blue-500"
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Required Documents Section */}
+            <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  Required Documents for Verification
+                </CardTitle>
+                <p className="text-sm text-gray-600 mt-2">
+                  Manage your property documents separately. Click the button below to view, upload, or update documents.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {documentRequirements.map((requirement) => (
+                  <div
+                    key={requirement.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {requirement.display_name}
+                          {requirement.is_required && (
+                            <span className="text-red-500 ml-1">*</span>
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {requirement.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <Button
+                  type="button"
+                  onClick={() => router.push(`/owner/dashboard/properties/${propertyId}?tab=documents`)}
+                  className="w-full bg-blue-600 hover:bg-blue-700">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Manage Property Documents
+                </Button>
+
+                <p className="text-xs text-gray-500 text-center">
+                  📌 Documents are managed separately to support versioning and re-uploads
+                </p>
               </CardContent>
             </Card>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -92,6 +92,7 @@ export default function PropertyDetailsPage() {
   const { authState } = useAuth();
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const propertyId = params.id as string;
 
   const [property, setProperty] = useState<Property | null>(null);
@@ -105,10 +106,21 @@ export default function PropertyDetailsPage() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [uploadingDocType, setUploadingDocType] = useState<string | null>(null);
+  const [showUploadFor, setShowUploadFor] = useState<string | null>(null);
+
 
   // Mapbox ref
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+
+  // Set active tab from URL parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['overview', 'tenants', 'documents', 'analytics', 'details'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const loadPropertyData = async () => {
@@ -251,6 +263,58 @@ export default function PropertyDetailsPage() {
 
   const handleDeleteCancel = () => {
     setDeleteModalOpen(false);
+  };
+
+  const handleFileUpload = async (documentType: string, file: File) => {
+    try {
+      const requirement = documentRequirements.find(
+        (req) => req.document_type === documentType
+      );
+
+      if (!requirement) {
+        toast.error('Invalid document type');
+        return;
+      }
+
+      // Validate file size
+      if (file.size > requirement.max_file_size) {
+        toast.error(
+          `File size exceeds ${(requirement.max_file_size / 1024 / 1024).toFixed(0)}MB limit`
+        );
+        return;
+      }
+
+      // Validate file type
+      if (!requirement.allowed_mime_types.includes(file.type)) {
+        toast.error('Invalid file type. Only PDF, JPG, and PNG are allowed');
+        return;
+      }
+
+      setUploadingDocType(documentType);
+
+      const result = await DocumentsAPI.uploadPropertyDocument(
+        propertyId,
+        documentType,
+        file
+      );
+
+      if (result.success) {
+        toast.success(result.message || 'Document uploaded successfully');
+        setShowUploadFor(null);
+        // Reload documents
+        const docsResult = await DocumentsAPI.getPropertyDocuments(propertyId);
+        if (docsResult.success) {
+          setDocuments(docsResult.data);
+        }
+      } else {
+        toast.error(result.message || 'Failed to upload document');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload document');
+    } finally {
+      setUploadingDocType(null);
+    }
   };
 
   const handleDuplicate = async () => {
@@ -411,6 +475,11 @@ export default function PropertyDetailsPage() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
               </Button>
               <div>
+                <div className="flex items-center gap-2 sm:gap-3 mb-1">
+                  <Badge className="bg-blue-600 text-white font-mono text-xs sm:text-sm px-2 sm:px-3 py-1">
+                    {property.property_code}
+                  </Badge>
+                </div>
                 <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
                   {property.name}
                 </h1>
@@ -1000,6 +1069,9 @@ export default function PropertyDetailsPage() {
                                             <p className="text-sm text-red-700">
                                               {doc.rejection_reason}
                                             </p>
+                                            <p className="text-xs text-red-600 mt-2">
+                                              📤 Please upload a new version to address these issues.
+                                            </p>
                                           </div>
                                         )}
                                     </>
@@ -1007,20 +1079,101 @@ export default function PropertyDetailsPage() {
                                 </div>
                               </div>
 
-                              {doc && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                                  onClick={() => window.open(doc.file_url, '_blank')}>
-                                  <Download className="w-4 h-4 mr-1" />
-                                  View
-                                </Button>
-                              )}
+                              <div className="flex flex-col gap-2">
+                                {doc && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                                    onClick={() => window.open(doc.file_url, '_blank')}>
+                                    <Download className="w-4 h-4 mr-1" />
+                                    View
+                                  </Button>
+                                )}
+                                {(!doc || doc.status === 'rejected') && (
+                                  <Button
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() =>
+                                      setShowUploadFor(
+                                        showUploadFor === requirement.document_type
+                                          ? null
+                                          : requirement.document_type
+                                      )
+                                    }>
+                                    <Upload className="w-4 h-4 mr-1" />
+                                    {doc ? 'Upload New Version' : 'Upload Document'}
+                                  </Button>
+                                )}
+                              </div>
                             </div>
+
+                            {/* Inline Upload Area */}
+                            {showUploadFor === requirement.document_type && (
+                              <div className="mt-4 p-4 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50">
+                                <label
+                                  htmlFor={`file-upload-${requirement.document_type}`}
+                                  className="block cursor-pointer">
+                                  <div className="text-center py-6">
+                                    <Upload className="w-12 h-12 mx-auto text-blue-600 mb-3" />
+                                    <p className="text-sm font-medium text-blue-900 mb-1">
+                                      {uploadingDocType === requirement.document_type
+                                        ? 'Uploading...'
+                                        : 'Click to upload or drag and drop'}
+                                    </p>
+                                    <p className="text-xs text-blue-700">
+                                      PDF, JPG, PNG (Max{' '}
+                                      {(requirement.max_file_size / 1024 / 1024).toFixed(0)}MB)
+                                    </p>
+                                    {doc?.status === 'rejected' && (
+                                      <p className="text-xs text-blue-800 mt-2 font-medium">
+                                        📤 Uploading a new version will keep the previous document for
+                                        reference
+                                      </p>
+                                    )}
+                                  </div>
+                                </label>
+                                <input
+                                  id={`file-upload-${requirement.document_type}`}
+                                  type="file"
+                                  className="hidden"
+                                  accept={requirement.allowed_mime_types.join(',')}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      handleFileUpload(requirement.document_type, file);
+                                    }
+                                  }}
+                                  disabled={uploadingDocType === requirement.document_type}
+                                />
+                                <div className="mt-3 flex justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setShowUploadFor(null)}
+                                    disabled={uploadingDocType === requirement.document_type}>
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
+
+                      {/* Manage Documents Button */}
+                      <div className="mt-4">
+                        <Button
+                          onClick={() =>
+                            router.push(
+                              `/owner/dashboard/properties/${propertyId}/documents`
+                            )
+                          }
+                          className="w-full bg-blue-600 hover:bg-blue-700">
+                          <FileText className="w-4 h-4 mr-2" />
+                          Manage All Documents
+                        </Button>
+                      </div>
 
                       {/* Document Status Summary */}
                       <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">

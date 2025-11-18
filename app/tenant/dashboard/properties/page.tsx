@@ -55,7 +55,7 @@ import { useRouter } from 'next/navigation';
 import { TenantAPI, type PropertyListing } from '@/lib/api/tenant';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
 import { toast } from 'sonner';
 
 // PropertyListing is now imported from TenantAPI
@@ -369,7 +369,7 @@ export default function TenantPropertiesPage() {
                             <SelectItem value="all">All Types</SelectItem>
                             {propertyTypes.map(type => (
                               <SelectItem key={type} value={type}>
-                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                                {formatPropertyType(type)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -482,8 +482,7 @@ export default function TenantPropertiesPage() {
                 />
                 <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1.5">
                   <Badge className="bg-blue-600 text-white text-xs">
-                    {property.type.charAt(0).toUpperCase() +
-                      property.type.slice(1)}
+                    {formatPropertyType(property.type)}
                   </Badge>
                   {property.is_featured && (
                     <Badge className="bg-yellow-500 text-white text-xs flex items-center gap-1">
@@ -533,6 +532,11 @@ export default function TenantPropertiesPage() {
               <CardContent className="p-3 sm:p-6">
                 {/* Property Details */}
                 <div className="mb-3 sm:mb-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-300">
+                      {property.property_code}
+                    </Badge>
+                  </div>
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
                     {property.name}
                   </h3>
@@ -593,12 +597,9 @@ export default function TenantPropertiesPage() {
                 {/* Owner Info */}
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 p-2 sm:p-3 bg-gray-50 rounded-lg">
                   <Avatar className="w-6 h-6 sm:w-8 sm:h-8">
-                    <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
-                      {property.owner_name
-                        .split(' ')
-                        .map(n => n[0])
-                        .join('')}
-                    </AvatarFallback>
+                    <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">
+                      {formatPropertyType(property.type)}
+                    </Badge>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { cn, formatPropertyType } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { PropertyForm } from '../forms';
 import { PropertyDetails } from '../details';
@@ -351,7 +352,7 @@ export function PropertyManagement({ onBack }: PropertyManagementProps) {
                         </Badge>
                         <Badge
                           className={getTypeColor(property.type) + ' shadow'}>
-                          {property.type}
+                          {formatPropertyType(property.type)}
                         </Badge>
                       </div>
                       <div className="absolute bottom-3 left-3 z-10">

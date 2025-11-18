@@ -98,7 +98,6 @@ interface MaintenanceFormData {
   title: string;
   description: string;
   category: string;
-  priority: string;
   estimated_cost: string;
   tenant_notes: string;
   images: string[];
@@ -122,7 +121,6 @@ export default function EditMaintenancePage() {
     title: '',
     description: '',
     category: '',
-    priority: 'medium',
     estimated_cost: '',
     tenant_notes: '',
     images: []
@@ -155,7 +153,6 @@ export default function EditMaintenancePage() {
             title: request.title,
             description: request.description,
             category: request.category,
-            priority: request.priority,
             estimated_cost: request.estimated_cost?.toString() || '',
             tenant_notes: request.tenant_notes || '',
             images: request.images || []
@@ -195,10 +192,6 @@ export default function EditMaintenancePage() {
       newErrors.category = 'Category is required';
     }
 
-    if (!formData.priority) {
-      newErrors.priority = 'Priority is required';
-    }
-
     if (formData.estimated_cost && isNaN(parseFloat(formData.estimated_cost))) {
       newErrors.estimated_cost = 'Estimated cost must be a valid number';
     }
@@ -220,7 +213,6 @@ export default function EditMaintenancePage() {
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
-        priority: formData.priority,
         estimated_cost: formData.estimated_cost
           ? parseFloat(formData.estimated_cost)
           : null,
@@ -353,18 +345,6 @@ export default function EditMaintenancePage() {
             }>
             {maintenanceRequest.status.replace('_', ' ')}
           </Badge>
-          <Badge
-            className={
-              maintenanceRequest.priority === 'urgent'
-                ? 'bg-red-100 text-red-700'
-                : maintenanceRequest.priority === 'high'
-                ? 'bg-orange-100 text-orange-700'
-                : maintenanceRequest.priority === 'medium'
-                ? 'bg-yellow-100 text-yellow-700'
-                : 'bg-green-100 text-green-700'
-            }>
-            {maintenanceRequest.priority}
-          </Badge>
         </div>
 
         {/* Main Content */}
@@ -422,70 +402,36 @@ export default function EditMaintenancePage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="category"
-                      className="text-gray-700 font-medium">
-                      Category *
-                    </Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={value =>
-                        handleInputChange('category', value)
-                      }>
-                      <SelectTrigger
-                        className={cn(
-                          'bg-white/50 border-blue-200/50 focus:border-blue-400',
-                          errors.category &&
-                            'border-red-300 focus:border-red-400'
-                        )}>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MAINTENANCE_CATEGORIES.map(category => (
-                          <SelectItem key={category} value={category}>
-                            {category.replace('_', ' ')}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.category && (
-                      <p className="text-red-600 text-sm">{errors.category}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="priority"
-                      className="text-gray-700 font-medium">
-                      Priority *
-                    </Label>
-                    <Select
-                      value={formData.priority}
-                      onValueChange={value =>
-                        handleInputChange('priority', value)
-                      }>
-                      <SelectTrigger
-                        className={cn(
-                          'bg-white/50 border-blue-200/50 focus:border-blue-400',
-                          errors.priority &&
-                            'border-red-300 focus:border-red-400'
-                        )}>
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MAINTENANCE_PRIORITIES.map(priority => (
-                          <SelectItem key={priority} value={priority}>
-                            {priority}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.priority && (
-                      <p className="text-red-600 text-sm">{errors.priority}</p>
-                    )}
-                  </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="category"
+                    className="text-gray-700 font-medium">
+                    Category *
+                  </Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={value =>
+                      handleInputChange('category', value)
+                    }>
+                    <SelectTrigger
+                      className={cn(
+                        'bg-white/50 border-blue-200/50 focus:border-blue-400',
+                        errors.category &&
+                          'border-red-300 focus:border-red-400'
+                      )}>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MAINTENANCE_CATEGORIES.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category.replace('_', ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.category && (
+                    <p className="text-red-600 text-sm">{errors.category}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

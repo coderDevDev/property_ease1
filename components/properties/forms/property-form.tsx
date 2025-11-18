@@ -238,7 +238,7 @@ export function PropertyForm({
                         <SelectItem value="boarding_house">Boarding House</SelectItem>
                          <SelectItem value="dormitory">Dormitory</SelectItem>
                         <SelectItem value="commercial">Commercial</SelectItem>
-                        <SelectItem value="dormitory">Dormitory</SelectItem>
+                      
                       </SelectContent>
                     </Select>
                   </div>

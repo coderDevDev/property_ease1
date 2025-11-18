@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { cn, formatPropertyType } from '@/lib/utils';
 import {
   Building,
   MapPin,
@@ -354,9 +355,14 @@ export default function PropertiesPage() {
 
                 <CardHeader className="pb-2 p-3 sm:p-6">
                   <div className="space-y-2">
-                    <CardTitle className="text-base sm:text-lg font-bold text-gray-900">
-                      {property.name}
-                    </CardTitle>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-300">
+                        {property.property_code}
+                      </Badge>
+                      <CardTitle className="text-base sm:text-lg font-bold text-gray-900">
+                        {property.name}
+                      </CardTitle>
+                    </div>
                     <div className="flex items-center text-gray-600 text-xs sm:text-sm">
                       <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                       <span className="truncate">
@@ -364,8 +370,8 @@ export default function PropertiesPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs sm:text-sm text-gray-600 capitalize">
-                        {property.type}
+                      <span className="text-xs sm:text-sm text-gray-600">
+                        {formatPropertyType(property.type)}
                       </span>
                       <span className="text-sm sm:text-lg font-bold text-blue-600">
                         {formatCurrency(property.monthly_rent)}
@@ -390,7 +396,7 @@ export default function PropertiesPage() {
                             size="sm"
                             variant="outline"
                             className="mt-2 h-7 text-xs border-red-300 text-red-700 hover:bg-red-100"
-                            onClick={() => router.push(`/owner/dashboard/properties/${property.id}/edit`)}>
+                            onClick={() => router.push(`/owner/dashboard/properties/${property.id}?tab=documents`)}>
                             <Edit className="w-3 h-3 mr-1" />
                             Fix and Resubmit
                           </Button>

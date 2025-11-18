@@ -83,18 +83,29 @@ export function DocumentReviewModal({
     try {
       setProcessingDoc(documentId);
 
+      // Optimistic update - update UI immediately
+      setDocuments(prev => prev.map(doc => 
+        doc.id === documentId 
+          ? { ...doc, status: 'approved' as PropertyDocument['status'] }
+          : doc
+      ));
+
       const result = await DocumentsAPI.approveDocument(documentId);
 
       if (result.success) {
         toast.success('Document approved successfully');
-        await loadDocuments();
+        // Only call parent update, no need to reload documents
         onDocumentsUpdated?.();
       } else {
+        // Revert optimistic update on error
         toast.error(result.message || 'Failed to approve document');
+        await loadDocuments();
       }
     } catch (error) {
       console.error('Approve error:', error);
       toast.error('Failed to approve document');
+      // Revert optimistic update on error
+      await loadDocuments();
     } finally {
       setProcessingDoc(null);
     }
@@ -109,20 +120,32 @@ export function DocumentReviewModal({
     try {
       setProcessingDoc(documentId);
 
-      const result = await DocumentsAPI.rejectDocument(documentId, rejectionReason);
+      // Optimistic update - update UI immediately
+      const currentReason = rejectionReason;
+      setDocuments(prev => prev.map(doc => 
+        doc.id === documentId 
+          ? { ...doc, status: 'rejected' as PropertyDocument['status'], rejection_reason: currentReason }
+          : doc
+      ));
+      setRejectionReason('');
+      setRejectingDocId(null);
+
+      const result = await DocumentsAPI.rejectDocument(documentId, currentReason);
 
       if (result.success) {
         toast.success('Document rejected successfully');
-        setRejectionReason('');
-        setRejectingDocId(null);
-        await loadDocuments();
+        // Only call parent update, no need to reload documents
         onDocumentsUpdated?.();
       } else {
+        // Revert optimistic update on error
         toast.error(result.message || 'Failed to reject document');
+        await loadDocuments();
       }
     } catch (error) {
       console.error('Reject error:', error);
       toast.error('Failed to reject document');
+      // Revert optimistic update on error
+      await loadDocuments();
     } finally {
       setProcessingDoc(null);
     }
@@ -185,10 +208,45 @@ export function DocumentReviewModal({
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-2" />
-              <p className="text-sm text-gray-600">Loading documents...</p>
+          <div className="space-y-4">
+            {/* Skeleton Loaders */}
+            <div className="grid grid-cols-4 gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i}>
+                  <CardContent className="pt-4 pb-3">
+                    <div className="text-center space-y-2">
+                      <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mx-auto"></div>
+                      <div className="h-3 w-12 bg-gray-200 animate-pulse rounded mx-auto"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            {/* Document Skeleton Cards */}
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="flex items-start">
+                      <div className="flex-1 p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-gray-200 animate-pulse rounded-lg w-12 h-12"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-5 bg-gray-200 animate-pulse rounded w-3/4"></div>
+                            <div className="h-4 bg-gray-200 animate-pulse rounded w-1/2"></div>
+                            <div className="h-3 bg-gray-200 animate-pulse rounded w-2/3"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 p-4 bg-gray-50 border-l min-w-[140px]">
+                        <div className="h-8 bg-gray-200 animate-pulse rounded"></div>
+                        <div className="h-8 bg-gray-200 animate-pulse rounded"></div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         ) : (
@@ -259,138 +317,128 @@ export function DocumentReviewModal({
             ) : (
               <div className="space-y-3">
                 {documents.map((doc) => (
-                  <Card key={doc.id} className="overflow-hidden">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        {/* Document Info */}
-                        <div className="flex items-start gap-3 flex-1">
-                          <FileText className="w-10 h-10 text-blue-600 flex-shrink-0 mt-1" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-semibold text-gray-900">
-                                {getRequirementName(doc.document_type)}
-                              </h4>
-                              {getStatusBadge(doc.status)}
+                  <Card key={doc.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                    <CardContent className="p-0">
+                      <div className="flex items-start">
+                        {/* Document Info Section */}
+                        <div className="flex-1 p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 bg-blue-50 rounded-lg">
+                              <FileText className="w-6 h-6 text-blue-600" />
                             </div>
-                            <p className="text-sm text-gray-600 mb-1">
-                              {doc.document_name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {(doc.file_size / 1024 / 1024).toFixed(2)} MB •{' '}
-                              Uploaded {new Date(doc.uploaded_at).toLocaleDateString()}
-                            </p>
-
-                            {/* Rejection Reason */}
-                            {doc.status === 'rejected' && doc.rejection_reason && (
-                              <Alert className="mt-2 bg-red-50 border-red-200">
-                                <AlertCircle className="h-4 w-4 text-red-600" />
-                                <AlertDescription className="text-red-800 text-xs">
-                                  <strong>Rejection Reason:</strong> {doc.rejection_reason}
-                                </AlertDescription>
-                              </Alert>
-                            )}
-
-                            {/* Rejection Input */}
-                            {rejectingDocId === doc.id && (
-                              <div className="mt-3 space-y-2">
-                                <Textarea
-                                  placeholder="Enter rejection reason..."
-                                  value={rejectionReason}
-                                  onChange={(e) => setRejectionReason(e.target.value)}
-                                  className="min-h-[80px]"
-                                />
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleReject(doc.id)}
-                                    disabled={processingDoc === doc.id || !rejectionReason.trim()}
-                                  >
-                                    {processingDoc === doc.id ? (
-                                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                    ) : (
-                                      <XCircle className="w-3 h-3 mr-1" />
-                                    )}
-                                    Confirm Reject
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setRejectingDocId(null);
-                                      setRejectionReason('');
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-semibold text-gray-900 text-base">
+                                  {getRequirementName(doc.document_type)}
+                                </h4>
+                                {getStatusBadge(doc.status)}
                               </div>
-                            )}
+                              <p className="text-sm text-gray-600 mb-1 truncate">
+                                {doc.document_name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {(doc.file_size / 1024 / 1024).toFixed(2)} MB • Uploaded {new Date(doc.uploaded_at).toLocaleDateString()}
+                              </p>
+
+                              {/* Rejection Reason */}
+                              {doc.status === 'rejected' && doc.rejection_reason && !rejectingDocId && (
+                                <Alert className="mt-3 bg-red-50 border-red-200">
+                                  <AlertCircle className="h-4 w-4 text-red-600" />
+                                  <AlertDescription className="text-red-800 text-xs">
+                                    <strong>Rejection Reason:</strong> {doc.rejection_reason}
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+
+                              {/* Rejection Input */}
+                              {rejectingDocId === doc.id && (
+                                <div className="mt-3 space-y-2">
+                                  <label className="text-sm font-medium text-gray-700">Rejection Reason</label>
+                                  <Textarea
+                                    placeholder="Enter detailed rejection reason..."
+                                    value={rejectionReason}
+                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                    className="min-h-[80px]"
+                                    autoFocus
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handleReject(doc.id)}
+                                      disabled={processingDoc === doc.id || !rejectionReason.trim()}
+                                    >
+                                      {processingDoc === doc.id ? (
+                                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                      ) : (
+                                        <XCircle className="w-3 h-3 mr-1" />
+                                      )}
+                                      Confirm Reject
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setRejectingDocId(null);
+                                        setRejectionReason('');
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex flex-col gap-2">
+                        {/* Actions Section */}
+                        <div className="flex flex-col gap-2 p-4 bg-gray-50 border-l min-w-[140px]">
                           <Button
                             size="sm"
                             variant="outline"
+                            className="w-full justify-start"
                             onClick={() => window.open(doc.file_url, '_blank')}
                           >
-                            <Eye className="w-3 h-3 mr-1" />
-                            View
+                            <Eye className="w-4 h-4 mr-2" />
+                            View File
                           </Button>
 
-                          {doc.status === 'pending' && (
+                          {/* Status Change Actions */}
+                          {rejectingDocId !== doc.id && (
                             <>
-                              <Button
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700"
-                                onClick={() => handleApprove(doc.id)}
-                                disabled={processingDoc === doc.id}
-                              >
-                                {processingDoc === doc.id ? (
-                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                ) : (
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                )}
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => {
-                                  setRejectingDocId(doc.id);
-                                  setRejectionReason('');
-                                }}
-                                disabled={processingDoc === doc.id}
-                              >
-                                <XCircle className="w-3 h-3 mr-1" />
-                                Reject
-                              </Button>
-                            </>
-                          )}
-
-                          {doc.status === 'approved' && (
-                            <Badge className="bg-green-100 text-green-700 justify-center">
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Approved
-                            </Badge>
-                          )}
-
-                          {doc.status === 'rejected' && (
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                              onClick={() => handleApprove(doc.id)}
-                              disabled={processingDoc === doc.id}
-                            >
-                              {processingDoc === doc.id ? (
-                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                              ) : (
-                                <CheckCircle className="w-3 h-3 mr-1" />
+                              {doc.status !== 'approved' && (
+                                <Button
+                                  size="sm"
+                                  className="w-full justify-start bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                  onClick={() => handleApprove(doc.id)}
+                                  disabled={processingDoc === doc.id || doc.status === 'rejected'}
+                                  title={doc.status === 'rejected' ? 'Cannot approve a rejected document' : ''}
+                                >
+                                  {processingDoc === doc.id ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                  )}
+                                  Approve
+                                </Button>
                               )}
-                              Approve
-                            </Button>
+                              {doc.status !== 'rejected' && (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="w-full justify-start"
+                                  onClick={() => {
+                                    setRejectingDocId(doc.id);
+                                    setRejectionReason(doc.rejection_reason || '');
+                                  }}
+                                  disabled={processingDoc === doc.id}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Reject
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -401,17 +449,16 @@ export function DocumentReviewModal({
             )}
 
             {/* Footer Actions */}
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Close
-              </Button>
-            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Close
+            </Button>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
+      
+      )}
+    </DialogContent>
+  </Dialog>
+);}

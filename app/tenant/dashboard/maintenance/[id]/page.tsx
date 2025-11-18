@@ -427,41 +427,6 @@ export default function TenantMaintenanceDetailsPage() {
           <Card className="bg-white/80 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    maintenanceRequest.priority === 'urgent'
-                      ? 'bg-red-100'
-                      : maintenanceRequest.priority === 'high'
-                      ? 'bg-orange-100'
-                      : maintenanceRequest.priority === 'medium'
-                      ? 'bg-yellow-100'
-                      : 'bg-green-100'
-                  }`}>
-                  <AlertTriangle
-                    className={`w-6 h-6 ${
-                      maintenanceRequest.priority === 'urgent'
-                        ? 'text-red-600'
-                        : maintenanceRequest.priority === 'high'
-                        ? 'text-orange-600'
-                        : maintenanceRequest.priority === 'medium'
-                        ? 'text-yellow-600'
-                        : 'text-green-600'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Priority</p>
-                  <p className="text-lg font-semibold text-gray-900 capitalize">
-                    {maintenanceRequest.priority}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                   <Wrench className="w-6 h-6 text-blue-600" />
                 </div>
@@ -508,14 +473,6 @@ export default function TenantMaintenanceDetailsPage() {
                       </Label>
                       <p className="text-gray-900 font-medium capitalize">
                         {maintenanceRequest.category.replace('_', ' ')}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <Label className="text-sm font-medium text-gray-600 mb-1 block">
-                        Priority
-                      </Label>
-                      <p className="text-gray-900 font-medium capitalize">
-                        {maintenanceRequest.priority}
                       </p>
                     </div>
                   </div>

@@ -122,7 +122,6 @@ export default function TenantMaintenancePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPriority, setFilterPriority] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
   // Load maintenance requests for current tenant
@@ -161,10 +160,8 @@ export default function TenantMaintenancePage() {
 
     const matchesStatus =
       filterStatus === 'all' || request.status === filterStatus;
-    const matchesPriority =
-      filterPriority === 'all' || request.priority === filterPriority;
 
-    return matchesSearch && matchesStatus && matchesPriority;
+    return matchesSearch && matchesStatus;
   });
 
   // Get status badge variant
@@ -400,21 +397,6 @@ export default function TenantMaintenancePage() {
                   </SelectContent>
                 </Select>
 
-                <Select
-                  value={filterPriority}
-                  onValueChange={setFilterPriority}>
-                  <SelectTrigger className="w-32 sm:w-40 bg-white/50 border-blue-200/50 text-sm sm:text-base">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priority</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                  </SelectContent>
-                </Select>
-
                 <div className="flex bg-white/50 border border-blue-200/50 rounded-lg p-1">
                   <Button
                     variant={viewMode === 'table' ? 'default' : 'ghost'}
@@ -468,9 +450,6 @@ export default function TenantMaintenancePage() {
                         Category
                       </TableHead>
                       <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
-                        Priority
-                      </TableHead>
-                      <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm">
                         Status
                       </TableHead>
                       <TableHead className="text-blue-700 font-semibold text-xs sm:text-sm hidden lg:table-cell">
@@ -519,14 +498,6 @@ export default function TenantMaintenancePage() {
                             variant="outline"
                             className="bg-blue-50 text-blue-700 border-blue-200 text-xs sm:text-sm">
                             {request.category.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={`${getPriorityBadge(
-                              request.priority
-                            )} text-xs sm:text-sm`}>
-                            {request.priority}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -628,12 +599,6 @@ export default function TenantMaintenancePage() {
                         {request.title}
                       </CardTitle>
                       <div className="flex gap-1 sm:gap-2 mb-3">
-                        <Badge
-                          className={`${getPriorityBadge(
-                            request.priority
-                          )} text-xs sm:text-sm`}>
-                          {request.priority}
-                        </Badge>
                         <Badge
                           className={`${getStatusBadge(
                             request.status

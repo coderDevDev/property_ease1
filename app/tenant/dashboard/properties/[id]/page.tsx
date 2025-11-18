@@ -39,8 +39,9 @@ import {
 } from 'lucide-react';
 import { TenantAPI, type PropertyListing } from '@/lib/api/tenant';
 import { DocumentsAPI, type PropertyDocument } from '@/lib/api/documents';
+import { cn, formatPropertyType } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 export default function TenantPropertyDetailsPage() {
   const { authState } = useAuth();
@@ -244,6 +245,15 @@ export default function TenantPropertyDetailsPage() {
                 Back
               </Button>
               <div>
+                <div className="flex items-center gap-2 sm:gap-3 mb-1">
+                  <Badge className="bg-blue-600 text-white font-mono text-xs sm:text-sm px-2 sm:px-3 py-1">
+                    {property.property_code}
+
+                    {
+                      console.log({property})
+                    }
+                  </Badge>
+                </div>
                 <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
                   {property.name}
                 </h1>
@@ -255,8 +265,7 @@ export default function TenantPropertyDetailsPage() {
                     </p>
                   </div>
                   <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">
-                    {property.type.charAt(0).toUpperCase() +
-                      property.type.slice(1)}
+                    {formatPropertyType(property.type)}
                   </Badge>
                 </div>
               </div>
@@ -442,8 +451,8 @@ export default function TenantPropertyDetailsPage() {
                           <p className="text-xs sm:text-sm text-gray-600">
                             Type
                           </p>
-                          <p className="font-semibold text-sm sm:text-base capitalize">
-                            {property.type}
+                          <p className="font-semibold text-sm sm:text-base">
+                            {formatPropertyType(property.type)}
                           </p>
                         </div>
                         <div>
