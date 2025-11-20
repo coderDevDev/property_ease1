@@ -237,6 +237,19 @@ export default function PropertiesPage() {
     }
   };
 
+  // Refresh properties in background without showing loading spinner
+  const refreshPropertiesInBackground = async () => {
+    try {
+      const statusParam = statusFilter !== 'all' ? statusFilter : undefined;
+      const result = await AdminAPI.getAllProperties(statusParam);
+      if (result.success) {
+        setProperties(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to refresh properties:', error);
+    }
+  };
+
   const filteredProperties = properties.filter(property => {
     const matchesSearch =
       property.property_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -840,7 +853,7 @@ export default function PropertiesPage() {
             propertyName={reviewingProperty.name}
             open={isDocumentReviewOpen}
             onOpenChange={setIsDocumentReviewOpen}
-            onDocumentsUpdated={loadProperties}
+            onDocumentsUpdated={refreshPropertiesInBackground}
           />
         )}
 
