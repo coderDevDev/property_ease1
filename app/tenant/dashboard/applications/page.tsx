@@ -43,6 +43,7 @@ import { toast } from 'sonner';
 import { TenantAPI } from '@/lib/api/tenant';
 import { generateLeaseAgreementPDF } from '@/lib/pdf/leaseAgreementPDF';
 import { supabase } from '@/lib/supabase';
+import { formatPropertyType } from '@/lib/utils';
 
 interface Application {
   id: string;
@@ -508,7 +509,7 @@ export default function ApplicationsPage() {
                       {/* Property Type Badge */}
                       <div className="absolute top-3 left-3">
                         <Badge className="bg-blue-600 text-white">
-                          {application.unit_type}
+                          {formatPropertyType(application.unit_type)}
                         </Badge>
                       </div>
                     </div>
@@ -669,7 +670,7 @@ export default function ApplicationsPage() {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Building className="w-4 h-4 text-gray-500" />
-                              {application.unit_type}
+                              {formatPropertyType(application.unit_type)}
                             </div>
                           </TableCell>
                           <TableCell className="font-semibold">

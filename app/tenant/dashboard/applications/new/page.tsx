@@ -42,7 +42,7 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { TenantAPI } from '@/lib/api/tenant';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
 
 interface Property {
   id: string;
@@ -292,7 +292,7 @@ export default function NewApplicationPage() {
                       <SelectContent>
                         {selectedProperty.unit_types.map(type => (
                           <SelectItem key={type} value={type}>
-                            {type}
+                            {formatPropertyType(type)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -337,7 +337,7 @@ export default function NewApplicationPage() {
                         <div>
                           <p className="text-sm text-blue-700">Type</p>
                           <p className="font-medium text-blue-900">
-                            {formData.unitType}
+                            {formatPropertyType(formData.unitType)}
                           </p>
                         </div>
                         <div>

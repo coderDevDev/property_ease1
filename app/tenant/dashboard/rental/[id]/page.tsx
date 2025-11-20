@@ -66,6 +66,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
+import { formatPropertyType } from '@/lib/utils';
 
 interface RentalApplication {
   id: string;
@@ -861,7 +862,7 @@ export default function TenantRentalDetailsPage() {
                           Property Type
                         </p>
                         <p className="font-semibold text-sm sm:text-base">
-                          {rental.property.type}
+                          {formatPropertyType(rental.property.type)}
                         </p>
                       </div>
                       <div>

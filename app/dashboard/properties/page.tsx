@@ -674,6 +674,26 @@ export default function PropertiesPage() {
                                 <MapPin className="w-3 h-3 inline mr-1" />
                                 {property.address}
                               </div>
+                              <div className="flex items-center gap-1 mt-2">
+                                {property.documents_submitted && (
+                                  <Badge className="text-xs bg-blue-100 text-blue-700 border-0">
+                                    <FileText className="w-3 h-3 mr-1" />
+                                    Docs Submitted
+                                  </Badge>
+                                )}
+                                {/* {property.documents_complete && (
+                                  <Badge className="text-xs bg-purple-100 text-purple-700 border-0">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    Docs Complete
+                                  </Badge>
+                                )}
+                                {property.documents_approved && (
+                                  <Badge className="text-xs bg-green-100 text-green-700 border-0">
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Docs Approved
+                                  </Badge>
+                                )} */}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -732,8 +752,8 @@ export default function PropertiesPage() {
                                 size="sm"
                                 className="bg-green-600 hover:bg-green-700 text-white"
                                 onClick={() => handleApproveProperty(property.id)}
-                                disabled={!property.documents_approved}
-                                title={!property.documents_approved ? 'All documents must be approved first' : ''}>
+                                disabled={!property.documents_complete}
+                                title={!property.documents_complete ? 'Documents must be submitted and reviewed first' : 'Approve this property'}>
                                 <CheckCircle className="w-4 h-4 mr-1" />
                                 Approve
                               </Button>
@@ -858,7 +878,7 @@ export default function PropertiesPage() {
                     </div>
                     <div>
                       <Label className="text-gray-600">Type</Label>
-                      <p className="font-medium capitalize">{selectedProperty.type}</p>
+                      <p className="font-medium">{formatPropertyType(selectedProperty.type)}</p>
                     </div>
                     <div className="col-span-2">
                       <Label className="text-gray-600">Address</Label>
