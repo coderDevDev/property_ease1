@@ -1162,7 +1162,7 @@ export default function PropertyDetailsPage() {
                       })}
 
                       {/* Manage Documents Button */}
-                      <div className="mt-4">
+                      {/* <div className="mt-4">
                         <Button
                           onClick={() =>
                             router.push(
@@ -1173,7 +1173,7 @@ export default function PropertyDetailsPage() {
                           <FileText className="w-4 h-4 mr-2" />
                           Manage All Documents
                         </Button>
-                      </div>
+                      </div> */}
 
                       {/* Document Status Summary */}
                       <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
