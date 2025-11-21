@@ -53,6 +53,8 @@ import {
 import { MaintenanceAPI } from '@/lib/api/maintenance';
 import { toast } from 'sonner';
 
+import { supabase } from '@/lib/supabase';
+
 interface MaintenanceRequest {
   id: string;
   tenant_id: string;
@@ -131,15 +133,82 @@ export default function TenantMaintenancePage() {
 
       try {
         setIsLoading(true);
-        const result = await MaintenanceAPI.getMaintenanceRequests();
+        
+        // First, get the tenant ID(s) for the current user
+        const { data: tenants, error: tenantError } = await supabase
+          .from('tenants')
+          .select('id')
+          .eq('user_id', authState.user.id)
+          .eq('status', 'active');
 
-        if (result.success) {
-          // Filter requests for current tenant only
-          const tenantRequests = result.data.filter(
-            request => request.tenant?.user?.id === authState.user?.id
-          );
-          setMaintenanceRequests(tenantRequests);
+        if (tenantError) {
+          throw tenantError;
         }
+
+        if (!tenants || tenants.length === 0) {
+          setMaintenanceRequests([]);
+          return;
+        }
+
+        // Optimized: Query maintenance requests with only required fields
+        const tenantIds = tenants.map(t => t.id);
+        
+        const { data: requests, error: requestsError } = await supabase
+          .from('maintenance_requests')
+          .select('id, tenant_id, property_id, title, description, category, status, estimated_cost, actual_cost, scheduled_date, created_at')
+          .in('tenant_id', tenantIds)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (requestsError) throw requestsError;
+        if (!requests || requests.length === 0) {
+          setMaintenanceRequests([]);
+          return;
+        }
+
+        // Fetch properties separately (lightweight)
+        const propertyIds = [...new Set(requests.map(r => r.property_id))];
+        const { data: properties } = await supabase
+          .from('properties')
+          .select('id, name, city')
+          .in('id', propertyIds);
+
+        const propertyMap = new Map((properties || []).map(p => [p.id, p]));
+
+        // Merge data client-side
+        const allRequests = requests.map(req => ({
+          ...req,
+          property: propertyMap.get(req.property_id) || {
+            id: req.property_id,
+            name: 'Unknown',
+            address: '',
+            city: '',
+            type: ''
+          },
+          tenant: {
+            id: tenants.find(t => t.id === req.tenant_id)?.id || '',
+            user_id: authState.user.id,
+            property_id: req.property_id,
+            unit_number: tenants.find(t => t.id === req.tenant_id)?.unit_number || '',
+            lease_start: '', lease_end: '', monthly_rent: 0, deposit: 0,
+            security_deposit: 0, status: 'active', documents: [],
+            created_at: '', updated_at: '',
+            user: {
+              id: authState.user.id,
+              email: authState.user.email || '',
+              first_name: authState.user.first_name || '',
+              last_name: authState.user.last_name || '',
+              phone: authState.user.phone || '',
+              role: 'tenant',
+              is_verified: true,
+              is_active: true,
+              created_at: '',
+              updated_at: ''
+            }
+          }
+        })) as MaintenanceRequest[];
+
+        setMaintenanceRequests(allRequests);
       } catch (error) {
         console.error('Failed to load maintenance requests:', error);
         toast.error('Failed to load maintenance requests');

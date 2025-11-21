@@ -232,6 +232,8 @@ export class TenantsAPI {
         `
         )
         .eq('user_id', userId)
+        .eq('status', 'active')
+   
         .single();
 
       if (error) {

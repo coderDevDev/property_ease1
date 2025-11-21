@@ -1000,12 +1000,13 @@ export class TenantAPI {
     message?: string;
   }> {
     try {
-      // Get tenant ID first
+      // Get tenant ID first (get first active tenant if multiple exist)
       const { data: tenant, error: tenantError } = await supabase
         .from('tenants')
         .select('id')
         .eq('user_id', userId)
         .eq('status', 'active')
+        .limit(1)
         .single();
 
       if (tenantError) throw tenantError;
@@ -1089,12 +1090,13 @@ export class TenantAPI {
     message?: string;
   }> {
     try {
-      // Get tenant ID first
+      // Get tenant ID first (get first active tenant if multiple exist)
       const { data: tenant, error: tenantError } = await supabase
         .from('tenants')
         .select('id')
         .eq('user_id', userId)
         .eq('status', 'active')
+        .limit(1)
         .single();
 
       if (tenantError) throw tenantError;
@@ -1413,12 +1415,13 @@ export class TenantAPI {
     message?: string;
   }> {
     try {
-      // Get tenant ID first
+      // Get tenant ID first (get first active tenant if multiple exist)
       const { data: tenant, error: tenantError } = await supabase
         .from('tenants')
         .select('id')
         .eq('user_id', userId)
         .eq('status', 'active')
+        .limit(1)
         .single();
 
       if (tenantError) throw tenantError;
@@ -1479,6 +1482,7 @@ export class TenantAPI {
         .select('id')
         .eq('user_id', user.id)
         .eq('status', 'active')
+        .limit(1)
         .single();
 
       if (tenantError) throw tenantError;
@@ -1867,12 +1871,13 @@ export class TenantAPI {
     message?: string;
   }> {
     try {
-      // Get tenant's property ID first
+      // Get tenant's property ID first (get first active tenant if multiple exist)
       const { data: tenant, error: tenantError } = await supabase
         .from('tenants')
         .select('property_id')
         .eq('user_id', userId)
         .eq('status', 'active')
+        .limit(1)
         .single();
 
       if (tenantError && tenantError.code !== 'PGRST116') throw tenantError;

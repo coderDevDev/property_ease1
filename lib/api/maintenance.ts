@@ -15,12 +15,51 @@ export class MaintenanceAPI {
         .from('maintenance_requests')
         .select(
           `
-          *,
+          id,
+          tenant_id,
+          property_id,
+          title,
+          description,
+          category,
+          priority,
+          status,
+          images,
+          estimated_cost,
+          actual_cost,
+          assigned_to,
+          scheduled_date,
+          completed_date,
+          tenant_notes,
+          owner_notes,
+          created_at,
+          updated_at,
           tenant:tenants(
-            *,
-            user:users(*)
+            id,
+            user_id,
+            property_id,
+            unit_number,
+            lease_start,
+            lease_end,
+            monthly_rent,
+            deposit,
+            security_deposit,
+            status,
+            user:users(
+              id,
+              email,
+              first_name,
+              last_name,
+              phone,
+              role
+            )
           ),
-          property:properties(*)
+          property:properties(
+            id,
+            name,
+            address,
+            city,
+            type
+          )
         `
         )
         .order('created_at', { ascending: false });
@@ -31,6 +70,9 @@ export class MaintenanceAPI {
       if (tenantId) {
         query = query.eq('tenant_id', tenantId);
       }
+
+      // Apply limit after filters for better performance
+      query = query.limit(100);
 
       const { data, error } = await query;
 
@@ -264,16 +306,56 @@ export class MaintenanceAPI {
         .from('maintenance_requests')
         .select(
           `
-          *,
+          id,
+          tenant_id,
+          property_id,
+          title,
+          description,
+          category,
+          priority,
+          status,
+          images,
+          estimated_cost,
+          actual_cost,
+          assigned_to,
+          scheduled_date,
+          completed_date,
+          tenant_notes,
+          owner_notes,
+          created_at,
+          updated_at,
           tenant:tenants(
-            *,
-            user:users(*)
+            id,
+            user_id,
+            property_id,
+            unit_number,
+            lease_start,
+            lease_end,
+            monthly_rent,
+            deposit,
+            security_deposit,
+            status,
+            user:users(
+              id,
+              email,
+              first_name,
+              last_name,
+              phone,
+              role
+            )
           ),
-          property:properties(*)
+          property:properties(
+            id,
+            name,
+            address,
+            city,
+            type
+          )
         `
         )
         .eq('status', status)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (propertyId) {
         query = query.eq('property_id', propertyId);
