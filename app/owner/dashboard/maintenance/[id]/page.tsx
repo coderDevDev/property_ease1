@@ -62,10 +62,15 @@ interface MaintenanceRequest {
   estimated_cost?: number;
   actual_cost?: number;
   assigned_to?: string;
+  assigned_personnel_phone?: string;
   scheduled_date?: string;
   completed_date?: string;
   tenant_notes?: string;
   owner_notes?: string;
+  feedback_rating?: number;
+  feedback_comment?: string;
+  feedback_submitted_at?: string;
+  feedback_required?: boolean;
   created_at: string;
   updated_at: string;
   tenant: {
@@ -128,6 +133,8 @@ export default function MaintenanceDetailsPage() {
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
+  const [assignPersonnelName, setAssignPersonnelName] = useState('');
+  const [assignPersonnelPhone, setAssignPersonnelPhone] = useState('');
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -357,17 +364,17 @@ export default function MaintenanceDetailsPage() {
       const updateData = {
         title: formData.title,
         description: formData.description,
-        category: formData.category,
-        priority: formData.priority,
-        status: formData.status,
+        category: formData.category as any,
+        priority: formData.priority as any,
+        status: formData.status as any,
         estimated_cost: formData.estimated_cost
           ? parseFloat(formData.estimated_cost)
-          : null,
+          : undefined,
         actual_cost: formData.actual_cost
           ? parseFloat(formData.actual_cost)
-          : null,
-        owner_notes: formData.owner_notes || null,
-        scheduled_date: formData.scheduled_date || null
+          : undefined,
+        owner_notes: formData.owner_notes || undefined,
+        scheduled_date: formData.scheduled_date || undefined
       };
 
       const result = await MaintenanceAPI.updateMaintenanceRequest(
@@ -397,6 +404,50 @@ export default function MaintenanceDetailsPage() {
   };
 
   const handleComplete = async () => {
+    // If feedback is required but not submitted, request it first
+    if (
+      maintenanceRequest?.feedback_required &&
+      !maintenanceRequest?.feedback_rating
+    ) {
+      toast.error(
+        'Cannot complete request. Tenant feedback is required before completion. Please wait for the tenant to submit feedback.'
+      );
+      return;
+    }
+
+    // If feedback is not yet required, request it first
+    if (!maintenanceRequest?.feedback_required) {
+      try {
+        setIsUpdating(true);
+        const feedbackResult = await MaintenanceAPI.requestFeedback(
+          maintenanceId
+        );
+        if (feedbackResult.success) {
+          toast.success(
+            'Feedback request sent to tenant. Please wait for feedback before completing.'
+          );
+          const reloadResult = await MaintenanceAPI.getMaintenanceRequest(
+            maintenanceId
+          );
+          if (reloadResult.success && reloadResult.data) {
+            setMaintenanceRequest(reloadResult.data);
+            generateTimelineEvents(reloadResult.data);
+          }
+          setIsCompleteDialogOpen(false);
+          return;
+        } else {
+          toast.error(feedbackResult.message || 'Failed to request feedback');
+          return;
+        }
+      } catch (error) {
+        console.error('Request feedback error:', error);
+        toast.error('Failed to request feedback');
+        return;
+      } finally {
+        setIsUpdating(false);
+      }
+    }
+
     try {
       setIsUpdating(true);
 
@@ -415,6 +466,7 @@ export default function MaintenanceDetailsPage() {
         );
         if (reloadResult.success && reloadResult.data) {
           setMaintenanceRequest(reloadResult.data);
+          generateTimelineEvents(reloadResult.data);
         }
       } else {
         toast.error(result.message || 'Failed to complete maintenance request');
@@ -569,12 +621,48 @@ export default function MaintenanceDetailsPage() {
                   </Button>
                 )}
                 {maintenanceRequest.status === 'in_progress' && (
-                  <Button
-                    onClick={() => setIsCompleteDialogOpen(true)}
-                    className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white">
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Complete Request
-                  </Button>
+                  <>
+                    {maintenanceRequest.feedback_required &&
+                      !maintenanceRequest.feedback_rating && (
+                        <Button
+                          onClick={async () => {
+                            const result = await MaintenanceAPI.requestFeedback(
+                              maintenanceId
+                            );
+                            if (result.success) {
+                              toast.success(
+                                'Feedback request sent to tenant. Waiting for feedback before completion.'
+                              );
+                              const reloadResult =
+                                await MaintenanceAPI.getMaintenanceRequest(
+                                  maintenanceId
+                                );
+                              if (reloadResult.success && reloadResult.data) {
+                                setMaintenanceRequest(reloadResult.data);
+                                generateTimelineEvents(reloadResult.data);
+                              }
+                            } else {
+                              toast.error(
+                                result.message || 'Failed to request feedback'
+                              );
+                            }
+                          }}
+                          variant="outline"
+                          className="border-yellow-200 text-yellow-600 hover:bg-yellow-50 transition-all duration-200">
+                          Request Feedback
+                        </Button>
+                      )}
+                    <Button
+                      onClick={() => setIsCompleteDialogOpen(true)}
+                      disabled={
+                        maintenanceRequest.feedback_required &&
+                        !maintenanceRequest.feedback_rating
+                      }
+                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Complete Request
+                    </Button>
+                  </>
                 )}
                 {(maintenanceRequest.status === 'pending' ||
                   maintenanceRequest.status === 'cancelled') && (
@@ -1090,6 +1178,49 @@ export default function MaintenanceDetailsPage() {
                         </p>
                       </div>
                     )}
+
+                    {maintenanceRequest.feedback_rating && (
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-200/50">
+                        <Label className="text-sm font-medium text-green-700 mb-2 block">
+                          Tenant Feedback
+                        </Label>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm text-gray-700">Rating:</span>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map(star => (
+                              <span
+                                key={star}
+                                className={
+                                  star <=
+                                  (maintenanceRequest.feedback_rating || 0)
+                                    ? 'text-yellow-400 text-lg'
+                                    : 'text-gray-300 text-lg'
+                                }>
+                                ★
+                              </span>
+                            ))}
+                          </div>
+                          <span className="text-sm text-gray-600">
+                            ({maintenanceRequest.feedback_rating}/5)
+                          </span>
+                        </div>
+                        {maintenanceRequest.feedback_comment && (
+                          <div className="mt-2">
+                            <p className="text-sm text-gray-700">
+                              "{maintenanceRequest.feedback_comment}"
+                            </p>
+                          </div>
+                        )}
+                        {maintenanceRequest.feedback_submitted_at && (
+                          <p className="text-xs text-gray-500 mt-2">
+                            Submitted on{' '}
+                            {new Date(
+                              maintenanceRequest.feedback_submitted_at
+                            ).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
               </CardContent>
@@ -1346,27 +1477,29 @@ export default function MaintenanceDetailsPage() {
                 <Label
                   htmlFor="assign_personnel"
                   className="text-gray-700 font-medium">
-                  Select Personnel
+                  Personnel Name <span className="text-red-500">*</span>
                 </Label>
-                <Select>
-                  <SelectTrigger className="bg-white/50 border-blue-200/50 focus:border-blue-400">
-                    <SelectValue placeholder="Choose personnel..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="personnel1">
-                      John Smith - Electrician
-                    </SelectItem>
-                    <SelectItem value="personnel2">
-                      Sarah Johnson - Plumber
-                    </SelectItem>
-                    <SelectItem value="personnel3">
-                      Mike Davis - General Maintenance
-                    </SelectItem>
-                    <SelectItem value="personnel4">
-                      Lisa Brown - HVAC Specialist
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="assign_personnel"
+                  value={assignPersonnelName}
+                  onChange={e => setAssignPersonnelName(e.target.value)}
+                  placeholder="Enter personnel name..."
+                  className="bg-white/50 border-blue-200/50 focus:border-blue-400"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="assign_personnel_phone"
+                  className="text-gray-700 font-medium">
+                  Contact Number <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="assign_personnel_phone"
+                  value={assignPersonnelPhone}
+                  onChange={e => setAssignPersonnelPhone(e.target.value)}
+                  placeholder="Enter contact number..."
+                  className="bg-white/50 border-blue-200/50 focus:border-blue-400"
+                />
               </div>
               <div className="space-y-2">
                 <Label
@@ -1402,9 +1535,48 @@ export default function MaintenanceDetailsPage() {
                 Cancel
               </Button>
               <Button
-                onClick={() => {
-                  toast.success('Personnel assigned successfully!');
-                  setIsAssignDialogOpen(false);
+                onClick={async () => {
+                  if (!assignPersonnelName.trim()) {
+                    toast.error('Please enter personnel name');
+                    return;
+                  }
+                  if (!assignPersonnelPhone.trim()) {
+                    toast.error('Please enter contact number');
+                    return;
+                  }
+
+                  try {
+                    const result =
+                      await MaintenanceAPI.assignMaintenanceRequest(
+                        maintenanceId,
+                        assignPersonnelName.trim(),
+                        undefined,
+                        assignPersonnelPhone.trim()
+                      );
+
+                    if (result.success) {
+                      toast.success('Personnel assigned successfully!');
+                      setIsAssignDialogOpen(false);
+                      setAssignPersonnelName('');
+                      setAssignPersonnelPhone('');
+                      // Reload the data
+                      const reloadResult =
+                        await MaintenanceAPI.getMaintenanceRequest(
+                          maintenanceId
+                        );
+                      if (reloadResult.success && reloadResult.data) {
+                        setMaintenanceRequest(reloadResult.data);
+                        generateTimelineEvents(reloadResult.data);
+                      }
+                    } else {
+                      toast.error(
+                        result.message || 'Failed to assign personnel'
+                      );
+                    }
+                  } catch (error) {
+                    console.error('Assign personnel error:', error);
+                    toast.error('Failed to assign personnel');
+                  }
                 }}
                 className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white">
                 <User className="w-4 h-4 mr-2" />
@@ -1427,6 +1599,47 @@ export default function MaintenanceDetailsPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              {maintenanceRequest?.feedback_required &&
+                !maintenanceRequest?.feedback_rating && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Note:</strong> Tenant feedback is required before
+                      completing this request. Please request feedback from the
+                      tenant first.
+                    </p>
+                  </div>
+                )}
+              {maintenanceRequest?.feedback_rating && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800 mb-2">
+                    <strong>Tenant Feedback Received:</strong>
+                  </p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm">Rating:</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <span
+                          key={star}
+                          className={
+                            star <= (maintenanceRequest.feedback_rating || 0)
+                              ? 'text-yellow-400'
+                              : 'text-gray-300'
+                          }>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-sm">
+                      ({maintenanceRequest.feedback_rating}/5)
+                    </span>
+                  </div>
+                  {maintenanceRequest.feedback_comment && (
+                    <p className="text-sm text-gray-700">
+                      "{maintenanceRequest.feedback_comment}"
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label
                   htmlFor="complete_actual_cost"

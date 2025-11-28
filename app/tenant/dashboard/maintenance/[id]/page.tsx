@@ -6,6 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import {
@@ -24,7 +33,8 @@ import {
   Edit,
   X,
   Eye,
-  CheckCircle
+  CheckCircle,
+  Star
 } from 'lucide-react';
 import { MaintenanceAPI } from '@/lib/api/maintenance';
 import { ProgressTimeline } from '@/components/ui/progress-timeline';
@@ -43,10 +53,15 @@ interface MaintenanceRequest {
   estimated_cost?: number;
   actual_cost?: number;
   assigned_to?: string;
+  assigned_personnel_phone?: string;
   scheduled_date?: string;
   completed_date?: string;
   tenant_notes?: string;
   owner_notes?: string;
+  feedback_rating?: number;
+  feedback_comment?: string;
+  feedback_submitted_at?: string;
+  feedback_required?: boolean;
   created_at: string;
   updated_at: string;
   property: {
@@ -100,6 +115,10 @@ export default function TenantMaintenanceDetailsPage() {
     useState<MaintenanceRequest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState<number>(0);
+  const [feedbackComment, setFeedbackComment] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   // Load maintenance request
   useEffect(() => {
@@ -269,6 +288,49 @@ export default function TenantMaintenanceDetailsPage() {
         console.error('Cancel maintenance request error:', error);
         toast.error('Failed to cancel maintenance request');
       }
+    }
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackRating || feedbackRating < 1 || feedbackRating > 5) {
+      toast.error('Please select a rating from 1 to 5');
+      return;
+    }
+
+    if (!feedbackComment || feedbackComment.trim().length === 0) {
+      toast.error('Please provide a comment');
+      return;
+    }
+
+    try {
+      setIsSubmittingFeedback(true);
+      const result = await MaintenanceAPI.submitFeedback(
+        maintenanceId,
+        feedbackRating,
+        feedbackComment
+      );
+
+      if (result.success) {
+        toast.success('Feedback submitted successfully!');
+        setIsFeedbackDialogOpen(false);
+        setFeedbackRating(0);
+        setFeedbackComment('');
+        // Reload the request data
+        const updatedResult = await MaintenanceAPI.getMaintenanceRequest(
+          maintenanceId
+        );
+        if (updatedResult.success && updatedResult.data) {
+          setMaintenanceRequest(updatedResult.data);
+          generateTimelineEvents(updatedResult.data);
+        }
+      } else {
+        toast.error(result.message || 'Failed to submit feedback');
+      }
+    } catch (error) {
+      console.error('Submit feedback error:', error);
+      toast.error('Failed to submit feedback');
+    } finally {
+      setIsSubmittingFeedback(false);
     }
   };
 
@@ -687,23 +749,111 @@ export default function TenantMaintenanceDetailsPage() {
                         <p className="text-gray-600">Maintenance Personnel</p>
                       </div>
                     </div>
+                    {(maintenanceRequest as any).assigned_personnel_phone && (
+                      <div className="mb-3 p-2 bg-white rounded border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-blue-600" />
+                          <span className="text-gray-700 font-medium">
+                            {
+                              (maintenanceRequest as any)
+                                .assigned_personnel_phone
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 transition-all duration-200">
-                        <Mail className="w-4 h-4 mr-2" />
-                        Contact
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 transition-all duration-200">
-                        <Phone className="w-4 h-4 mr-2" />
-                        Call
-                      </Button>
+                      {(maintenanceRequest as any).assigned_personnel_phone && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 transition-all duration-200"
+                          onClick={() => {
+                            window.location.href = `tel:${
+                              (maintenanceRequest as any)
+                                .assigned_personnel_phone
+                            }`;
+                          }}>
+                          <Phone className="w-4 h-4 mr-2" />
+                          Call
+                        </Button>
+                      )}
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Feedback Section */}
+            {maintenanceRequest.status && (
+              <Card className="bg-white/80 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-blue-700">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Star className="w-5 h-5" />
+                    </div>
+                    Feedback
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {maintenanceRequest.feedback_rating ? (
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-medium text-green-700">
+                          Your Rating:
+                        </span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <Star
+                              key={star}
+                              className={cn(
+                                'w-5 h-5',
+                                star <=
+                                  (maintenanceRequest.feedback_rating || 0)
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-gray-300'
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-600">
+                          ({maintenanceRequest.feedback_rating}/5)
+                        </span>
+                      </div>
+                      {maintenanceRequest.feedback_comment && (
+                        <div className="mt-3">
+                          <Label className="text-sm font-medium text-green-700 mb-1 block">
+                            Your Comment:
+                          </Label>
+                          <p className="text-gray-700">
+                            {maintenanceRequest.feedback_comment}
+                          </p>
+                        </div>
+                      )}
+                      {maintenanceRequest.feedback_submitted_at && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Submitted on{' '}
+                          {new Date(
+                            maintenanceRequest.feedback_submitted_at
+                          ).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200/50">
+                      <p className="text-sm text-yellow-800 mb-3">
+                        {maintenanceRequest.feedback_required
+                          ? 'Feedback is required for this maintenance request. Please provide your rating and comment.'
+                          : 'Please provide feedback about the maintenance service.'}
+                      </p>
+                      <Button
+                        onClick={() => setIsFeedbackDialogOpen(true)}
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
+                        <Star className="w-4 h-4 mr-2" />
+                        Provide Feedback
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -739,6 +889,101 @@ export default function TenantMaintenanceDetailsPage() {
             </Card>
           </div>
         </div>
+
+        {/* Feedback Dialog */}
+        <Dialog
+          open={isFeedbackDialogOpen}
+          onOpenChange={setIsFeedbackDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Provide Feedback</DialogTitle>
+              <DialogDescription>
+                Please rate the maintenance service and provide your comments.
+                Both rating and comment are required.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-gray-700 font-medium">
+                  Rating <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setFeedbackRating(star)}
+                      className="focus:outline-none">
+                      <Star
+                        className={cn(
+                          'w-8 h-8 transition-colors',
+                          star <= feedbackRating
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300 hover:text-yellow-300'
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500">
+                  {feedbackRating > 0
+                    ? `Selected: ${feedbackRating} out of 5`
+                    : 'Select a rating from 1 to 5 (5 is highest)'}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="feedback_comment"
+                  className="text-gray-700 font-medium">
+                  Comment <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="feedback_comment"
+                  value={feedbackComment}
+                  onChange={e => setFeedbackComment(e.target.value)}
+                  placeholder="Please share your experience with the maintenance service..."
+                  rows={4}
+                  className="bg-white/50 border-blue-200/50 focus:border-blue-400"
+                />
+                <p className="text-xs text-gray-500">
+                  {feedbackComment.length} characters
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsFeedbackDialogOpen(false);
+                  setFeedbackRating(0);
+                  setFeedbackComment('');
+                }}
+                className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitFeedback}
+                disabled={
+                  isSubmittingFeedback ||
+                  feedbackRating === 0 ||
+                  !feedbackComment.trim()
+                }
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
+                {isSubmittingFeedback ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Star className="w-4 h-4 mr-2" />
+                    Submit Feedback
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

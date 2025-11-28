@@ -27,10 +27,15 @@ export class MaintenanceAPI {
           estimated_cost,
           actual_cost,
           assigned_to,
+          assigned_personnel_phone,
           scheduled_date,
           completed_date,
           tenant_notes,
           owner_notes,
+          feedback_rating,
+          feedback_comment,
+          feedback_submitted_at,
+          feedback_required,
           created_at,
           updated_at,
           tenant:tenants(
@@ -221,13 +226,15 @@ export class MaintenanceAPI {
   static async assignMaintenanceRequest(
     id: string,
     assignedTo: string,
-    scheduledDate?: string
+    scheduledDate?: string,
+    personnelPhone?: string
   ) {
     try {
       const { data, error } = await supabase
         .from('maintenance_requests')
         .update({
           assigned_to: assignedTo,
+          assigned_personnel_phone: personnelPhone,
           scheduled_date: scheduledDate,
           status: 'in_progress'
         })
@@ -263,6 +270,27 @@ export class MaintenanceAPI {
     ownerNotes?: string
   ) {
     try {
+      // First, check if feedback is required and if it has been submitted
+      const { data: request, error: fetchError } = await supabase
+        .from('maintenance_requests')
+        .select('feedback_required, feedback_rating')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        throw new Error(fetchError.message);
+      }
+
+      // If feedback is required but not submitted, prevent completion
+      if (request?.feedback_required && !request?.feedback_rating) {
+        return {
+          success: false,
+          message:
+            'Cannot complete request. Tenant feedback is required before completion.',
+          data: null
+        };
+      }
+
       const { data, error } = await supabase
         .from('maintenance_requests')
         .update({
@@ -297,6 +325,89 @@ export class MaintenanceAPI {
     }
   }
 
+  static async submitFeedback(id: string, rating: number, comment: string) {
+    try {
+      // Validate rating
+      if (rating < 1 || rating > 5) {
+        return {
+          success: false,
+          message: 'Rating must be between 1 and 5',
+          data: null
+        };
+      }
+
+      // Validate comment is not empty
+      if (!comment || comment.trim().length === 0) {
+        return {
+          success: false,
+          message: 'Comment is required',
+          data: null
+        };
+      }
+
+      const { data, error } = await supabase
+        .from('maintenance_requests')
+        .update({
+          feedback_rating: rating,
+          feedback_comment: comment.trim(),
+          feedback_submitted_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Feedback submitted successfully',
+        data
+      };
+    } catch (error) {
+      console.error('Submit feedback error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to submit feedback',
+        data: null
+      };
+    }
+  }
+
+  static async requestFeedback(id: string) {
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_requests')
+        .update({
+          feedback_required: true,
+          status: 'in_progress' // Keep as in_progress until feedback is received
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Feedback request sent to tenant',
+        data
+      };
+    } catch (error) {
+      console.error('Request feedback error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to request feedback',
+        data: null
+      };
+    }
+  }
+
   static async getMaintenanceRequestsByStatus(
     status: string,
     propertyId?: string
@@ -318,10 +429,15 @@ export class MaintenanceAPI {
           estimated_cost,
           actual_cost,
           assigned_to,
+          assigned_personnel_phone,
           scheduled_date,
           completed_date,
           tenant_notes,
           owner_notes,
+          feedback_rating,
+          feedback_comment,
+          feedback_submitted_at,
+          feedback_required,
           created_at,
           updated_at,
           tenant:tenants(

@@ -763,9 +763,7 @@ export default function TenantMaintenancePage() {
                 No maintenance requests found
               </h3>
               <p className="text-gray-600 mb-6 text-sm sm:text-base">
-                {searchTerm ||
-                filterStatus !== 'all' ||
-                filterPriority !== 'all'
+                {searchTerm || filterStatus !== 'all'
                   ? 'Try adjusting your search or filter criteria.'
                   : 'Get started by creating your first maintenance request.'}
               </p>
