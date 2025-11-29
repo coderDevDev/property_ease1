@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
 import {
   ArrowLeft,
   Megaphone,
@@ -202,7 +202,9 @@ export default function OwnerAnnouncementDetailsPage() {
         toast.success('Download started');
       } else if (attachment.startsWith('blob:')) {
         // Old blob URLs won't work, show error
-        toast.error('This file is no longer available. Please re-upload the announcement.');
+        toast.error(
+          'This file is no longer available. Please re-upload the announcement.'
+        );
       } else {
         // Try to open as URL
         window.open(attachment, '_blank');
@@ -514,7 +516,7 @@ export default function OwnerAnnouncementDetailsPage() {
                             <Badge
                               variant="outline"
                               className="bg-blue-50 text-blue-700 border-blue-200">
-                              {announcement.property.type}
+                              {formatPropertyType(announcement.property.type)}
                             </Badge>
                           </div>
                         </div>

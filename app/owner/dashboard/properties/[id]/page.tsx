@@ -42,11 +42,16 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { PropertiesAPI, type PropertyAnalytics } from '@/lib/api/properties';
-import { DocumentsAPI, PropertyDocument, DocumentRequirement } from '@/lib/api/documents';
+import {
+  DocumentsAPI,
+  PropertyDocument,
+  DocumentRequirement
+} from '@/lib/api/documents';
 import { toast } from 'sonner';
 import { DeletePropertyModal } from '@/components/properties/DeletePropertyModal';
 import { Upload, Clock, XCircle } from 'lucide-react';
 
+import { formatPropertyType } from '@/lib/utils';
 interface Property {
   id: string;
   name: string;
@@ -99,7 +104,9 @@ export default function PropertyDetailsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [analytics, setAnalytics] = useState<PropertyAnalytics | null>(null);
   const [documents, setDocuments] = useState<PropertyDocument[]>([]);
-  const [documentRequirements, setDocumentRequirements] = useState<DocumentRequirement[]>([]);
+  const [documentRequirements, setDocumentRequirements] = useState<
+    DocumentRequirement[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -109,7 +116,6 @@ export default function PropertyDetailsPage() {
   const [uploadingDocType, setUploadingDocType] = useState<string | null>(null);
   const [showUploadFor, setShowUploadFor] = useState<string | null>(null);
 
-
   // Mapbox ref
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -117,7 +123,10 @@ export default function PropertyDetailsPage() {
   // Set active tab from URL parameter
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && ['overview', 'tenants', 'documents', 'analytics', 'details'].includes(tab)) {
+    if (
+      tab &&
+      ['overview', 'tenants', 'documents', 'analytics', 'details'].includes(tab)
+    ) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -130,14 +139,19 @@ export default function PropertyDetailsPage() {
         setIsLoading(true);
 
         // Load property details, tenants, analytics, and documents in parallel
-        const [propertyResult, tenantsResult, analyticsResult, docsResult, reqResult] =
-          await Promise.all([
-            PropertiesAPI.getProperty(propertyId),
-            PropertiesAPI.getPropertyTenants(propertyId),
-            PropertiesAPI.getPropertyAnalytics(propertyId),
-            DocumentsAPI.getPropertyDocuments(propertyId),
-            DocumentsAPI.getDocumentRequirements()
-          ]);
+        const [
+          propertyResult,
+          tenantsResult,
+          analyticsResult,
+          docsResult,
+          reqResult
+        ] = await Promise.all([
+          PropertiesAPI.getProperty(propertyId),
+          PropertiesAPI.getPropertyTenants(propertyId),
+          PropertiesAPI.getPropertyAnalytics(propertyId),
+          DocumentsAPI.getPropertyDocuments(propertyId),
+          DocumentsAPI.getDocumentRequirements()
+        ]);
 
         if (propertyResult.success) {
           setProperty(propertyResult.data);
@@ -158,7 +172,9 @@ export default function PropertyDetailsPage() {
         }
 
         if (reqResult.success) {
-          setDocumentRequirements(reqResult.data.filter(req => req.is_required));
+          setDocumentRequirements(
+            reqResult.data.filter(req => req.is_required)
+          );
         }
       } catch (error) {
         console.error('Failed to load property data:', error);
@@ -192,7 +208,7 @@ export default function PropertyDetailsPage() {
         script.async = true;
         document.body.appendChild(script);
 
-        await new Promise((resolve) => {
+        await new Promise(resolve => {
           script.onload = resolve;
         });
       }
@@ -215,8 +231,9 @@ export default function PropertyDetailsPage() {
       new mapboxgl.Marker({ color: '#3B82F6' })
         .setLngLat([property.coordinates.lng, property.coordinates.lat])
         .setPopup(
-          new mapboxgl.Popup({ offset: 25 })
-            .setHTML(`<strong>${property.name}</strong><br/>${property.address}`)
+          new mapboxgl.Popup({ offset: 25 }).setHTML(
+            `<strong>${property.name}</strong><br/>${property.address}`
+          )
         )
         .addTo(map);
 
@@ -246,7 +263,7 @@ export default function PropertyDetailsPage() {
     try {
       setIsDeleting(true);
       const result = await PropertiesAPI.deleteProperty(propertyId);
-      
+
       if (result.success) {
         toast.success('Property deleted successfully');
         router.push('/owner/dashboard/properties');
@@ -268,7 +285,7 @@ export default function PropertyDetailsPage() {
   const handleFileUpload = async (documentType: string, file: File) => {
     try {
       const requirement = documentRequirements.find(
-        (req) => req.document_type === documentType
+        req => req.document_type === documentType
       );
 
       if (!requirement) {
@@ -279,7 +296,11 @@ export default function PropertyDetailsPage() {
       // Validate file size
       if (file.size > requirement.max_file_size) {
         toast.error(
-          `File size exceeds ${(requirement.max_file_size / 1024 / 1024).toFixed(0)}MB limit`
+          `File size exceeds ${(
+            requirement.max_file_size /
+            1024 /
+            1024
+          ).toFixed(0)}MB limit`
         );
         return;
       }
@@ -680,12 +701,18 @@ export default function PropertyDetailsPage() {
                   <CardContent>
                     <div className="grid grid-cols-3 gap-4">
                       <div className="p-4 bg-blue-50 rounded-lg text-center">
-                        <p className="text-sm text-gray-600 mb-1">Total Units</p>
-                        <p className="text-3xl font-bold text-blue-700">{property.total_units}</p>
+                        <p className="text-sm text-gray-600 mb-1">
+                          Total Units
+                        </p>
+                        <p className="text-3xl font-bold text-blue-700">
+                          {property.total_units}
+                        </p>
                       </div>
                       <div className="p-4 bg-green-50 rounded-lg text-center">
                         <p className="text-sm text-gray-600 mb-1">Occupied</p>
-                        <p className="text-3xl font-bold text-green-700">{property.occupied_units}</p>
+                        <p className="text-3xl font-bold text-green-700">
+                          {property.occupied_units}
+                        </p>
                       </div>
                       <div className="p-4 bg-purple-50 rounded-lg text-center">
                         <p className="text-sm text-gray-600 mb-1">Available</p>
@@ -711,11 +738,13 @@ export default function PropertyDetailsPage() {
 
                     {/* Unit Details List */}
                     <div className="mt-6 border-t pt-4">
-                      <h4 className="font-semibold text-gray-900 mb-3">Unit Details</h4>
+                      <h4 className="font-semibold text-gray-900 mb-3">
+                        Unit Details
+                      </h4>
                       <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {tenants.length > 0 ? (
                           // Show occupied units with tenant info
-                          tenants.map((tenant) => (
+                          tenants.map(tenant => (
                             <div
                               key={tenant.id}
                               className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -725,7 +754,8 @@ export default function PropertyDetailsPage() {
                                 </div>
                                 <div>
                                   <p className="font-semibold text-sm">
-                                    {tenant.user.first_name} {tenant.user.last_name}
+                                    {tenant.user.first_name}{' '}
+                                    {tenant.user.last_name}
                                   </p>
                                   <p className="text-xs text-gray-600">
                                     Unit {tenant.unit_number} • Occupied
@@ -747,33 +777,42 @@ export default function PropertyDetailsPage() {
                             No tenant data available
                           </p>
                         )}
-                        
+
                         {/* Show available units */}
-                        {Array.from({ length: property.total_units - property.occupied_units }, (_, i) => (
-                          <div
-                            key={`available-${i}`}
-                            className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                {property.occupied_units + i + 1}
+                        {Array.from(
+                          {
+                            length:
+                              property.total_units - property.occupied_units
+                          },
+                          (_, i) => (
+                            <div
+                              key={`available-${i}`}
+                              className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                  {property.occupied_units + i + 1}
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-sm">
+                                    Available Unit
+                                  </p>
+                                  <p className="text-xs text-gray-600">
+                                    Unit {property.occupied_units + i + 1} •
+                                    Ready to rent
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-semibold text-sm">Available Unit</p>
-                                <p className="text-xs text-gray-600">
-                                  Unit {property.occupied_units + i + 1} • Ready to rent
+                              <div className="text-right">
+                                <Badge className="bg-purple-100 text-purple-700 border-0 text-xs">
+                                  Available
+                                </Badge>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  ₱{property.monthly_rent.toLocaleString()}/mo
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <Badge className="bg-purple-100 text-purple-700 border-0 text-xs">
-                                Available
-                              </Badge>
-                              <p className="text-xs text-gray-600 mt-1">
-                                ₱{property.monthly_rent.toLocaleString()}/mo
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                          )
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -793,7 +832,7 @@ export default function PropertyDetailsPage() {
                         <div>
                           <p className="text-sm text-gray-600">Type</p>
                           <p className="font-semibold capitalize">
-                            {property.type}
+                            {formatPropertyType(property.type)}
                           </p>
                         </div>
                         <div>
@@ -847,12 +886,13 @@ export default function PropertyDetailsPage() {
                               Property Location
                             </p>
                             <p className="text-xs font-mono text-gray-500">
-                              {property.coordinates.lat.toFixed(6)}, {property.coordinates.lng.toFixed(6)}
+                              {property.coordinates.lat.toFixed(6)},{' '}
+                              {property.coordinates.lng.toFixed(6)}
                             </p>
                           </div>
-                          
+
                           {/* Mapbox Container */}
-                          <div 
+                          <div
                             ref={mapContainerRef}
                             className="w-full h-[250px] rounded-lg border-2 border-blue-200 overflow-hidden mb-3"
                           />
@@ -998,9 +1038,9 @@ export default function PropertyDetailsPage() {
                 <CardContent>
                   {documents.length > 0 ? (
                     <div className="space-y-4">
-                      {documentRequirements.map((requirement) => {
+                      {documentRequirements.map(requirement => {
                         const doc = documents.find(
-                          (d) => d.document_type === requirement.document_type
+                          d => d.document_type === requirement.document_type
                         );
 
                         return (
@@ -1033,7 +1073,9 @@ export default function PropertyDetailsPage() {
                                         </Badge>
                                       )
                                     ) : (
-                                      <Badge variant="outline" className="bg-gray-100 text-gray-700">
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-gray-100 text-gray-700">
                                         <Upload className="w-3 h-3 mr-1" />
                                         Not Uploaded
                                       </Badge>
@@ -1051,12 +1093,19 @@ export default function PropertyDetailsPage() {
                                         </span>
                                         <span>•</span>
                                         <span>
-                                          {(doc.file_size / 1024 / 1024).toFixed(2)} MB
+                                          {(
+                                            doc.file_size /
+                                            1024 /
+                                            1024
+                                          ).toFixed(2)}{' '}
+                                          MB
                                         </span>
                                         <span>•</span>
                                         <span>
                                           Uploaded{' '}
-                                          {new Date(doc.uploaded_at).toLocaleDateString()}
+                                          {new Date(
+                                            doc.uploaded_at
+                                          ).toLocaleDateString()}
                                         </span>
                                       </div>
 
@@ -1070,7 +1119,8 @@ export default function PropertyDetailsPage() {
                                               {doc.rejection_reason}
                                             </p>
                                             <p className="text-xs text-red-600 mt-2">
-                                              📤 Please upload a new version to address these issues.
+                                              📤 Please upload a new version to
+                                              address these issues.
                                             </p>
                                           </div>
                                         )}
@@ -1085,7 +1135,9 @@ export default function PropertyDetailsPage() {
                                     size="sm"
                                     variant="outline"
                                     className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                                    onClick={() => window.open(doc.file_url, '_blank')}>
+                                    onClick={() =>
+                                      window.open(doc.file_url, '_blank')
+                                    }>
                                     <Download className="w-4 h-4 mr-1" />
                                     View
                                   </Button>
@@ -1096,13 +1148,16 @@ export default function PropertyDetailsPage() {
                                     className="bg-blue-600 hover:bg-blue-700 text-white"
                                     onClick={() =>
                                       setShowUploadFor(
-                                        showUploadFor === requirement.document_type
+                                        showUploadFor ===
+                                          requirement.document_type
                                           ? null
                                           : requirement.document_type
                                       )
                                     }>
                                     <Upload className="w-4 h-4 mr-1" />
-                                    {doc ? 'Upload New Version' : 'Upload Document'}
+                                    {doc
+                                      ? 'Upload New Version'
+                                      : 'Upload Document'}
                                   </Button>
                                 )}
                               </div>
@@ -1117,18 +1172,24 @@ export default function PropertyDetailsPage() {
                                   <div className="text-center py-6">
                                     <Upload className="w-12 h-12 mx-auto text-blue-600 mb-3" />
                                     <p className="text-sm font-medium text-blue-900 mb-1">
-                                      {uploadingDocType === requirement.document_type
+                                      {uploadingDocType ===
+                                      requirement.document_type
                                         ? 'Uploading...'
                                         : 'Click to upload or drag and drop'}
                                     </p>
                                     <p className="text-xs text-blue-700">
                                       PDF, JPG, PNG (Max{' '}
-                                      {(requirement.max_file_size / 1024 / 1024).toFixed(0)}MB)
+                                      {(
+                                        requirement.max_file_size /
+                                        1024 /
+                                        1024
+                                      ).toFixed(0)}
+                                      MB)
                                     </p>
                                     {doc?.status === 'rejected' && (
                                       <p className="text-xs text-blue-800 mt-2 font-medium">
-                                        📤 Uploading a new version will keep the previous document for
-                                        reference
+                                        📤 Uploading a new version will keep the
+                                        previous document for reference
                                       </p>
                                     )}
                                   </div>
@@ -1137,21 +1198,32 @@ export default function PropertyDetailsPage() {
                                   id={`file-upload-${requirement.document_type}`}
                                   type="file"
                                   className="hidden"
-                                  accept={requirement.allowed_mime_types.join(',')}
-                                  onChange={(e) => {
+                                  accept={requirement.allowed_mime_types.join(
+                                    ','
+                                  )}
+                                  onChange={e => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                      handleFileUpload(requirement.document_type, file);
+                                      handleFileUpload(
+                                        requirement.document_type,
+                                        file
+                                      );
                                     }
                                   }}
-                                  disabled={uploadingDocType === requirement.document_type}
+                                  disabled={
+                                    uploadingDocType ===
+                                    requirement.document_type
+                                  }
                                 />
                                 <div className="mt-3 flex justify-end">
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => setShowUploadFor(null)}
-                                    disabled={uploadingDocType === requirement.document_type}>
+                                    disabled={
+                                      uploadingDocType ===
+                                      requirement.document_type
+                                    }>
                                     Cancel
                                   </Button>
                                 </div>
@@ -1190,19 +1262,28 @@ export default function PropertyDetailsPage() {
                           <div>
                             <p className="text-gray-600">Approved</p>
                             <p className="text-2xl font-bold text-green-600">
-                              {documents.filter((d) => d.status === 'approved').length}
+                              {
+                                documents.filter(d => d.status === 'approved')
+                                  .length
+                              }
                             </p>
                           </div>
                           <div>
                             <p className="text-gray-600">Pending</p>
                             <p className="text-2xl font-bold text-yellow-600">
-                              {documents.filter((d) => d.status === 'pending').length}
+                              {
+                                documents.filter(d => d.status === 'pending')
+                                  .length
+                              }
                             </p>
                           </div>
                           <div>
                             <p className="text-gray-600">Rejected</p>
                             <p className="text-2xl font-bold text-red-600">
-                              {documents.filter((d) => d.status === 'rejected').length}
+                              {
+                                documents.filter(d => d.status === 'rejected')
+                                  .length
+                              }
                             </p>
                           </div>
                         </div>

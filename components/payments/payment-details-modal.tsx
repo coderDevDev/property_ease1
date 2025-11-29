@@ -4,7 +4,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type { PaymentWithDetails } from '@/lib/api/payments';
 
+import { formatPropertyType } from '@/lib/utils';
 interface PaymentDetailsModalProps {
   payment: PaymentWithDetails | null;
   isOpen: boolean;
@@ -84,7 +85,10 @@ export function PaymentDetailsModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <Label className="text-sm text-gray-600 mb-2 block">Status</Label>
-              <Badge className={`${getStatusBadge(payment.payment_status)} flex items-center gap-1 w-fit`}>
+              <Badge
+                className={`${getStatusBadge(
+                  payment.payment_status
+                )} flex items-center gap-1 w-fit`}>
                 {getStatusIcon(payment.payment_status)}
                 <span className="capitalize">{payment.payment_status}</span>
               </Badge>
@@ -124,14 +128,18 @@ export function PaymentDetailsModal({
                 </p>
               </div>
               <div className="p-3 bg-gray-50 rounded-lg">
-                <Label className="text-sm text-gray-600 mb-1 block">Method</Label>
+                <Label className="text-sm text-gray-600 mb-1 block">
+                  Method
+                </Label>
                 <p className="text-gray-900 font-medium capitalize flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
                   {payment.payment_method?.replace('_', ' ') || 'N/A'}
                 </p>
               </div>
               <div className="p-3 bg-gray-50 rounded-lg">
-                <Label className="text-sm text-gray-600 mb-1 block">Due Date</Label>
+                <Label className="text-sm text-gray-600 mb-1 block">
+                  Due Date
+                </Label>
                 <p className="text-gray-900 font-medium flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   {new Date(payment.due_date).toLocaleDateString()}
@@ -139,7 +147,9 @@ export function PaymentDetailsModal({
               </div>
               {payment.paid_date && (
                 <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <Label className="text-sm text-green-700 mb-1 block">Paid Date</Label>
+                  <Label className="text-sm text-green-700 mb-1 block">
+                    Paid Date
+                  </Label>
                   <p className="text-green-900 font-medium">
                     {new Date(payment.paid_date).toLocaleDateString()}
                   </p>
@@ -148,7 +158,9 @@ export function PaymentDetailsModal({
             </div>
             {payment.reference_number && (
               <div className="p-3 bg-gray-50 rounded-lg">
-                <Label className="text-sm text-gray-600 mb-1 block">Reference Number</Label>
+                <Label className="text-sm text-gray-600 mb-1 block">
+                  Reference Number
+                </Label>
                 <p className="text-gray-900 font-mono text-sm">
                   {payment.reference_number}
                 </p>
@@ -156,7 +168,9 @@ export function PaymentDetailsModal({
             )}
             {payment.notes && (
               <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <Label className="text-sm text-yellow-700 mb-1 block">Notes</Label>
+                <Label className="text-sm text-yellow-700 mb-1 block">
+                  Notes
+                </Label>
                 <p className="text-yellow-900 text-sm">{payment.notes}</p>
               </div>
             )}
@@ -178,17 +192,20 @@ export function PaymentDetailsModal({
               <div className="space-y-1 text-sm">
                 {payment.tenant?.user?.email && (
                   <p className="text-gray-700">
-                    <span className="text-gray-500">Email:</span> {payment.tenant.user.email}
+                    <span className="text-gray-500">Email:</span>{' '}
+                    {payment.tenant.user.email}
                   </p>
                 )}
                 {payment.tenant?.user?.phone && (
                   <p className="text-gray-700">
-                    <span className="text-gray-500">Phone:</span> {payment.tenant.user.phone}
+                    <span className="text-gray-500">Phone:</span>{' '}
+                    {payment.tenant.user.phone}
                   </p>
                 )}
                 {payment.tenant?.unit_number && (
                   <p className="text-gray-700">
-                    <span className="text-gray-500">Unit:</span> {payment.tenant.unit_number}
+                    <span className="text-gray-500">Unit:</span>{' '}
+                    {payment.tenant.unit_number}
                   </p>
                 )}
               </div>
@@ -210,17 +227,20 @@ export function PaymentDetailsModal({
               <div className="space-y-1 text-sm">
                 {payment.property?.address && (
                   <p className="text-gray-700">
-                    <span className="text-gray-500">Address:</span> {payment.property.address}
+                    <span className="text-gray-500">Address:</span>{' '}
+                    {payment.property.address}
                   </p>
                 )}
                 {payment.property?.city && (
                   <p className="text-gray-700">
-                    <span className="text-gray-500">City:</span> {payment.property.city}
+                    <span className="text-gray-500">City:</span>{' '}
+                    {payment.property.city}
                   </p>
                 )}
                 {payment.property?.type && (
                   <p className="text-gray-700 capitalize">
-                    <span className="text-gray-500">Type:</span> {payment.property.type}
+                    <span className="text-gray-500">Type:</span>{' '}
+                    {formatPropertyType(payment.property.type)}
                   </p>
                 )}
               </div>
@@ -237,13 +257,17 @@ export function PaymentDetailsModal({
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-gray-50 rounded-lg">
-                <Label className="text-xs text-gray-600 mb-1 block">Created</Label>
+                <Label className="text-xs text-gray-600 mb-1 block">
+                  Created
+                </Label>
                 <p className="text-sm text-gray-900">
                   {new Date(payment.created_at).toLocaleString()}
                 </p>
               </div>
               <div className="p-3 bg-gray-50 rounded-lg">
-                <Label className="text-xs text-gray-600 mb-1 block">Last Updated</Label>
+                <Label className="text-xs text-gray-600 mb-1 block">
+                  Last Updated
+                </Label>
                 <p className="text-sm text-gray-900">
                   {new Date(payment.updated_at).toLocaleString()}
                 </p>

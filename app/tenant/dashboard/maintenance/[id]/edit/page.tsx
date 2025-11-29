@@ -39,7 +39,7 @@ import { MaintenanceAPI } from '@/lib/api/maintenance';
 import { PropertiesAPI } from '@/lib/api/properties';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { toast } from 'sonner';
-
+import { formatPropertyType } from '@/lib/utils';
 interface MaintenanceRequest {
   id: string;
   tenant_id: string;
@@ -416,8 +416,7 @@ export default function EditMaintenancePage() {
                     <SelectTrigger
                       className={cn(
                         'bg-white/50 border-blue-200/50 focus:border-blue-400',
-                        errors.category &&
-                          'border-red-300 focus:border-red-400'
+                        errors.category && 'border-red-300 focus:border-red-400'
                       )}>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -545,7 +544,7 @@ export default function EditMaintenancePage() {
                     Type
                   </Label>
                   <p className="text-gray-900 capitalize">
-                    {maintenanceRequest.property.type}
+                    {formatPropertyType(maintenanceRequest.property.type)}
                   </p>
                 </div>
               </CardContent>

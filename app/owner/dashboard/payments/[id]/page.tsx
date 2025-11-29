@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
 import {
   ArrowLeft,
   DollarSign,
@@ -528,7 +528,7 @@ export default function OwnerPaymentDetailsPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-gray-600">Type:</span>
                         <span className="text-gray-900 font-medium capitalize">
-                          {payment.property.type}
+                          {formatPropertyType(payment.property.type)}
                         </span>
                       </div>
                     )}

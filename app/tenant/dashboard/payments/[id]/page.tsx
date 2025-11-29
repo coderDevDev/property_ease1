@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
 import {
   ArrowLeft,
   DollarSign,
@@ -124,7 +124,9 @@ export default function TenantPaymentDetailsPage() {
     }
   };
 
-  const isOverdue = payment?.payment_status === 'pending' && new Date(payment.due_date) < new Date();
+  const isOverdue =
+    payment?.payment_status === 'pending' &&
+    new Date(payment.due_date) < new Date();
 
   if (isLoading) {
     return (
@@ -132,7 +134,9 @@ export default function TenantPaymentDetailsPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center">
             <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-blue-600 font-medium">Loading payment details...</p>
+            <p className="text-blue-600 font-medium">
+              Loading payment details...
+            </p>
           </div>
         </div>
       </div>
@@ -178,7 +182,9 @@ export default function TenantPaymentDetailsPage() {
                 Payment Details
               </h1>
               <p className="text-blue-600/70 mt-1 text-lg">
-                {payment.payment_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                {payment.payment_type
+                  .replace('_', ' ')
+                  .replace(/\b\w/g, l => l.toUpperCase())}
               </p>
             </div>
           </div>
@@ -198,19 +204,24 @@ export default function TenantPaymentDetailsPage() {
 
         {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className={cn(
-            'bg-white/80 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200',
-            isOverdue && 'border-red-200/50 bg-red-50/30'
-          )}>
+          <Card
+            className={cn(
+              'bg-white/80 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200',
+              isOverdue && 'border-red-200/50 bg-red-50/30'
+            )}>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  'w-12 h-12 rounded-xl flex items-center justify-center',
-                  payment.payment_status === 'paid' ? 'bg-green-100' :
-                  payment.payment_status === 'pending' ? 'bg-yellow-100' :
-                  payment.payment_status === 'failed' ? 'bg-red-100' :
-                  'bg-gray-100'
-                )}>
+                <div
+                  className={cn(
+                    'w-12 h-12 rounded-xl flex items-center justify-center',
+                    payment.payment_status === 'paid'
+                      ? 'bg-green-100'
+                      : payment.payment_status === 'pending'
+                      ? 'bg-yellow-100'
+                      : payment.payment_status === 'failed'
+                      ? 'bg-red-100'
+                      : 'bg-gray-100'
+                  )}>
                   {payment.payment_status === 'paid' ? (
                     <CheckCircle className="w-6 h-6 text-green-600" />
                   ) : payment.payment_status === 'pending' ? (
@@ -279,13 +290,16 @@ export default function TenantPaymentDetailsPage() {
               <CardContent className="space-y-6">
                 <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-200/50">
                   <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                    {payment.payment_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {payment.payment_type
+                      .replace('_', ' ')
+                      .replace(/\b\w/g, l => l.toUpperCase())}
                   </h3>
                   <div className="flex gap-2 mb-3">
                     <Badge className={getStatusBadge(payment.payment_status)}>
                       {payment.payment_status.replace('_', ' ')}
                     </Badge>
-                    <Badge className={getPaymentTypeBadge(payment.payment_type)}>
+                    <Badge
+                      className={getPaymentTypeBadge(payment.payment_type)}>
                       {payment.payment_type.replace('_', ' ')}
                     </Badge>
                     {isOverdue && (
@@ -366,9 +380,7 @@ export default function TenantPaymentDetailsPage() {
                     <Label className="text-sm font-medium text-yellow-700 mb-2 block">
                       Notes
                     </Label>
-                    <p className="text-yellow-900">
-                      {payment.notes}
-                    </p>
+                    <p className="text-yellow-900">{payment.notes}</p>
                   </div>
                 )}
               </CardContent>
@@ -408,7 +420,7 @@ export default function TenantPaymentDetailsPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-gray-600">Type:</span>
                       <span className="text-gray-900 font-medium capitalize">
-                        {payment.property.type}
+                        {formatPropertyType(payment.property.type)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -454,7 +466,8 @@ export default function TenantPaymentDetailsPage() {
                     Created By
                   </Label>
                   <p className="text-gray-900 font-medium">
-                    {payment.created_by_user.first_name} {payment.created_by_user.last_name}
+                    {payment.created_by_user.first_name}{' '}
+                    {payment.created_by_user.last_name}
                   </p>
                 </div>
               </CardContent>
@@ -474,8 +487,9 @@ export default function TenantPaymentDetailsPage() {
                 <CardContent className="space-y-4">
                   <div className="p-4 bg-yellow-50/50 rounded-lg border border-yellow-200/50">
                     <p className="text-yellow-900 text-sm">
-                      Please make your payment using the specified method and amount. 
-                      Contact your property manager if you have any questions about this payment.
+                      Please make your payment using the specified method and
+                      amount. Contact your property manager if you have any
+                      questions about this payment.
                     </p>
                     {isOverdue && (
                       <p className="text-red-700 text-sm mt-2 font-medium">
@@ -492,4 +506,3 @@ export default function TenantPaymentDetailsPage() {
     </div>
   );
 }
-

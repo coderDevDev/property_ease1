@@ -32,7 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-
+import { formatPropertyType } from '@/lib/utils';
 interface PropertyManagementProps {
   onBack: () => void;
 }
@@ -409,7 +409,7 @@ export function PropertyManagement({ onBack }: PropertyManagementProps) {
                         {property.status}
                       </Badge>
                       <Badge className={getTypeColor(property.type)}>
-                        {property.type}
+                        {formatPropertyType(property.type)}
                       </Badge>
                     </div>
                     <div className="absolute top-2 left-2">

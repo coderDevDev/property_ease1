@@ -16,7 +16,8 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
+
 import {
   ArrowLeft,
   User,
@@ -717,7 +718,7 @@ export default function TenantMaintenanceDetailsPage() {
                       <Badge
                         variant="outline"
                         className="bg-blue-50 text-blue-700 border-blue-200">
-                        {maintenanceRequest.property.type}
+                        {formatPropertyType(maintenanceRequest.property.type)}
                       </Badge>
                     </div>
                   </div>

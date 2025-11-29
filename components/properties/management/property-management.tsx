@@ -512,7 +512,7 @@ export function PropertyManagement({ onBack }: PropertyManagementProps) {
                       </Badge>
                       <Badge
                         className={getTypeColor(property.type) + ' shadow'}>
-                        {property.type}
+                        {formatPropertyType(property.type)}
                       </Badge>
                     </div>
                     <div className="absolute top-3 left-3 z-10">

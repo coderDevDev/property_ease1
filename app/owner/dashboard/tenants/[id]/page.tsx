@@ -71,7 +71,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { format } from 'date-fns';
-
+import { cn, formatPropertyType } from '@/lib/utils';
 interface Tenant {
   id: string;
   user_id: string;
@@ -357,8 +357,8 @@ export default function TenantDetailsPage() {
       },
       payment_summary: {
         total_payments: payments?.length || 0,
-        total_paid: payments?.filter(p => p.payment_status === 'completed')
-          .length || 0
+        total_paid:
+          payments?.filter(p => p.payment_status === 'completed').length || 0
       },
       maintenance_summary: {
         total_requests: maintenanceRequests?.length || 0
@@ -368,7 +368,10 @@ export default function TenantDetailsPage() {
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
       type: 'application/json'
     });
-    saveAs(blob, `tenant-${tenant.user.first_name}-${tenant.user.last_name}-data.json`);
+    saveAs(
+      blob,
+      `tenant-${tenant.user.first_name}-${tenant.user.last_name}-data.json`
+    );
     toast.success('Tenant data exported successfully');
   };
 
@@ -376,7 +379,8 @@ export default function TenantDetailsPage() {
     if (!tenant) return;
 
     const leaseDurationMonths = Math.ceil(
-      (new Date(tenant.lease_end).getTime() - new Date(tenant.lease_start).getTime()) /
+      (new Date(tenant.lease_end).getTime() -
+        new Date(tenant.lease_start).getTime()) /
         (1000 * 60 * 60 * 24 * 30)
     );
 
@@ -384,7 +388,9 @@ export default function TenantDetailsPage() {
       tenantName: `${tenant.user.first_name} ${tenant.user.last_name}`,
       tenantEmail: tenant.user.email,
       tenantPhone: tenant.user.phone,
-      ownerName: authState.user?.firstName + ' ' + authState.user?.lastName || 'Property Owner',
+      ownerName:
+        authState.user?.firstName + ' ' + authState.user?.lastName ||
+        'Property Owner',
       ownerEmail: authState.user?.email || '',
       ownerPhone: authState.user?.phone || '',
       propertyName: tenant.property.name,
@@ -787,9 +793,7 @@ export default function TenantDetailsPage() {
                     Download Payment Schedule
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() =>
-                      router.push('/owner/dashboard/messages')
-                    }>
+                    onClick={() => router.push('/owner/dashboard/messages')}>
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Send Message
                   </DropdownMenuItem>
@@ -1067,7 +1071,8 @@ export default function TenantDetailsPage() {
                         {tenant.property.city}, {tenant.property.province}
                       </p>
                       <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                        Unit {tenant.unit_number} • {tenant.property.type}
+                        Unit {tenant.unit_number} •{' '}
+                        {formatPropertyType(tenant.property.type)}
                       </p>
                     </div>
 

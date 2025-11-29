@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
 import {
   ArrowLeft,
   Megaphone,
@@ -120,7 +120,9 @@ export default function TenantAnnouncementDetailsPage() {
         toast.success('Download started');
       } else if (attachment.startsWith('blob:')) {
         // Old blob URLs won't work, show error
-        toast.error('This file is no longer available. Please ask the owner to re-upload it.');
+        toast.error(
+          'This file is no longer available. Please ask the owner to re-upload it.'
+        );
       } else {
         // Try to open as URL
         window.open(attachment, '_blank');
@@ -265,7 +267,9 @@ export default function TenantAnnouncementDetailsPage() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleDownloadAttachment(attachment, index)}
+                              onClick={() =>
+                                handleDownloadAttachment(attachment, index)
+                              }
                               className="border-blue-200 text-blue-600 hover:bg-blue-50">
                               <Download className="w-4 h-4 mr-2" />
                               Download
@@ -359,7 +363,7 @@ export default function TenantAnnouncementDetailsPage() {
                         <Badge
                           variant="outline"
                           className="bg-blue-50 text-blue-700 border-blue-200">
-                          {announcement.property.type}
+                          {formatPropertyType(announcement.property.type)}
                         </Badge>
                       </div>
                     </div>
@@ -472,4 +476,3 @@ export default function TenantAnnouncementDetailsPage() {
     </div>
   );
 }
-

@@ -15,7 +15,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
 import {
   ArrowLeft,
   Save,
@@ -501,7 +501,9 @@ export default function NewMaintenancePage() {
                         <p className="font-medium">{selectedProperty.name}</p>
                         <p>{selectedProperty.address}</p>
                         <p>{selectedProperty.city}</p>
-                        <p className="capitalize">{selectedProperty.type}</p>
+                        <p className="capitalize">
+                          {formatPropertyType(selectedProperty.type)}
+                        </p>
                       </div>
                     </div>
                   )}

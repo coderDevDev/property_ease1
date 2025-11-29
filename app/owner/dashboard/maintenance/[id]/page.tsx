@@ -24,7 +24,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
 import {
   ArrowLeft,
   Save,
@@ -404,50 +404,49 @@ export default function MaintenanceDetailsPage() {
   };
 
   const handleComplete = async () => {
-    // If feedback is required but not submitted, request it first
-    if (
-      maintenanceRequest?.feedback_required &&
-      !maintenanceRequest?.feedback_rating
-    ) {
-      toast.error(
-        'Cannot complete request. Tenant feedback is required before completion. Please wait for the tenant to submit feedback.'
-      );
-      return;
-    }
-
-    // If feedback is not yet required, request it first
-    if (!maintenanceRequest?.feedback_required) {
-      try {
-        setIsUpdating(true);
-        const feedbackResult = await MaintenanceAPI.requestFeedback(
-          maintenanceId
-        );
-        if (feedbackResult.success) {
-          toast.success(
-            'Feedback request sent to tenant. Please wait for feedback before completing.'
-          );
-          const reloadResult = await MaintenanceAPI.getMaintenanceRequest(
+    // REQUIRED: Feedback must be submitted before completion
+    if (!maintenanceRequest?.feedback_rating) {
+      if (!maintenanceRequest?.feedback_required) {
+        // Feedback not yet requested - send request first
+        try {
+          setIsUpdating(true);
+          const feedbackResult = await MaintenanceAPI.requestFeedback(
             maintenanceId
           );
-          if (reloadResult.success && reloadResult.data) {
-            setMaintenanceRequest(reloadResult.data);
-            generateTimelineEvents(reloadResult.data);
+          if (feedbackResult.success) {
+            toast.info(
+              'Feedback request sent to tenant. You must wait for tenant feedback before completing this request.'
+            );
+            const reloadResult = await MaintenanceAPI.getMaintenanceRequest(
+              maintenanceId
+            );
+            if (reloadResult.success && reloadResult.data) {
+              setMaintenanceRequest(reloadResult.data);
+              generateTimelineEvents(reloadResult.data);
+            }
+            setIsCompleteDialogOpen(false);
+            return;
+          } else {
+            toast.error(feedbackResult.message || 'Failed to request feedback');
+            return;
           }
-          setIsCompleteDialogOpen(false);
+        } catch (error) {
+          console.error('Request feedback error:', error);
+          toast.error('Failed to request feedback');
           return;
-        } else {
-          toast.error(feedbackResult.message || 'Failed to request feedback');
-          return;
+        } finally {
+          setIsUpdating(false);
         }
-      } catch (error) {
-        console.error('Request feedback error:', error);
-        toast.error('Failed to request feedback');
+      } else {
+        // Feedback already requested but not yet submitted
+        toast.error(
+          'Tenant feedback is REQUIRED before completion. Please wait for the tenant to submit their feedback.'
+        );
         return;
-      } finally {
-        setIsUpdating(false);
       }
     }
 
+    // Feedback is provided - proceed with completion
     try {
       setIsUpdating(true);
 
@@ -654,9 +653,11 @@ export default function MaintenanceDetailsPage() {
                       )}
                     <Button
                       onClick={() => setIsCompleteDialogOpen(true)}
-                      disabled={
-                        maintenanceRequest.feedback_required &&
+                      disabled={!maintenanceRequest.feedback_rating}
+                      title={
                         !maintenanceRequest.feedback_rating
+                          ? 'Tenant feedback is required before completion'
+                          : ''
                       }
                       className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white disabled:opacity-50 disabled:cursor-not-allowed">
                       <CheckCircle className="w-4 h-4 mr-2" />
@@ -1285,6 +1286,7 @@ export default function MaintenanceDetailsPage() {
                   currentStatus={maintenanceRequest.status}
                   onStatusChange={handleStatusChange}
                   isLoading={isUpdating}
+                  feedbackRating={maintenanceRequest.feedback_rating}
                 />
               </CardContent>
             </Card>
@@ -1401,7 +1403,7 @@ export default function MaintenanceDetailsPage() {
                       <Badge
                         variant="outline"
                         className="bg-blue-50 text-blue-700 border-blue-200">
-                        {maintenanceRequest.property.type}
+                        {formatPropertyType(maintenanceRequest.property.type)}
                       </Badge>
                     </div>
                   </div>
@@ -1594,25 +1596,27 @@ export default function MaintenanceDetailsPage() {
             <DialogHeader>
               <DialogTitle>Complete Maintenance Request</DialogTitle>
               <DialogDescription>
-                Mark this maintenance request as completed and add final
-                details.
+                Mark this maintenance request as completed. Tenant feedback is
+                required.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              {maintenanceRequest?.feedback_required &&
-                !maintenanceRequest?.feedback_rating && (
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800">
-                      <strong>Note:</strong> Tenant feedback is required before
-                      completing this request. Please request feedback from the
-                      tenant first.
-                    </p>
-                  </div>
-                )}
+              {!maintenanceRequest?.feedback_rating && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800 font-medium">
+                    ⚠️ <strong>Feedback Required:</strong> Tenant feedback has
+                    not been submitted yet.
+                  </p>
+                  <p className="text-sm text-red-700 mt-2">
+                    You cannot complete this request without tenant feedback.
+                    Please request feedback from the tenant first.
+                  </p>
+                </div>
+              )}
               {maintenanceRequest?.feedback_rating && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-sm text-green-800 mb-2">
-                    <strong>Tenant Feedback Received:</strong>
+                    <strong>✓ Tenant Feedback Received:</strong>
                   </p>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm">Rating:</span>
@@ -1689,8 +1693,8 @@ export default function MaintenanceDetailsPage() {
               </Button>
               <Button
                 onClick={handleComplete}
-                disabled={isUpdating}
-                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white">
+                disabled={isUpdating || !maintenanceRequest?.feedback_rating}
+                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white disabled:opacity-50 disabled:cursor-not-allowed">
                 {isUpdating ? (
                   <>
                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>

@@ -39,6 +39,7 @@ interface StatusManagerProps {
   onStatusChange: (newStatus: string, data?: any) => Promise<void>;
   isLoading?: boolean;
   className?: string;
+  feedbackRating?: number;
 }
 
 const STATUS_OPTIONS = [
@@ -84,7 +85,8 @@ export function StatusManager({
   currentStatus,
   onStatusChange,
   isLoading = false,
-  className
+  className,
+  feedbackRating
 }: StatusManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -197,23 +199,45 @@ export function StatusManager({
               const config = STATUS_OPTIONS.find(s => s.value === status);
               if (!config) return null;
 
+              const isCompletionDisabled =
+                status === 'completed' && !feedbackRating;
+
               return (
                 <Button
                   key={status}
                   variant="outline"
                   size="sm"
                   onClick={() => openStatusDialog(status)}
-                  disabled={isLoading}
+                  disabled={isLoading || isCompletionDisabled}
+                  title={
+                    status === 'completed' && !feedbackRating
+                      ? '🔒 Disabled: Tenant feedback is required before completion'
+                      : status === 'completed'
+                      ? 'Complete maintenance request'
+                      : status === 'cancelled'
+                      ? 'Provide a reason for cancellation - will be notified to tenant'
+                      : ''
+                  }
                   className={cn(
                     'border-blue-200 text-blue-600 hover:bg-blue-50',
-                    config.color
+                    config.color,
+                    isCompletionDisabled && 'opacity-50 cursor-not-allowed'
                   )}>
                   <config.icon className="w-4 h-4 mr-2" />
                   {config.label}
+                  {isCompletionDisabled && (
+                    <span className="ml-1 text-xs">🔒</span>
+                  )}
                 </Button>
               );
             })}
           </div>
+          {availableNextStatuses.includes('completed') && !feedbackRating && (
+            <div className="p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+              ⚠️ <strong>Feedback Required:</strong> Tenant feedback must be
+              submitted before you can complete this request.
+            </div>
+          )}
         </div>
       )}
 
@@ -341,27 +365,40 @@ export function StatusManager({
 
             {/* Cancellation Fields */}
             {selectedStatus === 'cancelled' && (
-              <div className="space-y-2">
-                <Label
-                  htmlFor="cancellationReason"
-                  className="text-gray-700 font-medium">
-                  Cancellation Reason *
-                </Label>
-                <Textarea
-                  id="cancellationReason"
-                  value={formData.cancellationReason}
-                  onChange={e =>
-                    setFormData(prev => ({
-                      ...prev,
-                      cancellationReason: e.target.value
-                    }))
-                  }
-                  placeholder="Please provide a reason for cancellation..."
-                  rows={3}
-                  className="bg-white/50 border-blue-200/50 focus:border-blue-400"
-                  required
-                />
-              </div>
+              <>
+                <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-sm text-orange-800">
+                    <strong>⚠️ Important:</strong> Providing a reason for
+                    cancellation helps tenants understand why their request was
+                    cancelled. This will be notified to them.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="cancellationReason"
+                    className="text-gray-700 font-medium">
+                    Why are you cancelling?{' '}
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="cancellationReason"
+                    value={formData.cancellationReason}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        cancellationReason: e.target.value
+                      }))
+                    }
+                    placeholder="Example: Work is no longer needed, tenant request, property issue resolved, etc."
+                    rows={3}
+                    className="bg-white/50 border-blue-200/50 focus:border-blue-400"
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    This reason will be communicated to the tenant.
+                  </p>
+                </div>
+              </>
             )}
           </div>
 

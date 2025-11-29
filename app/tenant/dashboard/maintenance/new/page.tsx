@@ -15,7 +15,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
 import {
   ArrowLeft,
   Save,
@@ -119,29 +119,32 @@ export default function TenantNewMaintenancePage() {
         if (tenantData && tenantData.length > 0) {
           // Store all tenant records for later lookup
           setTenantRecords(tenantData);
-          
+
           // Use the first active tenant record as default
           setTenantId(tenantData[0].id);
-          
+
           // Extract unique properties from all tenant records
           const uniqueProperties = tenantData
             .filter(t => t.properties)
             .map(t => t.properties as unknown as Property)
-            .filter((prop, index, self) => 
-              index === self.findIndex((p) => p.id === prop.id)
+            .filter(
+              (prop, index, self) =>
+                index === self.findIndex(p => p.id === prop.id)
             );
-          
+
           setProperties(uniqueProperties);
-          
+
           // Auto-select first property if only one available
           if (uniqueProperties.length === 1) {
-            setFormData(prev => ({ 
-              ...prev, 
-              property_id: uniqueProperties[0].id 
+            setFormData(prev => ({
+              ...prev,
+              property_id: uniqueProperties[0].id
             }));
           }
         } else {
-          toast.error('No active lease found. Please contact your property owner.');
+          toast.error(
+            'No active lease found. Please contact your property owner.'
+          );
         }
       } catch (error) {
         console.error('Failed to load tenant data:', error);
@@ -341,41 +344,41 @@ export default function TenantNewMaintenancePage() {
               </div>
 
               <div className="space-y-2">
-                  <Label
-                    htmlFor="property_id"
-                    className="text-gray-700 font-medium">
-                    Property *
-                  </Label>
-                  <Select
-                    value={formData.property_id}
-                    onValueChange={value =>
-                      handleInputChange('property_id', value)
-                    }>
-                    <SelectTrigger
-                      className={cn(
-                        'bg-white/50 border-blue-200/50 focus:border-blue-400',
-                        errors.property_id &&
-                          'border-red-300 focus:border-red-400'
-                      )}>
-                      <SelectValue placeholder="Select property" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {properties.map(property => (
-                        <SelectItem key={property.id} value={property.id}>
-                          <div>
-                            <p className="font-medium">{property.name}</p>
-                            <p className="text-sm text-gray-600">
-                              {property.city}
-                            </p>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.property_id && (
-                    <p className="text-red-600 text-sm">{errors.property_id}</p>
-                  )}
-                </div>
+                <Label
+                  htmlFor="property_id"
+                  className="text-gray-700 font-medium">
+                  Property *
+                </Label>
+                <Select
+                  value={formData.property_id}
+                  onValueChange={value =>
+                    handleInputChange('property_id', value)
+                  }>
+                  <SelectTrigger
+                    className={cn(
+                      'bg-white/50 border-blue-200/50 focus:border-blue-400',
+                      errors.property_id &&
+                        'border-red-300 focus:border-red-400'
+                    )}>
+                    <SelectValue placeholder="Select property" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {properties.map(property => (
+                      <SelectItem key={property.id} value={property.id}>
+                        <div>
+                          <p className="font-medium">{property.name}</p>
+                          <p className="text-sm text-gray-600">
+                            {property.city}
+                          </p>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.property_id && (
+                  <p className="text-red-600 text-sm">{errors.property_id}</p>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -415,7 +418,9 @@ export default function TenantNewMaintenancePage() {
                     <p className="font-medium">{selectedProperty.name}</p>
                     <p>{selectedProperty.address}</p>
                     <p>{selectedProperty.city}</p>
-                    <p className="capitalize">{selectedProperty.type}</p>
+                    <p className="capitalize">
+                      {formatPropertyType(selectedProperty.type)}
+                    </p>
                   </div>
                 </div>
               </CardContent>
