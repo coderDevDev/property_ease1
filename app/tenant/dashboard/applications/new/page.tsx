@@ -57,6 +57,7 @@ interface Property {
 
 interface AvailableUnit {
   unit_number: string;
+  status: 'available' | 'occupied';
 }
 
 export default function NewApplicationPage() {
@@ -77,6 +78,8 @@ export default function NewApplicationPage() {
   });
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [availableUnits, setAvailableUnits] = useState<AvailableUnit[]>([]);
+  const [loadingUnits, setLoadingUnits] = useState(false);
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -140,6 +143,26 @@ export default function NewApplicationPage() {
       unitType: '', // Reset unit type when property changes
       unitNumber: '' // Reset unit number when property changes
     }));
+
+    // Fetch available units for this property
+    if (property) {
+      try {
+        setLoadingUnits(true);
+        const result = await TenantAPI.getAllUnitsWithStatus(propertyId);
+        if (result.success && result.data) {
+          setAvailableUnits(result.data);
+        } else {
+          toast.error('Failed to load available units');
+          setAvailableUnits([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch units:', error);
+        toast.error('Failed to load available units');
+        setAvailableUnits([]);
+      } finally {
+        setLoadingUnits(false);
+      }
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -306,32 +329,93 @@ export default function NewApplicationPage() {
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="unitNumber">Unit Number *</Label>
-                    <Input
-                      id="unitNumber"
-                      value={formData.unitNumber}
-                      onChange={e =>
-                        setFormData(prev => ({ ...prev, unitNumber: e.target.value }))
-                      }
-                      placeholder="e.g., 201, A-1, Ground Floor, etc."
-                      className="bg-white"
-                    />
-                    <p className="text-sm text-gray-500">
-                      Enter the unit number you're interested in
-                    </p>
+                  {/* Available Rooms Grid */}
+                  <div className="space-y-3 mt-6">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">
+                        Select a Room *
+                      </Label>
+                      {loadingUnits && (
+                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                          <div className="w-3 h-3 animate-spin border-2 border-blue-300 border-t-blue-600 rounded-full"></div>
+                          Loading units...
+                        </div>
+                      )}
+                    </div>
+
+                    {!loadingUnits && availableUnits.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {availableUnits.map(unit => (
+                          <button
+                            key={unit.unit_number}
+                            type="button"
+                            onClick={() => {
+                              if (unit.status === 'available') {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  unitNumber: unit.unit_number
+                                }));
+                              }
+                            }}
+                            disabled={unit.status === 'occupied'}
+                            className={cn(
+                              'p-3 rounded-lg border-2 transition-all duration-200 text-center',
+                              formData.unitNumber === unit.unit_number
+                                ? 'border-blue-500 bg-blue-50 shadow-md'
+                                : unit.status === 'available'
+                                ? 'border-green-200 bg-green-50 hover:border-green-400 hover:shadow-md cursor-pointer'
+                                : 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-60'
+                            )}>
+                            <div className="font-semibold text-sm">
+                              {unit.unit_number.replace('Unit', 'Room')}
+                            </div>
+                            <div
+                              className={cn(
+                                'text-xs font-medium mt-1',
+                                unit.status === 'available'
+                                  ? 'text-green-700'
+                                  : 'text-gray-500'
+                              )}>
+                              {unit.status === 'available' ? (
+                                <span className="flex items-center justify-center gap-1">
+                                  <span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span>
+                                  Available
+                                </span>
+                              ) : (
+                                <span className="flex items-center justify-center gap-1">
+                                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                                  Occupied
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : !loadingUnits && availableUnits.length === 0 ? (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <p className="text-sm text-amber-800">
+                          No rooms available. All rooms are currently occupied.
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {!formData.unitNumber && availableUnits.length > 0 && (
+                      <p className="text-sm text-gray-500">
+                        Click on a green room to select it
+                      </p>
+                    )}
                   </div>
 
                   {formData.unitNumber && (
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                       <h4 className="font-medium text-blue-900 mb-2">
-                        Selected Unit Details
+                        ✓ Selected Room Details
                       </h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm text-blue-700">Unit Number</p>
+                          <p className="text-sm text-blue-700">Room Number</p>
                           <p className="font-medium text-blue-900">
-                            {formData.unitNumber}
+                            {formData.unitNumber.replace('Unit', 'Room')}
                           </p>
                         </div>
                         <div>
@@ -670,8 +754,10 @@ export default function NewApplicationPage() {
                 <p className="font-medium">{selectedProperty?.name}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Unit Number</p>
-                <p className="font-medium">{formData.unitNumber}</p>
+                <p className="text-sm text-gray-500">Room Number</p>
+                <p className="font-medium">
+                  {formData.unitNumber.replace('Unit', 'Room')}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Monthly Rent</p>

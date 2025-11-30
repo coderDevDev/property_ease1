@@ -156,20 +156,22 @@ export class TenantAPI {
       }
 
       // Get upcoming payments (using first tenant if available)
-      const upcomingPayments = tenants && tenants.length > 0
-        ? await this.getUpcomingPayments(tenants[0].id)
-        : [];
+      const upcomingPayments =
+        tenants && tenants.length > 0
+          ? await this.getUpcomingPayments(tenants[0].id)
+          : [];
 
       // Get maintenance requests
-      const maintenanceResult = tenants && tenants.length > 0
-        ? await this.getMaintenanceRequests(userId)
-        : {
-            success: false,
-            data: {
-              requests: [],
-              stats: { total: 0, pending: 0, in_progress: 0, completed: 0 }
-            }
-          };
+      const maintenanceResult =
+        tenants && tenants.length > 0
+          ? await this.getMaintenanceRequests(userId)
+          : {
+              success: false,
+              data: {
+                requests: [],
+                stats: { total: 0, pending: 0, in_progress: 0, completed: 0 }
+              }
+            };
       const maintenanceRequests =
         maintenanceResult.success && maintenanceResult.data
           ? maintenanceResult.data.requests.slice(0, 5).map(request => ({
@@ -206,15 +208,17 @@ export class TenantAPI {
       const announcements: any[] = []; // Placeholder - implement if needed
 
       // Get documents count (from first tenant)
-      const documentsCount = tenants && tenants.length > 0
-        ? await this.getDocumentsCount(tenants[0].id)
-        : 0;
+      const documentsCount =
+        tenants && tenants.length > 0
+          ? await this.getDocumentsCount(tenants[0].id)
+          : 0;
 
       // Calculate quick stats (using first tenant)
       const quickStats = {
-        totalPayments: tenants && tenants.length > 0 
-          ? await this.getTotalPaymentsCount(tenants[0].id) 
-          : 0,
+        totalPayments:
+          tenants && tenants.length > 0
+            ? await this.getTotalPaymentsCount(tenants[0].id)
+            : 0,
         activeRequests: maintenanceRequests.filter(
           r => r.status === 'pending' || r.status === 'in_progress'
         ).length,
@@ -335,7 +339,9 @@ export class TenantAPI {
           if (a.is_featured && !b.is_featured) return -1;
           if (!a.is_featured && b.is_featured) return 1;
           // Then by creation date (newest first)
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         });
 
       return { success: true, data: propertyListings };
@@ -394,7 +400,7 @@ export class TenantAPI {
         .single();
 
       if (error) throw error;
-      
+
       // Don't show unverified properties to tenants
       if (!property.is_verified) {
         return {
@@ -2779,6 +2785,72 @@ export class TenantAPI {
           error instanceof Error
             ? error.message
             : 'Failed to fetch available units'
+      };
+    }
+  }
+
+  static async getAllUnitsWithStatus(propertyId: string): Promise<{
+    success: boolean;
+    data?: Array<{ unit_number: string; status: 'available' | 'occupied' }>;
+    message?: string;
+  }> {
+    try {
+      // Get property to know total units
+      const { data: property, error: propError } = await supabase
+        .from('properties')
+        .select('total_units, occupied_units')
+        .eq('id', propertyId)
+        .single();
+
+      if (propError) throw propError;
+
+      // Get all occupied units
+      const { data: occupiedUnits, error: occupiedError } = await supabase
+        .from('tenants')
+        .select('unit_number')
+        .eq('property_id', propertyId)
+        .in('status', ['active', 'pending'])
+        .neq('status', 'terminated');
+
+      if (occupiedError) throw occupiedError;
+
+      // Get pending applications
+      const { data: pendingApps, error: appsError } = await supabase
+        .from('rental_applications')
+        .select('unit_number')
+        .eq('property_id', propertyId)
+        .in('status', ['pending', 'approved'])
+        .not('unit_number', 'is', null);
+
+      if (appsError) throw appsError;
+
+      // Combine occupied units
+      const occupiedUnitNumbers = new Set([
+        ...(occupiedUnits || []).map((t: any) => t.unit_number),
+        ...(pendingApps || []).map((a: any) => a.unit_number)
+      ]);
+
+      // Generate list of all units with status
+      const allUnits = Array.from({ length: property.total_units }, (_, i) => {
+        const unitNumber = `Unit ${i + 1}`;
+        return {
+          unit_number: unitNumber,
+          status: occupiedUnitNumbers.has(unitNumber)
+            ? ('occupied' as const)
+            : ('available' as const)
+        };
+      });
+
+      return {
+        success: true,
+        data: allUnits
+      };
+    } catch (error) {
+      console.error('Get all units with status error:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to fetch units'
       };
     }
   }

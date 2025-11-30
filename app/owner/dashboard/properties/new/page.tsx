@@ -31,7 +31,8 @@ import {
   FileImage,
   Upload,
   CheckCircle,
-  Trash2
+  Trash2,
+  Info
 } from 'lucide-react';
 import { PropertiesAPI, type PropertyFormData } from '@/lib/api/properties';
 import { DocumentsAPI, DocumentRequirement } from '@/lib/api/documents';
@@ -41,150 +42,151 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 
 // Bicol Region Location Data
-const bicolLocationData: Record<string, { capital: string; cities: string[] }> = {
-  'Albay': {
-    capital: 'Legazpi City',
-    cities: [
-      'Legazpi City',
-      'Ligao City',
-      'Tabaco City',
-      'Bacacay',
-      'Camalig',
-      'Daraga',
-      'Guinobatan',
-      'Jovellar',
-      'Libon',
-      'Malilipot',
-      'Malinao',
-      'Manito',
-      'Oas',
-      'Pio Duran',
-      'Polangui',
-      'Rapu-Rapu',
-      'Santo Domingo'
-    ]
-  },
-  'Camarines Norte': {
-    capital: 'Daet',
-    cities: [
-      'Basud',
-      'Capalonga',
-      'Daet',
-      'Jose Panganiban',
-      'Labo',
-      'Mercedes',
-      'Paracale',
-      'San Lorenzo Ruiz',
-      'San Vicente',
-      'Santa Elena',
-      'Talisay',
-      'Vinzons'
-    ]
-  },
-  'Camarines Sur': {
-    capital: 'Pili',
-    cities: [
-      'Iriga City',
-      'Naga City',
-      'Baao',
-      'Balatan',
-      'Bato',
-      'Bombon',
-      'Buhi',
-      'Bula',
-      'Cabusao',
-      'Calabanga',
-      'Camaligan',
-      'Canaman',
-      'Caramoan',
-      'Del Gallego',
-      'Gainza',
-      'Garchitorena',
-      'Goa',
-      'Lagonoy',
-      'Libmanan',
-      'Lupi',
-      'Magarao',
-      'Milaor',
-      'Minalabac',
-      'Nabua',
-      'Ocampo',
-      'Pamplona',
-      'Pasacao',
-      'Pili',
-      'Presentacion',
-      'Ragay',
-      'San Fernando',
-      'San Jose',
-      'Sipocot',
-      'Siruma',
-      'Tigaon',
-      'Tinambac'
-    ]
-  },
-  'Catanduanes': {
-    capital: 'Virac',
-    cities: [
-      'Bagamanoc',
-      'Baras',
-      'Bato',
-      'Caramoran',
-      'Gigmoto',
-      'Pandan',
-      'Panganiban',
-      'San Andres',
-      'San Miguel',
-      'Viga',
-      'Virac'
-    ]
-  },
-  'Masbate': {
-    capital: 'Masbate City',
-    cities: [
-      'Masbate City',
-      'Aroroy',
-      'Baleno',
-      'Balud',
-      'Batuan',
-      'Cataingan',
-      'Cawayan',
-      'Claveria',
-      'Dimasalang',
-      'Esperanza',
-      'Mandaon',
-      'Milagros',
-      'Mobo',
-      'Monreal',
-      'Palanas',
-      'Pio V. Corpuz',
-      'Placer',
-      'San Fernando',
-      'San Jacinto',
-      'San Pascual',
-      'Uson'
-    ]
-  },
-  'Sorsogon': {
-    capital: 'Sorsogon City',
-    cities: [
-      'Sorsogon City',
-      'Barcelona',
-      'Bulan',
-      'Bulusan',
-      'Casiguran',
-      'Castilla',
-      'Donsol',
-      'Gubat',
-      'Irosin',
-      'Juban',
-      'Magallanes',
-      'Matnog',
-      'Pilar',
-      'Prieto Diaz',
-      'Santa Magdalena'
-    ]
-  }
-};
+const bicolLocationData: Record<string, { capital: string; cities: string[] }> =
+  {
+    Albay: {
+      capital: 'Legazpi City',
+      cities: [
+        'Legazpi City',
+        'Ligao City',
+        'Tabaco City',
+        'Bacacay',
+        'Camalig',
+        'Daraga',
+        'Guinobatan',
+        'Jovellar',
+        'Libon',
+        'Malilipot',
+        'Malinao',
+        'Manito',
+        'Oas',
+        'Pio Duran',
+        'Polangui',
+        'Rapu-Rapu',
+        'Santo Domingo'
+      ]
+    },
+    'Camarines Norte': {
+      capital: 'Daet',
+      cities: [
+        'Basud',
+        'Capalonga',
+        'Daet',
+        'Jose Panganiban',
+        'Labo',
+        'Mercedes',
+        'Paracale',
+        'San Lorenzo Ruiz',
+        'San Vicente',
+        'Santa Elena',
+        'Talisay',
+        'Vinzons'
+      ]
+    },
+    'Camarines Sur': {
+      capital: 'Pili',
+      cities: [
+        'Iriga City',
+        'Naga City',
+        'Baao',
+        'Balatan',
+        'Bato',
+        'Bombon',
+        'Buhi',
+        'Bula',
+        'Cabusao',
+        'Calabanga',
+        'Camaligan',
+        'Canaman',
+        'Caramoan',
+        'Del Gallego',
+        'Gainza',
+        'Garchitorena',
+        'Goa',
+        'Lagonoy',
+        'Libmanan',
+        'Lupi',
+        'Magarao',
+        'Milaor',
+        'Minalabac',
+        'Nabua',
+        'Ocampo',
+        'Pamplona',
+        'Pasacao',
+        'Pili',
+        'Presentacion',
+        'Ragay',
+        'San Fernando',
+        'San Jose',
+        'Sipocot',
+        'Siruma',
+        'Tigaon',
+        'Tinambac'
+      ]
+    },
+    Catanduanes: {
+      capital: 'Virac',
+      cities: [
+        'Bagamanoc',
+        'Baras',
+        'Bato',
+        'Caramoran',
+        'Gigmoto',
+        'Pandan',
+        'Panganiban',
+        'San Andres',
+        'San Miguel',
+        'Viga',
+        'Virac'
+      ]
+    },
+    Masbate: {
+      capital: 'Masbate City',
+      cities: [
+        'Masbate City',
+        'Aroroy',
+        'Baleno',
+        'Balud',
+        'Batuan',
+        'Cataingan',
+        'Cawayan',
+        'Claveria',
+        'Dimasalang',
+        'Esperanza',
+        'Mandaon',
+        'Milagros',
+        'Mobo',
+        'Monreal',
+        'Palanas',
+        'Pio V. Corpuz',
+        'Placer',
+        'San Fernando',
+        'San Jacinto',
+        'San Pascual',
+        'Uson'
+      ]
+    },
+    Sorsogon: {
+      capital: 'Sorsogon City',
+      cities: [
+        'Sorsogon City',
+        'Barcelona',
+        'Bulan',
+        'Bulusan',
+        'Casiguran',
+        'Castilla',
+        'Donsol',
+        'Gubat',
+        'Irosin',
+        'Juban',
+        'Magallanes',
+        'Matnog',
+        'Pilar',
+        'Prieto Diaz',
+        'Santa Magdalena'
+      ]
+    }
+  };
 
 const bicolProvinces = Object.keys(bicolLocationData).sort();
 
@@ -253,9 +255,15 @@ export default function NewPropertyPage() {
 
   // Document upload state
   const [currentStep, setCurrentStep] = useState(0);
-  const [documentRequirements, setDocumentRequirements] = useState<DocumentRequirement[]>([]);
-  const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, File>>({});
-  const [documentErrors, setDocumentErrors] = useState<Record<string, string>>({});
+  const [documentRequirements, setDocumentRequirements] = useState<
+    DocumentRequirement[]
+  >([]);
+  const [uploadedDocuments, setUploadedDocuments] = useState<
+    Record<string, File>
+  >({});
+  const [documentErrors, setDocumentErrors] = useState<Record<string, string>>(
+    {}
+  );
 
   // Mapbox state
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -305,7 +313,7 @@ export default function NewPropertyPage() {
         script.async = true;
         document.body.appendChild(script);
 
-        await new Promise((resolve) => {
+        await new Promise(resolve => {
           script.onload = resolve;
         });
       }
@@ -315,9 +323,10 @@ export default function NewPropertyPage() {
 
       // Default to Naga City, Camarines Sur center
       const defaultCenter: [number, number] = [123.1815, 13.6218];
-      const initialCenter = formData.coordinates?.lng && formData.coordinates?.lat
-        ? [formData.coordinates.lng, formData.coordinates.lat]
-        : defaultCenter;
+      const initialCenter =
+        formData.coordinates?.lng && formData.coordinates?.lat
+          ? [formData.coordinates.lng, formData.coordinates.lat]
+          : defaultCenter;
 
       // Initialize map
       const map = new mapboxgl.Map({
@@ -393,13 +402,19 @@ export default function NewPropertyPage() {
 
   const handleDocumentUpload = (documentType: string, file: File) => {
     // Validate file
-    const requirement = documentRequirements.find(r => r.document_type === documentType);
+    const requirement = documentRequirements.find(
+      r => r.document_type === documentType
+    );
     if (!requirement) return;
 
     if (file.size > requirement.max_file_size) {
       setDocumentErrors(prev => ({
         ...prev,
-        [documentType]: `File size exceeds ${(requirement.max_file_size / 1024 / 1024).toFixed(0)}MB limit`
+        [documentType]: `File size exceeds ${(
+          requirement.max_file_size /
+          1024 /
+          1024
+        ).toFixed(0)}MB limit`
       }));
       return;
     }
@@ -425,7 +440,9 @@ export default function NewPropertyPage() {
   };
 
   const allRequiredDocsUploaded = () => {
-    return documentRequirements.every(req => uploadedDocuments[req.document_type]);
+    return documentRequirements.every(
+      req => uploadedDocuments[req.document_type]
+    );
   };
 
   const handleNext = () => {
@@ -696,7 +713,9 @@ export default function NewPropertyPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                       <SelectItem value="boarding_house">Boarding House</SelectItem>
+                        <SelectItem value="boarding_house">
+                          Boarding House
+                        </SelectItem>
 
                         <SelectItem value="commercial">Commercial</SelectItem>
                         <SelectItem value="dormitory">Dormitory</SelectItem>
@@ -786,18 +805,22 @@ export default function NewPropertyPage() {
                     <Select
                       value={formData.city}
                       onValueChange={value => handleInputChange('city', value)}
-                      disabled={!formData.province || availableCities.length === 0}>
+                      disabled={
+                        !formData.province || availableCities.length === 0
+                      }>
                       <SelectTrigger
                         className={
                           errors.city
                             ? 'border-red-500'
                             : 'border-blue-200 focus:ring-blue-500'
                         }>
-                        <SelectValue placeholder={
-                          formData.province 
-                            ? "Select city/municipality" 
-                            : "Select province first"
-                        } />
+                        <SelectValue
+                          placeholder={
+                            formData.province
+                              ? 'Select city/municipality'
+                              : 'Select province first'
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {availableCities.map(city => (
@@ -866,6 +889,21 @@ export default function NewPropertyPage() {
                         {errors.total_units}
                       </p>
                     )}
+                    {/* Room Availability Info */}
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-blue-900 text-xs">
+                            Room System
+                          </p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            Each unit will be labeled "Unit 1", "Unit 2", etc.
+                            Tenants select from available rooms.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -1006,12 +1044,13 @@ export default function NewPropertyPage() {
                   Pin Property Location
                 </CardTitle>
                 <p className="text-sm text-gray-600 mt-2">
-                  Click on the map to pin your property's exact location. You can drag the marker to adjust.
+                  Click on the map to pin your property's exact location. You
+                  can drag the marker to adjust.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Map Container */}
-                <div 
+                <div
                   ref={mapContainerRef}
                   className="w-full h-[400px] rounded-lg border-2 border-blue-200 overflow-hidden"
                   style={{ minHeight: '400px' }}
@@ -1054,7 +1093,9 @@ export default function NewPropertyPage() {
                 <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-yellow-800">
-                    <p className="font-medium mb-1">How to pin your location:</p>
+                    <p className="font-medium mb-1">
+                      How to pin your location:
+                    </p>
                     <ul className="list-disc list-inside space-y-1 text-xs">
                       <li>Click anywhere on the map to place a marker</li>
                       <li>Drag the marker to adjust the exact location</li>
@@ -1295,16 +1336,20 @@ export default function NewPropertyPage() {
                   Required Documents for Verification
                 </CardTitle>
                 <p className="text-sm text-gray-600 mt-2">
-                  Upload the following documents to verify your property. All documents are required before submission.
+                  Upload the following documents to verify your property. All
+                  documents are required before submission.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {documentRequirements.map((requirement) => {
-                  const hasDocument = uploadedDocuments[requirement.document_type];
+                {documentRequirements.map(requirement => {
+                  const hasDocument =
+                    uploadedDocuments[requirement.document_type];
                   const error = documentErrors[requirement.document_type];
 
                   return (
-                    <div key={requirement.id} className="border border-gray-200 rounded-lg p-4">
+                    <div
+                      key={requirement.id}
+                      className="border border-gray-200 rounded-lg p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -1328,11 +1373,15 @@ export default function NewPropertyPage() {
                               <FileText className="w-8 h-8 text-blue-600" />
                               <div className="flex-1">
                                 <p className="font-medium text-sm">
-                                  {uploadedDocuments[requirement.document_type].name}
+                                  {
+                                    uploadedDocuments[requirement.document_type]
+                                      .name
+                                  }
                                 </p>
                                 <p className="text-xs text-gray-500">
                                   {(
-                                    uploadedDocuments[requirement.document_type].size /
+                                    uploadedDocuments[requirement.document_type]
+                                      .size /
                                     1024 /
                                     1024
                                   ).toFixed(2)}{' '}
@@ -1344,8 +1393,9 @@ export default function NewPropertyPage() {
                                 size="sm"
                                 variant="outline"
                                 className="text-red-600 hover:text-red-700"
-                                onClick={() => removeDocument(requirement.document_type)}
-                              >
+                                onClick={() =>
+                                  removeDocument(requirement.document_type)
+                                }>
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
@@ -1353,26 +1403,35 @@ export default function NewPropertyPage() {
                             <div>
                               <label
                                 htmlFor={`doc-${requirement.document_type}`}
-                                className="block w-full p-6 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
-                              >
+                                className="block w-full p-6 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
                                 <Upload className="w-10 h-10 mx-auto text-gray-400 mb-2" />
                                 <p className="text-sm font-medium text-gray-700">
                                   Click to upload or drag and drop
                                 </p>
                                 <p className="text-xs text-gray-500 mt-1">
                                   PDF, JPG, PNG (Max{' '}
-                                  {(requirement.max_file_size / 1024 / 1024).toFixed(0)}MB)
+                                  {(
+                                    requirement.max_file_size /
+                                    1024 /
+                                    1024
+                                  ).toFixed(0)}
+                                  MB)
                                 </p>
                               </label>
                               <input
                                 id={`doc-${requirement.document_type}`}
                                 type="file"
                                 className="hidden"
-                                accept={requirement.allowed_mime_types.join(',')}
-                                onChange={(e) => {
+                                accept={requirement.allowed_mime_types.join(
+                                  ','
+                                )}
+                                onChange={e => {
                                   const file = e.target.files?.[0];
                                   if (file) {
-                                    handleDocumentUpload(requirement.document_type, file);
+                                    handleDocumentUpload(
+                                      requirement.document_type,
+                                      file
+                                    );
                                   }
                                 }}
                               />
@@ -1396,7 +1455,8 @@ export default function NewPropertyPage() {
                   <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm font-medium text-blue-900">
-                        Documents Uploaded: {Object.keys(uploadedDocuments).length} /{' '}
+                        Documents Uploaded:{' '}
+                        {Object.keys(uploadedDocuments).length} /{' '}
                         {documentRequirements.length}
                       </p>
                       {allRequiredDocsUploaded() && (
@@ -1436,7 +1496,11 @@ export default function NewPropertyPage() {
                 type="submit"
                 disabled={isLoading || !allRequiredDocsUploaded()}
                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!allRequiredDocsUploaded() ? 'Please upload all required documents' : ''}>
+                title={
+                  !allRequiredDocsUploaded()
+                    ? 'Please upload all required documents'
+                    : ''
+                }>
                 {isLoading ? (
                   <>
                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>

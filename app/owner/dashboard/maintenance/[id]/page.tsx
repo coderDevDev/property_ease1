@@ -26,6 +26,13 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { cn, formatPropertyType } from '@/lib/utils';
 import {
+  isValidScheduledDate,
+  getDateValidationError,
+  calculateDeadline,
+  getMinDateString,
+  getMaxDateString
+} from '@/lib/utils/priority-validation';
+import {
   ArrowLeft,
   Save,
   Edit,
@@ -196,6 +203,30 @@ export default function MaintenanceDetailsPage() {
     loadMaintenanceRequest();
   }, [maintenanceId, router]);
 
+  // Revalidate scheduled_date when priority changes
+  useEffect(() => {
+    if (formData.scheduled_date && formData.priority) {
+      const validationError = getDateValidationError(
+        formData.priority,
+        formData.scheduled_date
+      );
+
+      if (validationError) {
+        setErrors(prev => ({
+          ...prev,
+          scheduled_date: validationError
+        }));
+      } else {
+        // Clear error if now valid
+        setErrors(prev => {
+          const updated = { ...prev };
+          delete updated.scheduled_date;
+          return updated;
+        });
+      }
+    }
+  }, [formData.priority]);
+
   // Generate timeline events from maintenance request data
   const generateTimelineEvents = (request: MaintenanceRequest) => {
     const events = [];
@@ -299,20 +330,53 @@ export default function MaintenanceDetailsPage() {
     try {
       setIsUpdating(true);
 
+      // If changing to in_progress with personnel data, use assignMaintenanceRequest API
+      if (
+        newStatus === 'in_progress' &&
+        data?.personnelName &&
+        data?.personnelPhone
+      ) {
+        const result = await MaintenanceAPI.assignMaintenanceRequest(
+          maintenanceId,
+          data.personnelName,
+          data.scheduledDate || undefined,
+          data.personnelPhone
+        );
+
+        if (result.success) {
+          toast.success('Personnel assigned successfully!');
+          // Reload the data
+          const reloadResult = await MaintenanceAPI.getMaintenanceRequest(
+            maintenanceId
+          );
+          if (reloadResult.success && reloadResult.data) {
+            setMaintenanceRequest(reloadResult.data);
+            generateTimelineEvents(reloadResult.data);
+          }
+        } else {
+          toast.error(result.message || 'Failed to assign personnel');
+        }
+        return;
+      }
+
       const updateData: any = {
         status: newStatus
       };
 
       // Add specific data based on status
       if (newStatus === 'in_progress') {
-        if (data.assignedTo) updateData.assigned_to = data.assignedTo.trim();
-        if (data.scheduledDate) updateData.scheduled_date = data.scheduledDate;
+        // Fallback if no personnel data - just update status
+        if (data?.personnelName)
+          updateData.assigned_to = data.personnelName.trim();
+        if (data?.personnelPhone)
+          updateData.assigned_personnel_phone = data.personnelPhone.trim();
+        if (data?.scheduledDate) updateData.scheduled_date = data.scheduledDate;
       }
 
       if (newStatus === 'completed') {
         updateData.completed_date = new Date().toISOString();
-        if (data.actualCost) updateData.actual_cost = data.actualCost;
-        if (data.notes) updateData.owner_notes = data.notes;
+        if (data?.actualCost) updateData.actual_cost = data.actualCost;
+        if (data?.notes) updateData.owner_notes = data.notes;
       }
 
       const result = await MaintenanceAPI.updateMaintenanceRequest(
@@ -350,6 +414,16 @@ export default function MaintenanceDetailsPage() {
     if (!formData.category) newErrors.category = 'Category is required';
     if (!formData.priority) newErrors.priority = 'Priority is required';
     if (!formData.status) newErrors.status = 'Status is required';
+
+    // Validate scheduled_date if it exists
+    if (
+      formData.scheduled_date &&
+      !isValidScheduledDate(formData.priority, formData.scheduled_date)
+    ) {
+      newErrors.scheduled_date =
+        getDateValidationError(formData.priority, formData.scheduled_date) ||
+        'Invalid scheduled date';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -931,6 +1005,45 @@ export default function MaintenanceDetailsPage() {
                           </p>
                         )}
                       </div>
+
+                      {/* Scheduled Date Field */}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="scheduled_date"
+                          className="text-gray-700 font-medium">
+                          Scheduled Date
+                          <span className="text-xs text-gray-500 ml-2">
+                            (Deadline:{' '}
+                            {calculateDeadline(
+                              formData.priority
+                            ).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                            )
+                          </span>
+                        </Label>
+                        <Input
+                          id="scheduled_date"
+                          type="date"
+                          value={formData.scheduled_date || ''}
+                          onChange={e =>
+                            handleInputChange('scheduled_date', e.target.value)
+                          }
+                          min={getMinDateString()}
+                          max={getMaxDateString(formData.priority)}
+                          className={cn(
+                            'bg-white/50 border-blue-200/50 focus:border-blue-400',
+                            errors.scheduled_date &&
+                              'border-red-300 focus:border-red-400'
+                          )}
+                        />
+                        {errors.scheduled_date && (
+                          <p className="text-red-600 text-sm">
+                            {errors.scheduled_date}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -1140,7 +1253,12 @@ export default function MaintenanceDetailsPage() {
                         <p className="text-gray-900">
                           {new Date(
                             maintenanceRequest.scheduled_date
-                          ).toLocaleString()}
+                          ).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
                         </p>
                       </div>
                     )}

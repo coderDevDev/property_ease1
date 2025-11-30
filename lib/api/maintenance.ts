@@ -9,8 +9,25 @@ type MaintenanceRequestUpdate =
   Database['public']['Tables']['maintenance_requests']['Update'];
 
 export class MaintenanceAPI {
-  static async getMaintenanceRequests(propertyId?: string, tenantId?: string) {
+  static async getMaintenanceRequests(
+    propertyId?: string,
+    tenantId?: string,
+    options?: {
+      page?: number;
+      pageSize?: number;
+    }
+  ) {
     try {
+      const page = options?.page || 1;
+      const pageSize = options?.pageSize || 20;
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      // Skip count query to avoid timeout - we'll estimate based on results
+      // Count can be slow with complex filters, so we'll estimate
+      let count = 0;
+
+      // Then get the actual data with relations
       let query = supabase
         .from('maintenance_requests')
         .select(
@@ -43,12 +60,6 @@ export class MaintenanceAPI {
             user_id,
             property_id,
             unit_number,
-            lease_start,
-            lease_end,
-            monthly_rent,
-            deposit,
-            security_deposit,
-            status,
             user:users(
               id,
               email,
@@ -76,8 +87,8 @@ export class MaintenanceAPI {
         query = query.eq('tenant_id', tenantId);
       }
 
-      // Apply limit after filters for better performance
-      query = query.limit(100);
+      // Apply pagination
+      query = query.range(from, to);
 
       const { data, error } = await query;
 
@@ -85,7 +96,24 @@ export class MaintenanceAPI {
         throw new Error(error.message);
       }
 
-      return { success: true, data: data || [] };
+      // Estimate total: if we got a full page, there's likely more
+      const hasMore = data && data.length === pageSize;
+      if (hasMore) {
+        count = page * pageSize + 1; // At least this many
+      } else {
+        count = (page - 1) * pageSize + (data?.length || 0);
+      }
+
+      return {
+        success: true,
+        data: data || [],
+        pagination: {
+          page,
+          pageSize,
+          total: count,
+          totalPages: Math.ceil(count / pageSize) || 1
+        }
+      };
     } catch (error) {
       console.error('Get maintenance requests error:', error);
       return {
@@ -94,7 +122,13 @@ export class MaintenanceAPI {
           error instanceof Error
             ? error.message
             : 'Failed to fetch maintenance requests',
-        data: []
+        data: [],
+        pagination: {
+          page: 1,
+          pageSize: 20,
+          total: 0,
+          totalPages: 0
+        }
       };
     }
   }

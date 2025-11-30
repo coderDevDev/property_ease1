@@ -575,7 +575,12 @@ export default function TenantMaintenanceDetailsPage() {
                         <p className="text-blue-900 font-medium">
                           {new Date(
                             maintenanceRequest.scheduled_date
-                          ).toLocaleString()}
+                          ).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
                         </p>
                       </div>
                     )}
@@ -786,7 +791,8 @@ export default function TenantMaintenanceDetailsPage() {
             )}
 
             {/* Feedback Section */}
-            {maintenanceRequest.status && (
+            {(maintenanceRequest.status ||
+              maintenanceRequest.feedback_required) && (
               <Card className="bg-white/80 backdrop-blur-sm border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-200">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-3 text-blue-700">

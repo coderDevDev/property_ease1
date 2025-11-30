@@ -676,6 +676,8 @@ export default function TenantPaymentsPage() {
       leaseStart: firstPayment.tenant?.lease_start || '',
       leaseEnd: firstPayment.tenant?.lease_end || '',
       monthlyRent: Number(firstPayment.amount),
+      exportType: pdfExportType,
+      exportStatus: pdfExportStatus,
       payments: filteredForExport.map(p => ({
         id: p.id,
         due_date: p.due_date,

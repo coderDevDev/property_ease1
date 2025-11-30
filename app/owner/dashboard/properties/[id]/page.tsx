@@ -33,7 +33,8 @@ import {
   Home,
   Maximize2,
   X,
-  PhilippinePeso
+  PhilippinePeso,
+  Info
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -654,6 +655,12 @@ export default function PropertyDetailsPage() {
                 value="details"
                 className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
                 Details
+              </TabsTrigger>
+              <TabsTrigger
+                value="rooms"
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                <Building className="w-4 h-4 mr-2" />
+                Rooms
               </TabsTrigger>
             </TabsList>
 
@@ -1408,6 +1415,110 @@ export default function PropertyDetailsPage() {
                       <p className="text-gray-500">No property rules defined</p>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Rooms Tab Content */}
+            <TabsContent value="rooms" className="mt-6">
+              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border border-blue-100">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building className="w-5 h-5 text-blue-600" />
+                    Room Availability
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Summary Stats */}
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600 mb-2">
+                        <span className="font-semibold">Total Units:</span>{' '}
+                        {property.total_units}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        🟢 Green = Available | ⚫ Gray = Occupied
+                      </p>
+                    </div>
+
+                    {/* Room Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                      {Array.from({ length: property.total_units }).map(
+                        (_, index) => {
+                          const unitNumber = `Unit ${index + 1}`;
+                          const isOccupied = tenants.some(
+                            t => t.unit_number === unitNumber
+                          );
+
+                          return (
+                            <div
+                              key={unitNumber}
+                              className={`
+                              p-3 rounded-lg border-2 text-center transition-all
+                              ${
+                                isOccupied
+                                  ? 'bg-gray-100 border-gray-300 opacity-60'
+                                  : 'bg-green-50 border-green-300 hover:border-green-400'
+                              }
+                            `}>
+                              <p className="font-semibold text-sm text-gray-900">
+                                {unitNumber.replace('Unit', 'Room')}
+                              </p>
+                              <p
+                                className={`text-xs mt-1 font-medium ${
+                                  isOccupied
+                                    ? 'text-gray-600'
+                                    : 'text-green-600'
+                                }`}>
+                                {isOccupied ? '⚫ Occupied' : '🟢 Available'}
+                              </p>
+                            </div>
+                          );
+                        }
+                      )}
+                    </div>
+
+                    {/* Occupied Units Details */}
+                    {tenants.length > 0 && (
+                      <div className="mt-6 pt-6 border-t">
+                        <h4 className="font-semibold text-gray-900 mb-3">
+                          Occupied Rooms ({tenants.length})
+                        </h4>
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                          {tenants.map(tenant => (
+                            <div
+                              key={tenant.id}
+                              className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                              <div className="flex-1">
+                                <p className="font-semibold text-sm text-gray-900">
+                                  {tenant.unit_number.replace('Unit', 'Room')}
+                                </p>
+                                <p className="text-xs text-gray-600">
+                                  {tenant.user.first_name}{' '}
+                                  {tenant.user.last_name}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {tenant.user.email}
+                                </p>
+                              </div>
+                              <Badge className="bg-blue-600 text-white text-xs whitespace-nowrap ml-2">
+                                {tenant.status}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty State */}
+                    {tenants.length === 0 && (
+                      <div className="mt-6 pt-6 border-t text-center">
+                        <p className="text-sm text-gray-600">
+                          ✨ All {property.total_units} rooms are available!
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

@@ -17,6 +17,13 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { cn, formatPropertyType } from '@/lib/utils';
 import {
+  isValidScheduledDate,
+  getDateValidationError,
+  calculateDeadline,
+  getMinDateString,
+  getMaxDateString
+} from '@/lib/utils/priority-validation';
+import {
   ArrowLeft,
   Save,
   Upload,
@@ -65,6 +72,7 @@ interface MaintenanceFormData {
   priority: string;
   estimated_cost?: number;
   tenant_notes?: string;
+  scheduled_date?: string;
   images: string[];
 }
 
@@ -102,6 +110,7 @@ export default function NewMaintenancePage() {
     priority: 'medium',
     estimated_cost: undefined,
     tenant_notes: '',
+    scheduled_date: '',
     images: []
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -164,6 +173,19 @@ export default function NewMaintenancePage() {
     if (!formData.tenant_id) newErrors.tenant_id = 'Tenant is required';
     if (formData.estimated_cost && formData.estimated_cost < 0) {
       newErrors.estimated_cost = 'Estimated cost must be positive';
+    }
+
+    // Validate scheduled_date
+    if (!formData.scheduled_date) {
+      newErrors.scheduled_date = 'Scheduled date is required';
+    } else {
+      const validationError = getDateValidationError(
+        formData.priority,
+        formData.scheduled_date
+      );
+      if (validationError) {
+        newErrors.scheduled_date = validationError;
+      }
     }
 
     setErrors(newErrors);
@@ -389,6 +411,43 @@ export default function NewMaintenancePage() {
                     </p>
                   )}
                 </div>
+              </div>
+
+              {/* Scheduled Date Field */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="scheduled_date"
+                  className="text-gray-700 font-medium">
+                  Scheduled Date *
+                  <span className="text-xs text-gray-500 ml-2">
+                    (Deadline:{' '}
+                    {calculateDeadline(formData.priority).toLocaleDateString(
+                      'en-US',
+                      { month: 'short', day: 'numeric' }
+                    )}
+                    )
+                  </span>
+                </Label>
+                <Input
+                  id="scheduled_date"
+                  type="date"
+                  value={formData.scheduled_date || ''}
+                  onChange={e =>
+                    handleInputChange('scheduled_date', e.target.value)
+                  }
+                  min={getMinDateString()}
+                  max={getMaxDateString(formData.priority)}
+                  className={cn(
+                    'bg-white/50 border-blue-200/50 focus:border-blue-400',
+                    errors.scheduled_date &&
+                      'border-red-300 focus:border-red-400'
+                  )}
+                />
+                {errors.scheduled_date && (
+                  <p className="text-red-600 text-sm">
+                    {errors.scheduled_date}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

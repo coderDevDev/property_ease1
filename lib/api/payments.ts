@@ -530,6 +530,8 @@ export class PaymentsAPI {
           tenant:tenants!inner(
             id,
             unit_number,
+            lease_start,
+            lease_end,
             user:users!inner(
               id,
               first_name,

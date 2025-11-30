@@ -91,8 +91,10 @@ export function StatusManager({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [formData, setFormData] = useState({
-    assignedTo: '',
+    personnelName: '',
+    personnelPhone: '',
     scheduledDate: '',
+    assignmentNotes: '',
     actualCost: '',
     notes: '',
     cancellationReason: ''
@@ -106,6 +108,17 @@ export function StatusManager({
   const handleStatusChange = async () => {
     if (!selectedStatus) return;
 
+    // Validate required fields for in_progress
+    if (selectedStatus === 'in_progress') {
+      if (!formData.personnelName.trim()) {
+        // Error will be shown by disabled button, but add validation here too
+        return;
+      }
+      if (!formData.personnelPhone.trim()) {
+        return;
+      }
+    }
+
     const updateData: any = {
       status: selectedStatus,
       timestamp: new Date().toISOString()
@@ -113,10 +126,12 @@ export function StatusManager({
 
     // Add specific data based on status
     if (selectedStatus === 'in_progress') {
-      if (formData.assignedTo)
-        updateData.assignedTo = formData.assignedTo.trim();
+      updateData.personnelName = formData.personnelName.trim();
+      updateData.personnelPhone = formData.personnelPhone.trim();
       if (formData.scheduledDate)
         updateData.scheduledDate = formData.scheduledDate;
+      if (formData.assignmentNotes)
+        updateData.assignmentNotes = formData.assignmentNotes.trim();
     }
 
     if (selectedStatus === 'completed') {
@@ -134,8 +149,10 @@ export function StatusManager({
       await onStatusChange(selectedStatus, updateData);
       setIsDialogOpen(false);
       setFormData({
-        assignedTo: '',
+        personnelName: '',
+        personnelPhone: '',
         scheduledDate: '',
+        assignmentNotes: '',
         actualCost: '',
         notes: '',
         cancellationReason: ''
@@ -246,7 +263,9 @@ export function StatusManager({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {selectedStatus && (
+              {selectedStatus === 'in_progress' ? (
+                <>Assign Personnel</>
+              ) : selectedStatus ? (
                 <>
                   {(() => {
                     const Icon = getStatusIcon(selectedStatus);
@@ -262,36 +281,57 @@ export function StatusManager({
                   Change Status to{' '}
                   {STATUS_OPTIONS.find(s => s.value === selectedStatus)?.label}
                 </>
-              )}
+              ) : null}
             </DialogTitle>
             <DialogDescription>
-              {
+              {selectedStatus === 'in_progress' ? (
+                <>Assign a maintenance personnel to handle this request.</>
+              ) : (
                 STATUS_OPTIONS.find(s => s.value === selectedStatus)
                   ?.description
-              }
+              )}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Assignment Fields for In Progress */}
+            {/* Assignment Fields for In Progress - Match Assign Personnel Dialog */}
             {selectedStatus === 'in_progress' && (
               <>
                 <div className="space-y-2">
                   <Label
-                    htmlFor="assignedTo"
+                    htmlFor="personnelName"
                     className="text-gray-700 font-medium">
-                    Assign To (Optional)
+                    Personnel Name <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="assignedTo"
-                    value={formData.assignedTo}
+                    id="personnelName"
+                    value={formData.personnelName}
                     onChange={e =>
                       setFormData(prev => ({
                         ...prev,
-                        assignedTo: e.target.value
+                        personnelName: e.target.value
                       }))
                     }
-                    placeholder="Enter personnel name or contact"
+                    placeholder="Enter personnel name..."
+                    className="bg-white/50 border-blue-200/50 focus:border-blue-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="personnelPhone"
+                    className="text-gray-700 font-medium">
+                    Contact Number <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="personnelPhone"
+                    value={formData.personnelPhone}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        personnelPhone: e.target.value
+                      }))
+                    }
+                    placeholder="Enter contact number..."
                     className="bg-white/50 border-blue-200/50 focus:border-blue-400"
                   />
                 </div>
@@ -299,7 +339,7 @@ export function StatusManager({
                   <Label
                     htmlFor="scheduledDate"
                     className="text-gray-700 font-medium">
-                    Scheduled Date (Optional)
+                    Schedule Date
                   </Label>
                   <Input
                     id="scheduledDate"
@@ -311,6 +351,26 @@ export function StatusManager({
                         scheduledDate: e.target.value
                       }))
                     }
+                    className="bg-white/50 border-blue-200/50 focus:border-blue-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="assignmentNotes"
+                    className="text-gray-700 font-medium">
+                    Assignment Notes
+                  </Label>
+                  <Textarea
+                    id="assignmentNotes"
+                    value={formData.assignmentNotes}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        assignmentNotes: e.target.value
+                      }))
+                    }
+                    placeholder="Add any specific instructions..."
+                    rows={3}
                     className="bg-white/50 border-blue-200/50 focus:border-blue-400"
                   />
                 </div>
@@ -414,7 +474,10 @@ export function StatusManager({
               disabled={
                 isLoading ||
                 (selectedStatus === 'cancelled' &&
-                  !formData.cancellationReason.trim())
+                  !formData.cancellationReason.trim()) ||
+                (selectedStatus === 'in_progress' &&
+                  (!formData.personnelName.trim() ||
+                    !formData.personnelPhone.trim()))
               }
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
               {isLoading ? (

@@ -51,6 +51,8 @@ import {
   Trash2,
   PhilippinePeso,
   Plus,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { MaintenanceAPI } from '@/lib/api/maintenance';
 import { PropertiesAPI } from '@/lib/api/properties';
@@ -118,8 +120,12 @@ export default function MaintenancePage() {
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterProperty, setFilterProperty] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
 
-  // Load data
+  // Load data with pagination
   useEffect(() => {
     const loadData = async () => {
       if (!authState.user?.id) return;
@@ -127,12 +133,33 @@ export default function MaintenancePage() {
       try {
         setIsLoading(true);
         const [maintenanceResult, propertiesResult] = await Promise.all([
-          MaintenanceAPI.getMaintenanceRequests(),
+          MaintenanceAPI.getMaintenanceRequests(
+            filterProperty !== 'all' ? filterProperty : undefined,
+            undefined,
+            {
+              page: currentPage,
+              pageSize: pageSize
+            }
+          ),
           PropertiesAPI.getProperties(authState.user.id)
         ]);
 
         if (maintenanceResult.success) {
-          setMaintenanceRequests(maintenanceResult.data);
+          // Handle nested relations - Supabase returns arrays, we need single objects
+          const formattedData = (maintenanceResult.data || []).map(
+            (item: any) => ({
+              ...item,
+              tenant: Array.isArray(item.tenant) ? item.tenant[0] : item.tenant,
+              property: Array.isArray(item.property)
+                ? item.property[0]
+                : item.property
+            })
+          );
+          setMaintenanceRequests(formattedData as MaintenanceRequest[]);
+          if (maintenanceResult.pagination) {
+            setTotalPages(maintenanceResult.pagination.totalPages);
+            setTotalItems(maintenanceResult.pagination.total);
+          }
         }
         if (propertiesResult.success) {
           setProperties(propertiesResult.data);
@@ -146,7 +173,7 @@ export default function MaintenancePage() {
     };
 
     loadData();
-  }, [authState.user?.id]);
+  }, [authState.user?.id, currentPage, pageSize, filterProperty]);
 
   // Filter maintenance requests
   const filteredRequests = maintenanceRequests.filter(request => {
@@ -233,10 +260,31 @@ export default function MaintenancePage() {
         if (result.success) {
           toast.success('Maintenance request deleted successfully');
           // Reload the list
-          const maintenanceResult =
-            await MaintenanceAPI.getMaintenanceRequests();
+          const maintenanceResult = await MaintenanceAPI.getMaintenanceRequests(
+            filterProperty !== 'all' ? filterProperty : undefined,
+            undefined,
+            {
+              page: currentPage,
+              pageSize: pageSize
+            }
+          );
           if (maintenanceResult.success) {
-            setMaintenanceRequests(maintenanceResult.data);
+            const formattedData = (maintenanceResult.data || []).map(
+              (item: any) => ({
+                ...item,
+                tenant: Array.isArray(item.tenant)
+                  ? item.tenant[0]
+                  : item.tenant,
+                property: Array.isArray(item.property)
+                  ? item.property[0]
+                  : item.property
+              })
+            );
+            setMaintenanceRequests(formattedData as MaintenanceRequest[]);
+            if (maintenanceResult.pagination) {
+              setTotalPages(maintenanceResult.pagination.totalPages);
+              setTotalItems(maintenanceResult.pagination.total);
+            }
           }
         } else {
           toast.error(result.message || 'Failed to delete maintenance request');
@@ -264,10 +312,30 @@ export default function MaintenancePage() {
 
       if (result.success) {
         toast.success('Maintenance request updated successfully');
-        // Refresh data
-        const maintenanceResult = await MaintenanceAPI.getMaintenanceRequests();
+        // Refresh data with pagination
+        const maintenanceResult = await MaintenanceAPI.getMaintenanceRequests(
+          filterProperty !== 'all' ? filterProperty : undefined,
+          undefined,
+          {
+            page: currentPage,
+            pageSize: pageSize
+          }
+        );
         if (maintenanceResult.success) {
-          setMaintenanceRequests(maintenanceResult.data);
+          const formattedData = (maintenanceResult.data || []).map(
+            (item: any) => ({
+              ...item,
+              tenant: Array.isArray(item.tenant) ? item.tenant[0] : item.tenant,
+              property: Array.isArray(item.property)
+                ? item.property[0]
+                : item.property
+            })
+          );
+          setMaintenanceRequests(formattedData as MaintenanceRequest[]);
+          if (maintenanceResult.pagination) {
+            setTotalPages(maintenanceResult.pagination.totalPages);
+            setTotalItems(maintenanceResult.pagination.total);
+          }
         }
       } else {
         toast.error(result.message || 'Failed to update maintenance request');
@@ -320,7 +388,9 @@ export default function MaintenancePage() {
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-700">
-              <strong>Note:</strong> Maintenance requests are submitted by tenants. You can view, assign, and update the status of requests here.
+              <strong>Note:</strong> Maintenance requests are submitted by
+              tenants. You can view, assign, and update the status of requests
+              here.
             </p>
           </div>
         </div>
@@ -516,8 +586,8 @@ export default function MaintenancePage() {
         {/* Results Count */}
         <div className="flex items-center justify-between">
           <p className="text-gray-600 text-sm sm:text-base">
-            Showing {filteredRequests.length} of {maintenanceRequests.length}{' '}
-            maintenance requests
+            Showing {filteredRequests.length} of{' '}
+            {totalItems || maintenanceRequests.length} maintenance requests
           </p>
         </div>
 
@@ -818,8 +888,68 @@ export default function MaintenancePage() {
           </div>
         )}
 
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-4 mt-6">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages} ({totalItems} total)
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      disabled={isLoading}
+                      className={
+                        currentPage === pageNum
+                          ? 'bg-blue-600 text-white'
+                          : 'border-blue-200 text-blue-600 hover:bg-blue-50'
+                      }>
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setCurrentPage(prev => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages || isLoading}
+                className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Empty State */}
-        {filteredRequests.length === 0 && (
+        {filteredRequests.length === 0 && !isLoading && (
           <Card className="bg-white/70 backdrop-blur-sm border-blue-200/50 shadow-lg">
             <CardContent className="py-8 sm:py-12 text-center">
               <Wrench className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
