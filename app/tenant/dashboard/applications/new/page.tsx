@@ -86,12 +86,17 @@ export default function NewApplicationPage() {
     setFormData(prev => ({
       ...prev,
       propertyId,
-      unitType: '', // Reset unit type when property changes
-      unitNumber: '' // Reset unit number when property changes
+      unitType: formData.unitType, // Reset unit type when property changes
+      unitNumber: formData.unitNumber // Reset unit number when property changes
     }));
 
     // Fetch available units for this property
     if (property) {
+      setFormData(prev => ({
+        ...prev,
+        unitType: property?.unit_types[0] || ''
+      }));
+      setFormData(prev => ({ ...prev, unitNumber: '' }));
       try {
         setLoadingUnits(true);
         const result = await TenantAPI.getAllUnitsWithStatus(propertyId);
