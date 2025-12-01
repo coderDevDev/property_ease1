@@ -107,14 +107,20 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
         userId: authState.user?.id || '',
         onNewNotification: notification => {
           // Show toast for urgent notifications
-          if (notification.priority === 'high' && FEATURE_FLAGS.ENABLE_TOAST_NOTIFICATIONS) {
+          if (
+            notification.priority === 'high' &&
+            FEATURE_FLAGS.ENABLE_TOAST_NOTIFICATIONS
+          ) {
             toast.info(notification.title, {
               description: notification.message,
               action: {
                 label: 'View',
                 onClick: () => {
                   if (notification.action_url) {
-                    const correctUrl = getCorrectActionUrl(notification.action_url, role);
+                    const correctUrl = getCorrectActionUrl(
+                      notification.action_url,
+                      role
+                    );
                     if (correctUrl) {
                       router.push(correctUrl);
                     }
@@ -167,11 +173,11 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
 
   // 🔍 DEBUG: Log auth state
   useEffect(() => {
-    console.log('🔑 NAVBAR: Auth state:', {
-      isAuthenticated: authState.isAuthenticated,
-      userId: authState.user?.id,
-      userExists: !!authState.user
-    });
+    // console.log('🔑 NAVBAR: Auth state:', {
+    //   isAuthenticated: authState.isAuthenticated,
+    //   userId: authState.user?.id,
+    //   userExists: !!authState.user
+    // });
   }, [authState]);
 
   // Real-time messages
@@ -336,7 +342,9 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
 
   const getProfilePath = () => {
     if (role === 'admin') return '/dashboard/profile';
-    return role === 'owner' ? '/owner/dashboard/profile' : '/tenant/dashboard/profile';
+    return role === 'owner'
+      ? '/owner/dashboard/profile'
+      : '/tenant/dashboard/profile';
   };
 
   const getMessagesPath = () => {
@@ -352,10 +360,6 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
       ? '/owner/dashboard/notifications'
       : '/tenant/dashboard/notifications';
   };
-
-
-  console.log({notifications})
-
 
   return (
     <nav
@@ -405,7 +409,7 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                   <MessageSquare className="w-5 h-5" />
                   {messageUnreadCount > 0 && (
                     <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-blue-500 text-white">
-                    {messageUnreadCount}
+                      {messageUnreadCount}
                     </Badge>
                   )}
                 </Button>
@@ -727,8 +731,7 @@ export function TopNavbar({ role, className }: TopNavbarProps) {
                   <Home className="w-4 h-4 mr-2" />
                   Dashboard
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => router.push(getProfilePath())}>
+                <DropdownMenuItem onClick={() => router.push(getProfilePath())}>
                   <User className="w-4 h-4 mr-2" />
                   Profile
                 </DropdownMenuItem>

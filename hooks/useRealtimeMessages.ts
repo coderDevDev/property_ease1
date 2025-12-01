@@ -7,8 +7,17 @@ import { MessagesAPI } from '@/lib/api/messages';
 // Global subscription manager to prevent duplicate subscriptions
 const globalSubscriptions = new Map<string, any>();
 const globalConnectionStatus = new Map<string, boolean>();
-const globalCallbacks = new Map<string, Set<{onNewMessage?: (msg: any) => void, onMessageUpdate?: (msg: any) => void}>>();
-const globalCountUpdaters = new Map<string, Set<(updater: (prev: number) => number) => void>>();
+const globalCallbacks = new Map<
+  string,
+  Set<{
+    onNewMessage?: (msg: any) => void;
+    onMessageUpdate?: (msg: any) => void;
+  }>
+>();
+const globalCountUpdaters = new Map<
+  string,
+  Set<(updater: (prev: number) => number) => void>
+>();
 
 interface UseRealtimeMessagesProps {
   userId: string;
@@ -23,8 +32,6 @@ export function useRealtimeMessages({
   onNewMessage,
   onMessageUpdate
 }: UseRealtimeMessagesProps) {
-  console.log('🎯 useRealtimeMessages HOOK CALLED with userId:', userId);
-  
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,11 +39,16 @@ export function useRealtimeMessages({
   const subscriptionRef = useRef<any>(null);
   const isSubscribingRef = useRef(false);
   const prevUserIdRef = useRef<string>();
-  
+
   // Track userId changes
   useEffect(() => {
     if (prevUserIdRef.current !== userId) {
-      console.log('🔄 userId CHANGED from', prevUserIdRef.current, 'to', userId);
+      console.log(
+        '🔄 userId CHANGED from',
+        prevUserIdRef.current,
+        'to',
+        userId
+      );
       prevUserIdRef.current = userId;
     }
   }, [userId]);
@@ -60,12 +72,12 @@ export function useRealtimeMessages({
     console.log('🔄 useRealtimeMessages useEffect running, userId:', userId);
     console.log('🔍 isSubscribingRef.current:', isSubscribingRef.current);
     console.log('🔍 subscriptionRef.current:', subscriptionRef.current);
-    
+
     if (!userId) {
       console.warn('⚠️ No userId provided, skipping subscription');
       return;
     }
-    
+
     // Load initial unread conversations (unique senders)
     const loadInitialCount = async () => {
       try {
@@ -76,7 +88,7 @@ export function useRealtimeMessages({
           .select('sender_id')
           .eq('recipient_id', userId)
           .eq('is_read', false);
-        
+
         if (!error && unreadMessages) {
           // Count unique senders
           const uniqueSenders = new Set(unreadMessages.map(m => m.sender_id));
@@ -89,9 +101,9 @@ export function useRealtimeMessages({
         setIsLoading(false);
       }
     };
-    
+
     loadInitialCount();
-    
+
     // Register callbacks for this component instance
     if (!globalCallbacks.has(userId)) {
       globalCallbacks.set(userId, new Set());
@@ -99,7 +111,7 @@ export function useRealtimeMessages({
     const callbackSet = globalCallbacks.get(userId)!;
     const componentCallbacks = { onNewMessage, onMessageUpdate };
     callbackSet.add(componentCallbacks);
-    
+
     // Register count updater for this component instance
     if (!globalCountUpdaters.has(userId)) {
       globalCountUpdaters.set(userId, new Set());
@@ -109,29 +121,32 @@ export function useRealtimeMessages({
 
     // Check if there's already a global subscription for this user
     const globalKey = `messages-${userId}`;
-    
+
     if (globalSubscriptions.has(globalKey)) {
       console.log('✅ Using existing global subscription for:', userId);
       subscriptionRef.current = globalSubscriptions.get(globalKey);
-      const isGloballyConnected = globalConnectionStatus.get(globalKey) || false;
+      const isGloballyConnected =
+        globalConnectionStatus.get(globalKey) || false;
       setIsConnected(isGloballyConnected);
       console.log('📡 Global subscription status:', isGloballyConnected);
       return;
     }
-    
+
     // Prevent multiple simultaneous subscriptions
     if (isSubscribingRef.current && subscriptionRef.current) {
       console.warn('⚠️ Already subscribed, skipping...');
       return;
     }
-    
+
     console.log('✅ Starting new subscription...');
     isSubscribingRef.current = true;
 
     // 🔥 REAL-TIME: Subscribe to messages for this user
-    const uniqueChannelName = channelName || `messages-${userId}-${Math.random().toString(36).substr(2, 9)}`;
+    const uniqueChannelName =
+      channelName ||
+      `messages-${userId}-${Math.random().toString(36).substr(2, 9)}`;
     console.log('🔌 Setting up real-time subscription:', uniqueChannelName);
-    
+
     const channel = supabase
       .channel(uniqueChannelName)
       .on(
@@ -152,7 +167,7 @@ export function useRealtimeMessages({
               const newSenders = new Set(prev);
               const hadSender = newSenders.has(newMessage.sender_id);
               newSenders.add(newMessage.sender_id);
-              
+
               // Only increment count if this is a NEW sender
               if (!hadSender) {
                 // Update count for ALL instances
@@ -163,7 +178,7 @@ export function useRealtimeMessages({
                   });
                 }
               }
-              
+
               return newSenders;
             });
           } else {
@@ -207,14 +222,14 @@ export function useRealtimeMessages({
                 .eq('sender_id', updatedMessage.sender_id)
                 .eq('is_read', false)
                 .limit(1);
-              
+
               // If no more unread messages from this sender, remove from set
               if (!error && data && data.length === 0) {
                 setUnreadSenders(prev => {
                   const newSenders = new Set(prev);
                   const hadSender = newSenders.has(updatedMessage.sender_id);
                   newSenders.delete(updatedMessage.sender_id);
-                  
+
                   // Only decrement if sender was in the set
                   if (hadSender) {
                     // Update count for ALL instances
@@ -225,12 +240,12 @@ export function useRealtimeMessages({
                       });
                     }
                   }
-                  
+
                   return newSenders;
                 });
               }
             };
-            
+
             checkSenderUnread();
           }
 
@@ -250,15 +265,15 @@ export function useRealtimeMessages({
         console.log('📡 Status type:', typeof status);
         console.log('📡 Is SUBSCRIBED?', status === 'SUBSCRIBED');
         console.log('📡 Exact value:', JSON.stringify(status));
-        
+
         if (err) {
           console.error('❌ Subscription error:', err);
         }
-        
+
         const connected = status === 'SUBSCRIBED';
         setIsConnected(connected);
         globalConnectionStatus.set(globalKey, connected);
-        
+
         if (status === 'SUBSCRIBED') {
           console.log('✅ Real-time messages connected!');
         } else if (status === 'CHANNEL_ERROR') {
@@ -281,7 +296,7 @@ export function useRealtimeMessages({
       console.log('🔌 Cleaning up messages subscription for userId:', userId);
       console.log('🔍 Cleanup - isSubscribingRef:', isSubscribingRef.current);
       console.log('🔍 Cleanup - subscriptionRef:', subscriptionRef.current);
-      
+
       // DON'T clean up global subscriptions unless component is truly unmounting
       // Only clean up if this is the last instance using this subscription
       console.log('⚠️ Cleanup called, but keeping global subscription alive');

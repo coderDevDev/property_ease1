@@ -80,6 +80,46 @@ export default function NewApplicationPage() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [availableUnits, setAvailableUnits] = useState<AvailableUnit[]>([]);
   const [loadingUnits, setLoadingUnits] = useState(false);
+  const handlePropertyChange = async (propertyId: string) => {
+    const property = properties.find(p => p.id === propertyId);
+    setSelectedProperty(property || null);
+    setFormData(prev => ({
+      ...prev,
+      propertyId,
+      unitType: '', // Reset unit type when property changes
+      unitNumber: '' // Reset unit number when property changes
+    }));
+
+    // Fetch available units for this property
+    if (property) {
+      try {
+        setLoadingUnits(true);
+        const result = await TenantAPI.getAllUnitsWithStatus(propertyId);
+
+        console.log({ result });
+        if (result.success && result.data) {
+          setAvailableUnits(result.data);
+
+          console.log({ availableUnits });
+        } else {
+          toast.error('Failed to load available units');
+          setAvailableUnits([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch units:', error);
+        toast.error('Failed to load available units');
+        setAvailableUnits([]);
+      } finally {
+        setLoadingUnits(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (formData.propertyId) {
+      handlePropertyChange(formData.propertyId);
+    }
+  }, [formData.propertyId]);
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -133,37 +173,6 @@ export default function NewApplicationPage() {
 
     fetchProperties();
   }, [authState.user?.id]);
-
-  const handlePropertyChange = async (propertyId: string) => {
-    const property = properties.find(p => p.id === propertyId);
-    setSelectedProperty(property || null);
-    setFormData(prev => ({
-      ...prev,
-      propertyId,
-      unitType: '', // Reset unit type when property changes
-      unitNumber: '' // Reset unit number when property changes
-    }));
-
-    // Fetch available units for this property
-    if (property) {
-      try {
-        setLoadingUnits(true);
-        const result = await TenantAPI.getAllUnitsWithStatus(propertyId);
-        if (result.success && result.data) {
-          setAvailableUnits(result.data);
-        } else {
-          toast.error('Failed to load available units');
-          setAvailableUnits([]);
-        }
-      } catch (error) {
-        console.error('Failed to fetch units:', error);
-        toast.error('Failed to load available units');
-        setAvailableUnits([]);
-      } finally {
-        setLoadingUnits(false);
-      }
-    }
-  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;

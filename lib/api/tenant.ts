@@ -2802,6 +2802,8 @@ export class TenantAPI {
         .eq('id', propertyId)
         .single();
 
+      console.log({ property });
+
       if (propError) throw propError;
 
       // Get all occupied units
