@@ -48,7 +48,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, formatPropertyType } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -781,7 +781,7 @@ export default function OwnerApplicationsPage() {
                           {application.unit_number}
                         </p>
                         <p className="text-xs sm:text-sm text-gray-500">
-                          {application.unit_type}
+                          {formatPropertyType(application.unit_type)}
                         </p>
                       </td>
                       <td className="p-3 sm:p-4 hidden sm:table-cell">
@@ -882,7 +882,7 @@ export default function OwnerApplicationsPage() {
                       <Home className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
                       <span className="text-gray-600">Unit:</span>
                       <span className="font-medium text-gray-900">
-                        {application.unit_number} ({application.unit_type})
+                        {application.unit_number} ({formatPropertyType(application.unit_type)})
                       </span>
                     </div>
 
@@ -997,7 +997,7 @@ export default function OwnerApplicationsPage() {
                   <div>
                     <p className="text-sm text-gray-600">Unit Type</p>
                     <p className="font-medium text-gray-900">
-                      {selectedApplication.unit_type}
+                      {formatPropertyType(selectedApplication.unit_type)}
                     </p>
                   </div>
                   <div>

@@ -756,7 +756,7 @@ export default function TenantRentalDetailsPage() {
                           Unit Type
                         </p>
                         <p className="font-semibold text-sm sm:text-base">
-                          {rental.unit_type}
+                          {formatPropertyType(rental.unit_type)}
                         </p>
                       </div>
                       <div>
