@@ -6,6 +6,7 @@ import {
   calculateLeaseTotal
 } from '@/lib/utils/paymentGenerator';
 import type { Database } from '@/types/database';
+import { NotificationsAPI } from './notifications';
 
 export type { LeaseDetails } from '@/lib/utils/paymentGenerator';
 
@@ -216,11 +217,44 @@ export class PaymentsAPI {
           created_by: createdBy,
           payment_status: 'pending'
         })
-        .select()
+        .select(
+          `
+          *,
+          tenant:tenants(
+            id,
+            unit_number,
+            user:users(
+              id,
+              first_name,
+              last_name,
+              email
+            )
+          ),
+          property:properties(
+            id,
+            name
+          )
+        `
+        )
         .single();
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      // Send notification to tenant about new payment
+      const tenantUserId = (data as any).tenant?.user?.id;
+      const propertyName = (data as any).property?.name;
+      if (tenantUserId) {
+        await NotificationsAPI.createPaymentCreatedNotification(
+          data.id,
+          data.amount,
+          data.due_date,
+          data.payment_type,
+          tenantUserId,
+          propertyName,
+          'tenant'
+        );
       }
 
       return { success: true, data };
@@ -293,7 +327,25 @@ export class PaymentsAPI {
           payment_status: 'pending',
           reference_number: xenditLink // Store Xendit link as reference
         })
-        .select()
+        .select(
+          `
+          *,
+          tenant:tenants(
+            id,
+            unit_number,
+            user:users(
+              id,
+              first_name,
+              last_name,
+              email
+            )
+          ),
+          property:properties(
+            id,
+            name
+          )
+        `
+        )
         .single();
 
       if (error) {
@@ -303,6 +355,21 @@ export class PaymentsAPI {
           message: error.message || 'Failed to create payment',
           data: undefined
         };
+      }
+
+      // Send notification to tenant about new payment
+      const tenantUserId = (payment as any).tenant?.user?.id;
+      const propertyName = (payment as any).property?.name;
+      if (tenantUserId) {
+        await NotificationsAPI.createPaymentCreatedNotification(
+          payment.id,
+          payment.amount,
+          payment.due_date,
+          payment.payment_type,
+          tenantUserId,
+          propertyName,
+          'tenant'
+        );
       }
 
       return {
@@ -332,15 +399,123 @@ export class PaymentsAPI {
     message?: string;
   }> {
     try {
+      // Get current payment to check for status changes
+      const { data: currentPayment, error: fetchError } = await supabase
+        .from('payments')
+        .select(
+          `
+          *,
+          tenant:tenants(
+            id,
+            unit_number,
+            user:users(
+              id,
+              first_name,
+              last_name,
+              email
+            )
+          ),
+          property:properties(
+            id,
+            name
+          )
+        `
+        )
+        .eq('id', paymentId)
+        .single();
+
+      if (fetchError) {
+        throw new Error(fetchError.message);
+      }
+
       const { data, error } = await supabase
         .from('payments')
         .update(updateData)
         .eq('id', paymentId)
-        .select()
+        .select(
+          `
+          *,
+          tenant:tenants(
+            id,
+            unit_number,
+            user:users(
+              id,
+              first_name,
+              last_name,
+              email
+            )
+          ),
+          property:properties(
+            id,
+            name,
+            owner_id
+          )
+        `
+        )
         .single();
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      // Send notification if payment status changed
+      if (updateData.payment_status && currentPayment.payment_status !== updateData.payment_status) {
+        const tenantUserId = (data as any).tenant?.user?.id;
+        const tenantName = `${(data as any).tenant?.user?.first_name} ${(data as any).tenant?.user?.last_name}`;
+        const unitNumber = (data as any).tenant?.unit_number;
+        const propertyName = (data as any).property?.name;
+        const ownerId = (data as any).property?.owner_id;
+        
+        console.log('💰 Payment status changed:', {
+          paymentId,
+          oldStatus: currentPayment.payment_status,
+          newStatus: updateData.payment_status,
+          tenantUserId,
+          tenantName,
+          ownerId,
+          propertyData: (data as any).property
+        });
+        
+        // Notify tenant about their payment status change
+        if (tenantUserId) {
+          await NotificationsAPI.createPaymentStatusNotification(
+            paymentId,
+            data.amount,
+            updateData.payment_status,
+            data.payment_type,
+            tenantUserId,
+            propertyName,
+            'tenant'
+          );
+          console.log('🔔 Tenant notified of payment status change');
+        }
+        
+        // Notify owner when payment is made (paid status)
+        if (updateData.payment_status === 'paid') {
+          if (!ownerId) {
+            console.warn('⚠️ No owner_id found in property data, cannot notify owner');
+            console.log('Property data:', (data as any).property);
+          } else {
+            const ownerNotificationResult = await NotificationsAPI.createNotification({
+              user_id: ownerId,
+              title: '💰 Payment Received',
+              message: `${tenantName} (Unit ${unitNumber}) has paid ${data.payment_type} of ₱${data.amount.toLocaleString()} for ${propertyName}`,
+              type: 'payment',
+              priority: 'high',
+              action_url: `/owner/dashboard/payments`,
+              data: {
+                payment_id: paymentId,
+                tenant_name: tenantName,
+                unit_number: unitNumber,
+                amount: data.amount,
+                payment_type: data.payment_type,
+                property_name: propertyName
+              }
+            });
+            console.log('🔔 Owner notification result:', ownerNotificationResult);
+            console.log('🔔 Owner notified of payment from:', tenantName, '| Owner ID:', ownerId);
+          }
+        }
       }
 
       return { success: true, data };

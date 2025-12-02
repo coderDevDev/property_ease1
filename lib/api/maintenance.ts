@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database';
+import { NotificationsAPI } from './notifications';
 
 type MaintenanceRequest =
   Database['public']['Tables']['maintenance_requests']['Row'];
@@ -219,6 +220,26 @@ export class MaintenanceAPI {
     updates: MaintenanceRequestUpdate
   ) {
     try {
+      // Get the current request first to check for status changes
+      const { data: currentRequest, error: fetchError } = await supabase
+        .from('maintenance_requests')
+        .select(
+          `
+          *,
+          tenant:tenants(
+            *,
+            user:users(*)
+          ),
+          property:properties(*)
+        `
+        )
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        throw new Error(fetchError.message);
+      }
+
       const { data, error } = await supabase
         .from('maintenance_requests')
         .update(updates)
@@ -237,6 +258,37 @@ export class MaintenanceAPI {
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      // Send notification if status changed
+      if (updates.status && currentRequest.status !== updates.status) {
+        const tenantUserId = (data as any).tenant?.user?.id;
+        console.log('🔔 Maintenance status changed:', {
+          maintenanceId: id,
+          oldStatus: currentRequest.status,
+          newStatus: updates.status,
+          tenantUserId,
+          tenantData: (data as any).tenant
+        });
+        
+        if (tenantUserId) {
+          const notificationResult = await NotificationsAPI.createMaintenanceStatusNotification(
+            id,
+            data.title,
+            currentRequest.status,
+            updates.status,
+            tenantUserId,
+            'tenant',
+            {
+              assignedTo: updates.assigned_to,
+              scheduledDate: updates.scheduled_date,
+              actualCost: updates.actual_cost
+            }
+          );
+          console.log('🔔 Notification result:', notificationResult);
+        } else {
+          console.warn('⚠️ No tenant user ID found, notification not sent');
+        }
       }
 
       return {
@@ -273,11 +325,47 @@ export class MaintenanceAPI {
           status: 'in_progress'
         })
         .eq('id', id)
-        .select()
+        .select(
+          `
+          *,
+          tenant:tenants(
+            *,
+            user:users(*)
+          ),
+          property:properties(*)
+        `
+        )
         .single();
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      // Send notification to tenant about assignment
+      const tenantUserId = (data as any).tenant?.user?.id;
+      console.log('🔔 Maintenance assigned:', {
+        maintenanceId: id,
+        assignedTo,
+        tenantUserId,
+        tenantData: (data as any).tenant
+      });
+      
+      if (tenantUserId) {
+        const notificationResult = await NotificationsAPI.createMaintenanceStatusNotification(
+          id,
+          data.title,
+          'pending',
+          'in_progress',
+          tenantUserId,
+          'tenant',
+          {
+            assignedTo,
+            scheduledDate
+          }
+        );
+        console.log('🔔 Assignment notification result:', notificationResult);
+      } else {
+        console.warn('⚠️ No tenant user ID found for assignment notification');
       }
 
       return {
@@ -334,11 +422,46 @@ export class MaintenanceAPI {
           owner_notes: ownerNotes
         })
         .eq('id', id)
-        .select()
+        .select(
+          `
+          *,
+          tenant:tenants(
+            *,
+            user:users(*)
+          ),
+          property:properties(*)
+        `
+        )
         .single();
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      // Send notification to tenant about completion
+      const tenantUserId = (data as any).tenant?.user?.id;
+      console.log('🔔 Maintenance completed:', {
+        maintenanceId: id,
+        actualCost,
+        tenantUserId,
+        tenantData: (data as any).tenant
+      });
+      
+      if (tenantUserId) {
+        const notificationResult = await NotificationsAPI.createMaintenanceStatusNotification(
+          id,
+          data.title,
+          'in_progress',
+          'completed',
+          tenantUserId,
+          'tenant',
+          {
+            actualCost
+          }
+        );
+        console.log('🔔 Completion notification result:', notificationResult);
+      } else {
+        console.warn('⚠️ No tenant user ID found for completion notification');
       }
 
       return {

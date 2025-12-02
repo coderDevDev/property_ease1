@@ -25,6 +25,7 @@ export function useRealtimeNotifications({
   });
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   // Load initial notifications
   const loadNotifications = useCallback(async () => {
@@ -89,8 +90,14 @@ export function useRealtimeNotifications({
     loadInitialNotifications();
 
     // Subscribe to notifications for this user
+    console.log('🔔 Setting up real-time subscription for user:', userId);
+    
+    // Use unique channel name like messages (prevents conflicts)
+    const uniqueChannelName = `notifications-${userId}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log('🔌 Channel name:', uniqueChannelName);
+    
     const channel = supabase
-      .channel(`notifications-realtime-${userId}`)
+      .channel(uniqueChannelName)
       .on(
         'postgres_changes',
         {
@@ -100,7 +107,7 @@ export function useRealtimeNotifications({
           filter: `user_id=eq.${userId}`
         },
         payload => {
-          console.log('New notification received:', payload);
+          console.log('🔔 ✅ New notification received in real-time:', payload);
           const newNotification = payload.new as Notification;
 
           setNotifications(prev => [newNotification, ...prev]);
@@ -173,11 +180,36 @@ export function useRealtimeNotifications({
           }
         }
       )
-      .subscribe(status => {
+      .subscribe((status, err) => {
+        console.log('🔔 Subscription status changed:', status);
+        console.log('🔔 Status type:', typeof status);
+        console.log('🔔 Is SUBSCRIBED?', status === 'SUBSCRIBED');
+        console.log('🔔 Exact value:', JSON.stringify(status));
+        
+        if (err) {
+          console.error('🔔 ❌ Subscription error:', err);
+        }
+        
         setIsConnected(status === 'SUBSCRIBED');
+        if (status === 'SUBSCRIBED') {
+          console.log('🔔 ✅ Successfully subscribed to notifications for user:', userId);
+          setReconnectAttempts(0); // Reset on successful connection
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('🔔 ❌ Channel error - real-time notifications may not work');
+          console.error('🔔 💡 Fix: Enable RLS on notifications table');
+          console.error('🔔 💡 Run: ENABLE_RLS_FOR_REALTIME.sql');
+        } else if (status === 'TIMED_OUT') {
+          console.error('🔔 ❌ Subscription timed out');
+          console.error('🔔 💡 Fix: Check RLS policies allow SELECT on notifications table');
+        } else if (status === 'CLOSED') {
+          console.warn('🔔 ⚠️ Subscription closed - will not receive real-time updates');
+          console.error('🔔 💡 Most common cause: RLS is disabled on notifications table');
+          console.error('🔔 💡 Fix: Run ENABLE_RLS_FOR_REALTIME.sql');
+        }
       });
 
     return () => {
+      console.log('🔔 Cleaning up real-time subscription for user:', userId);
       supabase.removeChannel(channel);
     };
   }, [userId]); // ⚠️ FIXED: Only depend on userId, not callbacks

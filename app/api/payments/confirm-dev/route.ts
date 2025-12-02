@@ -66,6 +66,17 @@ export async function POST(request: NextRequest) {
       amount: existingPayment.amount
     });
 
+    // If already paid, don't process again (prevents duplicate notifications)
+    if (existingPayment.payment_status === 'paid') {
+      console.log('⚠️ [confirm-dev] Payment already paid, skipping to prevent duplicates');
+      return NextResponse.json({
+        success: true,
+        payment: [existingPayment],
+        message: 'Payment already confirmed',
+        alreadyPaid: true
+      });
+    }
+
     // Update payment to paid
     const { data, error } = await supabase
       .from('payments')
@@ -77,7 +88,24 @@ export async function POST(request: NextRequest) {
         notes: 'Auto-confirmed in development mode (webhook not available on localhost)'
       })
       .eq('id', payment_id)
-      .select();
+      .select(`
+        *,
+        tenant:tenants(
+          id,
+          unit_number,
+          user:users(
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        ),
+        property:properties(
+          id,
+          name,
+          owner_id
+        )
+      `);
 
     if (error) {
       console.error('❌ [confirm-dev] Payment update error:', error);
@@ -100,6 +128,68 @@ export async function POST(request: NextRequest) {
       status: data[0].payment_status,
       paid_date: data[0].paid_date
     });
+
+    // Send notifications to tenant and owner
+    try {
+      const payment = data[0];
+      const tenantUserId = (payment as any).tenant?.user?.id;
+      const tenantName = `${(payment as any).tenant?.user?.first_name} ${(payment as any).tenant?.user?.last_name}`;
+      const unitNumber = (payment as any).tenant?.unit_number;
+      const propertyName = (payment as any).property?.name;
+      const ownerId = (payment as any).property?.owner_id;
+
+      console.log('🔔 [confirm-dev] Sending notifications:', {
+        tenantUserId,
+        tenantName,
+        ownerId,
+        amount: payment.amount
+      });
+
+      // Notify tenant
+      if (tenantUserId) {
+        await supabase.from('notifications').insert({
+          user_id: tenantUserId,
+          title: '✅ Payment Confirmed',
+          message: `Your ${payment.payment_type} payment of ₱${payment.amount.toLocaleString()} has been confirmed for ${propertyName}`,
+          type: 'payment',
+          priority: 'medium',
+          action_url: `/tenant/dashboard/payments`,
+          data: {
+            payment_id: payment.id,
+            amount: payment.amount,
+            payment_type: payment.payment_type,
+            property_name: propertyName
+          }
+        });
+        console.log('✅ [confirm-dev] Tenant notified');
+      }
+
+      // Notify owner
+      if (ownerId) {
+        await supabase.from('notifications').insert({
+          user_id: ownerId,
+          title: '💰 Payment Received',
+          message: `${tenantName} (Unit ${unitNumber}) has paid ${payment.payment_type} of ₱${payment.amount.toLocaleString()} for ${propertyName}`,
+          type: 'payment',
+          priority: 'high',
+          action_url: `/owner/dashboard/payments`,
+          data: {
+            payment_id: payment.id,
+            tenant_name: tenantName,
+            unit_number: unitNumber,
+            amount: payment.amount,
+            payment_type: payment.payment_type,
+            property_name: propertyName
+          }
+        });
+        console.log('✅ [confirm-dev] Owner notified');
+      } else {
+        console.warn('⚠️ [confirm-dev] No owner_id found, owner not notified');
+      }
+    } catch (notifError) {
+      console.error('❌ [confirm-dev] Notification error (non-fatal):', notifError);
+      // Don't fail the payment confirmation if notifications fail
+    }
 
     return NextResponse.json({
       success: true,

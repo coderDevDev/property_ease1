@@ -50,6 +50,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn, formatPropertyType } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { NotificationsAPI } from '@/lib/api/notifications';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { generateLeaseAgreementPDF } from '@/lib/pdf/leaseAgreementPDF';
@@ -263,49 +264,25 @@ export default function OwnerApplicationsPage() {
         );
 
         // Create welcome notification for the tenant
-        // await supabase.rpc('send_notification', {
-        //   user_ids: [selectedApplication.user_id],
-        //   title: 'Application Approved! 🎉',
-        //   message: `Your application for ${selectedApplication.property_name} - Unit ${selectedApplication.unit_number} has been approved. Welcome to our community!`,
-        //   type: 'system',
-        //   priority: 'high'
-        // });
-
-        // Send email notification (you'll need to implement this in your backend)
-        // await supabase.functions.invoke('send-application-approval-email', {
-        //   body: {
-        //     email: selectedApplication.user_email,
-        //     name: selectedApplication.user_name,
-        //     property: selectedApplication.property_name,
-        //     unit: selectedApplication.unit_number,
-        //     moveInDate: format(
-        //       new Date(selectedApplication.move_in_date),
-        //       'PPP'
-        //     )
-        //   }
-        // });
+        await NotificationsAPI.createApplicationApprovedNotification(
+          selectedApplication.id,
+          selectedApplication.property_name,
+          selectedApplication.unit_number,
+          selectedApplication.user_id,
+          'tenant'
+        );
       } else {
         toast.success('Application rejected successfully.');
 
         // Create notification for the tenant
-        // await supabase.rpc('send_notification', {
-        //   user_ids: [selectedApplication.user_id],
-        //   title: 'Application Status Update',
-        //   message: `Your application for ${selectedApplication.property_name} - Unit ${selectedApplication.unit_number} has been reviewed. Unfortunately, we cannot proceed with your application at this time.`,
-        //   type: 'system',
-        //   priority: 'high'
-        // });
-
-        // // Send email notification
-        // await supabase.functions.invoke('send-application-rejection-email', {
-        //   body: {
-        //     email: selectedApplication.user_email,
-        //     name: selectedApplication.user_name,
-        //     property: selectedApplication.property_name,
-        //     unit: selectedApplication.unit_number,
-        //     reason: actionNote
-        //   }
-        // });
+        await NotificationsAPI.createApplicationRejectedNotification(
+          selectedApplication.id,
+          selectedApplication.property_name,
+          selectedApplication.unit_number,
+          selectedApplication.user_id,
+          actionNote,
+          'tenant'
+        );
       }
 
       // Close both dialogs and reset state

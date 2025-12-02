@@ -484,6 +484,346 @@ export class NotificationsAPI {
     }
   }
 
+  // Create notification for application approval
+  static async createApplicationApprovedNotification(
+    applicationId: string,
+    propertyName: string,
+    unitNumber: string,
+    userId: string,
+    userRole: 'owner' | 'tenant' = 'tenant'
+  ): Promise<{
+    success: boolean;
+    data?: Notification;
+    message?: string;
+  }> {
+    try {
+      const actionUrl = userRole === 'owner'
+        ? '/owner/dashboard/applications'
+        : '/tenant/dashboard/applications';
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title: '🎉 Application Approved!',
+          message: `Your rental application for ${propertyName} - Unit ${unitNumber} has been approved. Welcome to our community!`,
+          type: 'lease',
+          priority: 'high',
+          action_url: actionUrl,
+          data: {
+            application_id: applicationId,
+            property_name: propertyName,
+            unit_number: unitNumber
+          }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Create application approved notification error:', error);
+      return {
+        success: false,
+        message: 'Failed to create application approved notification'
+      };
+    }
+  }
+
+  // Create notification for application rejection
+  static async createApplicationRejectedNotification(
+    applicationId: string,
+    propertyName: string,
+    unitNumber: string,
+    userId: string,
+    rejectionReason?: string,
+    userRole: 'owner' | 'tenant' = 'tenant'
+  ): Promise<{
+    success: boolean;
+    data?: Notification;
+    message?: string;
+  }> {
+    try {
+      const actionUrl = userRole === 'owner'
+        ? '/owner/dashboard/applications'
+        : '/tenant/dashboard/applications';
+
+      const message = rejectionReason
+        ? `Your application for ${propertyName} - Unit ${unitNumber} has been reviewed. Reason: ${rejectionReason}`
+        : `Your application for ${propertyName} - Unit ${unitNumber} has been reviewed. Unfortunately, we cannot proceed at this time.`;
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title: 'Application Status Update',
+          message,
+          type: 'lease',
+          priority: 'high',
+          action_url: actionUrl,
+          data: {
+            application_id: applicationId,
+            property_name: propertyName,
+            unit_number: unitNumber,
+            rejection_reason: rejectionReason
+          }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Create application rejected notification error:', error);
+      return {
+        success: false,
+        message: 'Failed to create application rejected notification'
+      };
+    }
+  }
+
+  // Create notification for maintenance status change
+  static async createMaintenanceStatusNotification(
+    maintenanceId: string,
+    maintenanceTitle: string,
+    oldStatus: string,
+    newStatus: string,
+    userId: string,
+    userRole: 'owner' | 'tenant' = 'tenant',
+    additionalInfo?: {
+      assignedTo?: string;
+      scheduledDate?: string;
+      actualCost?: number;
+    }
+  ): Promise<{
+    success: boolean;
+    data?: Notification;
+    message?: string;
+  }> {
+    try {
+      const actionUrl = userRole === 'owner'
+        ? `/owner/dashboard/maintenance/${maintenanceId}`
+        : `/tenant/dashboard/maintenance/${maintenanceId}`;
+
+      let title = '';
+      let message = '';
+      let priority: 'low' | 'medium' | 'high' = 'medium';
+
+      // Customize notification based on status change
+      switch (newStatus) {
+        case 'in_progress':
+          title = '🔧 Maintenance Work Started';
+          message = `Work on "${maintenanceTitle}" has begun`;
+          if (additionalInfo?.assignedTo) {
+            message += ` and has been assigned to ${additionalInfo.assignedTo}`;
+          }
+          if (additionalInfo?.scheduledDate) {
+            message += `. Scheduled for ${new Date(additionalInfo.scheduledDate).toLocaleDateString()}`;
+          }
+          priority = 'medium';
+          break;
+        case 'completed':
+          title = '✅ Maintenance Request Completed';
+          message = `Your maintenance request "${maintenanceTitle}" has been completed`;
+          if (additionalInfo?.actualCost) {
+            message += `. Final cost: ₱${additionalInfo.actualCost.toLocaleString()}`;
+          }
+          priority = 'high';
+          break;
+        case 'cancelled':
+          title = '❌ Maintenance Request Cancelled';
+          message = `Your maintenance request "${maintenanceTitle}" has been cancelled`;
+          priority = 'medium';
+          break;
+        case 'pending':
+          title = '📋 Maintenance Request Received';
+          message = `Your maintenance request "${maintenanceTitle}" is being reviewed`;
+          priority = 'low';
+          break;
+        default:
+          title = 'Maintenance Status Update';
+          message = `Status for "${maintenanceTitle}" changed to ${newStatus.replace('_', ' ')}`;
+      }
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title,
+          message,
+          type: 'maintenance',
+          priority,
+          action_url: actionUrl,
+          data: {
+            maintenance_id: maintenanceId,
+            old_status: oldStatus,
+            new_status: newStatus,
+            ...additionalInfo
+          }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Create maintenance status notification error:', error);
+      return {
+        success: false,
+        message: 'Failed to create maintenance status notification'
+      };
+    }
+  }
+
+  // Create notification for payment created
+  static async createPaymentCreatedNotification(
+    paymentId: string,
+    amount: number,
+    dueDate: string,
+    paymentType: string,
+    userId: string,
+    propertyName?: string,
+    userRole: 'owner' | 'tenant' = 'tenant'
+  ): Promise<{
+    success: boolean;
+    data?: Notification;
+    message?: string;
+  }> {
+    try {
+      const actionUrl = userRole === 'owner'
+        ? '/owner/dashboard/payments'
+        : '/tenant/dashboard/payments';
+
+      const formattedType = paymentType.replace('_', ' ').toUpperCase();
+      const propertyInfo = propertyName ? ` for ${propertyName}` : '';
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title: '💰 New Payment Due',
+          message: `${formattedType} payment of ₱${amount.toLocaleString()}${propertyInfo} is due on ${new Date(dueDate).toLocaleDateString()}`,
+          type: 'payment',
+          priority: 'high',
+          action_url: actionUrl,
+          data: {
+            payment_id: paymentId,
+            amount,
+            due_date: dueDate,
+            payment_type: paymentType
+          }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Create payment created notification error:', error);
+      return {
+        success: false,
+        message: 'Failed to create payment created notification'
+      };
+    }
+  }
+
+  // Create notification for payment status change
+  static async createPaymentStatusNotification(
+    paymentId: string,
+    amount: number,
+    newStatus: string,
+    paymentType: string,
+    userId: string,
+    propertyName?: string,
+    userRole: 'owner' | 'tenant' = 'tenant'
+  ): Promise<{
+    success: boolean;
+    data?: Notification;
+    message?: string;
+  }> {
+    try {
+      const actionUrl = userRole === 'owner'
+        ? '/owner/dashboard/payments'
+        : '/tenant/dashboard/payments';
+
+      let title = '';
+      let message = '';
+      let priority: 'low' | 'medium' | 'high' = 'medium';
+
+      const formattedType = paymentType.replace('_', ' ').toUpperCase();
+      const propertyInfo = propertyName ? ` for ${propertyName}` : '';
+
+      switch (newStatus) {
+        case 'paid':
+          title = '✅ Payment Confirmed';
+          message = `Your ${formattedType} payment of ₱${amount.toLocaleString()}${propertyInfo} has been confirmed`;
+          priority = 'medium';
+          break;
+        case 'overdue':
+          title = '⚠️ Payment Overdue';
+          message = `Your ${formattedType} payment of ₱${amount.toLocaleString()}${propertyInfo} is now overdue`;
+          priority = 'high';
+          break;
+        case 'failed':
+          title = '❌ Payment Failed';
+          message = `Your ${formattedType} payment of ₱${amount.toLocaleString()}${propertyInfo} has failed. Please try again`;
+          priority = 'high';
+          break;
+        case 'processing':
+          title = '⏳ Payment Processing';
+          message = `Your ${formattedType} payment of ₱${amount.toLocaleString()}${propertyInfo} is being processed`;
+          priority = 'low';
+          break;
+        default:
+          title = 'Payment Status Update';
+          message = `Payment status updated to ${newStatus}`;
+      }
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title,
+          message,
+          type: 'payment',
+          priority,
+          action_url: actionUrl,
+          data: {
+            payment_id: paymentId,
+            amount,
+            status: newStatus,
+            payment_type: paymentType
+          }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Create payment status notification error:', error);
+      return {
+        success: false,
+        message: 'Failed to create payment status notification'
+      };
+    }
+  }
+
   // Utility function to fix existing notifications with incorrect URLs
   static async fixExistingNotificationUrls(): Promise<{
     success: boolean;

@@ -475,7 +475,15 @@ export default function TenantPaymentsPage() {
 
   // Helper function to confirm payment by ID
   const confirmPaymentById = async (id: string) => {
+    // Prevent duplicate calls
+    if ((window as any).__confirmingPayment === id) {
+      console.log('⚠️ Payment confirmation already in progress, skipping duplicate call');
+      return;
+    }
+
     try {
+      (window as any).__confirmingPayment = id;
+      
       // Use API route to update payment (bypasses RLS)
       const response = await fetch('/api/payments/confirm-dev', {
         method: 'POST',
@@ -492,7 +500,11 @@ export default function TenantPaymentsPage() {
 
       const result = await response.json();
       console.log('Payment confirmed via API:', result);
-      toast.success('✅ Payment confirmed successfully!');
+      
+      // Only show toast if not already paid
+      if (!result.alreadyPaid) {
+        toast.success('✅ Payment confirmed successfully!');
+      }
       
       // Reload payments
       if (authState.user?.id) {
@@ -504,6 +516,11 @@ export default function TenantPaymentsPage() {
     } catch (error) {
       console.error('Confirm error:', error);
       toast.error('Failed to confirm payment');
+    } finally {
+      // Clear the lock after a short delay
+      setTimeout(() => {
+        delete (window as any).__confirmingPayment;
+      }, 1000);
     }
   };
 
