@@ -217,13 +217,13 @@ export const generatePaymentSchedulePDF = (data: PaymentScheduleData) => {
     .reduce((sum, p) => sum + p.amount, 0);
 
   doc.text(
-    `Total Payments: ${totalPayments} | Monthly Rent: ₱${data.monthlyRent.toLocaleString()}`,
+    `Total Payments: ${totalPayments}     Monthly Rent: P${data.monthlyRent.toLocaleString()}`,
     25,
     yPosition
   );
   yPosition += 5;
   doc.text(
-    `Paid: ${paidPayments}/${totalPayments} | Total Amount: ₱${totalAmount.toLocaleString()}`,
+    `Paid: ${paidPayments}/${totalPayments}     Total Amount: P${totalAmount.toLocaleString()}`,
     25,
     yPosition
   );
@@ -246,9 +246,9 @@ export const generatePaymentSchedulePDF = (data: PaymentScheduleData) => {
       `${index + 1}`,
       dueDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
       dueDate.toLocaleDateString(),
-      `₱${payment.amount.toLocaleString()}`,
-      lateFee > 0 ? `₱${lateFee.toLocaleString()}` : '-',
-      `₱${total.toLocaleString()}`,
+      `P${payment.amount.toLocaleString()}`,
+      lateFee > 0 ? `P${lateFee.toLocaleString()}` : '-',
+      `P${total.toLocaleString()}`,
       status,
       paidDate
     ];
@@ -337,11 +337,11 @@ export const generatePaymentSchedulePDF = (data: PaymentScheduleData) => {
   doc.setFont('helvetica', 'normal');
   const instructions = [
     'Payments are due on the 5th of each month.',
-    'A late fee of ₱500 or 5% (whichever is higher) applies after 3 days.',
+    'A late fee of P500 or 5% (whichever is higher) applies after 3 days.',
     'Payment can be made via:',
-    '  • Online: Xendit payment gateway (GCash, Maya, Credit/Debit Card)',
-    '  • Bank Transfer: [Bank details to be provided]',
-    '  • Cash: At property management office',
+    '  - Online: Xendit payment gateway (GCash, Maya, Credit/Debit Card)',
+    '  - Bank Transfer: [Bank details to be provided]',
+    '  - Cash: At property management office',
     'Please keep all payment receipts for your records.',
     'For payment issues, contact the property manager.'
   ];

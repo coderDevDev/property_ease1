@@ -313,7 +313,8 @@ export class MaintenanceAPI {
     id: string,
     assignedTo: string,
     scheduledDate?: string,
-    personnelPhone?: string
+    personnelPhone?: string,
+    ownerNotes?: string
   ) {
     try {
       const { data, error } = await supabase
@@ -322,6 +323,7 @@ export class MaintenanceAPI {
           assigned_to: assignedTo,
           assigned_personnel_phone: personnelPhone,
           scheduled_date: scheduledDate,
+          owner_notes: ownerNotes,
           status: 'in_progress'
         })
         .eq('id', id)

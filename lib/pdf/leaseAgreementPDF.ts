@@ -118,13 +118,13 @@ export const generateLeaseAgreementPDF = (leaseData: LeaseData) => {
   yPosition += 5;
   doc.text(`Duration: ${leaseData.leaseDuration} months`, 25, yPosition);
   yPosition += 5;
-  doc.text(`Monthly Rent: ₱${leaseData.monthlyRent.toLocaleString()}`, 25, yPosition);
+  doc.text(`Monthly Rent: P${leaseData.monthlyRent.toLocaleString()}`, 25, yPosition);
   yPosition += 5;
-  doc.text(`Security Deposit: ₱${leaseData.securityDeposit.toLocaleString()}`, 25, yPosition);
+  doc.text(`Security Deposit: P${leaseData.securityDeposit.toLocaleString()}`, 25, yPosition);
   yPosition += 5;
   doc.text(`Payment Due: ${leaseData.paymentDueDay}th of each month`, 25, yPosition);
   yPosition += 5;
-  doc.text(`Total Rent for Full Term: ₱${(leaseData.monthlyRent * leaseData.leaseDuration).toLocaleString()}`, 25, yPosition);
+  doc.text(`Total Rent for Full Term: P${(leaseData.monthlyRent * leaseData.leaseDuration).toLocaleString()}`, 25, yPosition);
   yPosition += 12;
 
   // Amenities (if available)

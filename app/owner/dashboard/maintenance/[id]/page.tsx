@@ -142,6 +142,8 @@ export default function MaintenanceDetailsPage() {
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
   const [assignPersonnelName, setAssignPersonnelName] = useState('');
   const [assignPersonnelPhone, setAssignPersonnelPhone] = useState('');
+  const [assignScheduleDate, setAssignScheduleDate] = useState('');
+  const [assignNotes, setAssignNotes] = useState('');
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -184,6 +186,16 @@ export default function MaintenanceDetailsPage() {
               ? new Date(request.scheduled_date).toISOString().slice(0, 16)
               : ''
           });
+
+          // Pre-fill assign personnel fields with existing data
+          if (request.scheduled_date) {
+            setAssignScheduleDate(
+              new Date(request.scheduled_date).toISOString().slice(0, 16)
+            );
+          }
+          if (request.owner_notes) {
+            setAssignNotes(request.owner_notes);
+          }
 
           // Generate timeline events
           generateTimelineEvents(request);
@@ -330,6 +342,13 @@ export default function MaintenanceDetailsPage() {
     try {
       setIsUpdating(true);
 
+      // CRITICAL: Prevent completion without tenant feedback
+      if (newStatus === 'completed' && !maintenanceRequest?.feedback_rating) {
+        toast.error('Cannot complete: Tenant feedback is required before completion');
+        setIsUpdating(false);
+        return;
+      }
+
       // If changing to in_progress with personnel data, use assignMaintenanceRequest API
       if (
         newStatus === 'in_progress' &&
@@ -340,7 +359,8 @@ export default function MaintenanceDetailsPage() {
           maintenanceId,
           data.personnelName,
           data.scheduledDate || undefined,
-          data.personnelPhone
+          data.personnelPhone,
+          data.assignmentNotes || undefined
         );
 
         if (result.success) {
@@ -686,7 +706,20 @@ export default function MaintenanceDetailsPage() {
                 </Button>
                 {maintenanceRequest.status === 'pending' && (
                   <Button
-                    onClick={() => setIsAssignDialogOpen(true)}
+                    onClick={() => {
+                      // Pre-fill with existing scheduled date and notes
+                      if (maintenanceRequest.scheduled_date) {
+                        setAssignScheduleDate(
+                          new Date(maintenanceRequest.scheduled_date)
+                            .toISOString()
+                            .slice(0, 16)
+                        );
+                      }
+                      if (maintenanceRequest.owner_notes) {
+                        setAssignNotes(maintenanceRequest.owner_notes);
+                      }
+                      setIsAssignDialogOpen(true);
+                    }}
                     variant="outline"
                     className="border-green-200 text-green-600 hover:bg-green-50 transition-all duration-200">
                     <User className="w-4 h-4 mr-2" />
@@ -1131,7 +1164,7 @@ export default function MaintenanceDetailsPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label
                         htmlFor="scheduled_date"
                         className="text-gray-700 font-medium">
@@ -1146,7 +1179,7 @@ export default function MaintenanceDetailsPage() {
                         }
                         className="bg-white/50 border-blue-200/50 focus:border-blue-400"
                       />
-                    </div>
+                    </div> */}
 
                     <div className="space-y-2">
                       <Label
@@ -1626,21 +1659,41 @@ export default function MaintenanceDetailsPage() {
                   htmlFor="assign_schedule"
                   className="text-gray-700 font-medium">
                   Schedule Date
+                  {maintenanceRequest?.scheduled_date && (
+                    <span className="text-xs text-green-600 ml-2">
+                      ✓ Set 
+                    </span>
+                  )}
                 </Label>
                 <Input
                   id="assign_schedule"
                   type="datetime-local"
-                  className="bg-white/50 border-blue-200/50 focus:border-blue-400"
+                  value={assignScheduleDate}
+                  onChange={e => setAssignScheduleDate(e.target.value)}
+                  disabled={!!maintenanceRequest?.scheduled_date}
+                  className="bg-gray-100 border-gray-300 cursor-not-allowed disabled:opacity-75"
                 />
+                {maintenanceRequest?.scheduled_date && (
+                  <p className="text-xs text-gray-600">
+                    This date is set from the maintenance request and cannot be changed here.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label
                   htmlFor="assign_notes"
                   className="text-gray-700 font-medium">
                   Assignment Notes
+                  {maintenanceRequest?.owner_notes && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      (Pre-filled from request)
+                    </span>
+                  )}
                 </Label>
                 <Textarea
                   id="assign_notes"
+                  value={assignNotes}
+                  onChange={e => setAssignNotes(e.target.value)}
                   placeholder="Add any specific instructions..."
                   rows={3}
                   className="bg-white/50 border-blue-200/50 focus:border-blue-400"
@@ -1670,8 +1723,9 @@ export default function MaintenanceDetailsPage() {
                       await MaintenanceAPI.assignMaintenanceRequest(
                         maintenanceId,
                         assignPersonnelName.trim(),
-                        undefined,
-                        assignPersonnelPhone.trim()
+                        assignScheduleDate || undefined,
+                        assignPersonnelPhone.trim(),
+                        assignNotes.trim() || undefined
                       );
 
                     if (result.success) {
@@ -1679,6 +1733,8 @@ export default function MaintenanceDetailsPage() {
                       setIsAssignDialogOpen(false);
                       setAssignPersonnelName('');
                       setAssignPersonnelPhone('');
+                      setAssignScheduleDate('');
+                      setAssignNotes('');
                       // Reload the data
                       const reloadResult =
                         await MaintenanceAPI.getMaintenanceRequest(

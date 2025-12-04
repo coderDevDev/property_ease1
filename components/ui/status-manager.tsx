@@ -108,6 +108,12 @@ export function StatusManager({
   const handleStatusChange = async () => {
     if (!selectedStatus) return;
 
+    // CRITICAL: Validate feedback is required before completion
+    if (selectedStatus === 'completed' && !feedbackRating) {
+      console.error('Cannot complete: Tenant feedback is required');
+      return;
+    }
+
     // Validate required fields for in_progress
     if (selectedStatus === 'in_progress') {
       if (!formData.personnelName.trim()) {
