@@ -45,7 +45,14 @@ export class PropertiesAPI {
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('*')
+        .select(`
+          *,
+          tenants(
+            id,
+            unit_number,
+            status
+          )
+        `)
         .eq('owner_id', ownerId)
         .order('created_at', { ascending: false });
 

@@ -94,6 +94,11 @@ export interface PropertyListing {
   available_units: number;
   featured_amenities: string[];
   is_favorited?: boolean;
+  tenants?: Array<{
+    id: string;
+    unit_number: string;
+    status: string;
+  }>;
 }
 
 export class TenantAPI {
@@ -284,6 +289,7 @@ export class TenantAPI {
           `
           id,
           owner_id,
+          property_code,
           name,
           type,
           address,
@@ -306,34 +312,58 @@ export class TenantAPI {
           is_verified,
           is_featured,
           users!properties_owner_id_fkey (
+            id,
             first_name,
             last_name,
             email,
             phone
+          ),
+          tenants(
+            id,
+            unit_number,
+            status
           )
         `
         )
         .eq('status', 'active')
-        .eq('is_verified', true);
+        .eq('is_verified', true)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const propertyListings: PropertyListing[] = properties
-        .filter(property => property.total_units > property.occupied_units) // Only show properties with available units
-        .map(property => ({
-          ...property,
-          available_units: property.total_units - property.occupied_units,
-          owner_name: `${(property.users as any).first_name} ${
-            (property.users as any).last_name
-          }`,
-          owner_email: (property.users as any).email,
-          owner_phone: (property.users as any).phone,
-          rating: 4.5 + Math.random() * 0.5, // Mock rating for now
-          reviewCount: Math.floor(Math.random() * 30) + 5, // Mock review count
-          featured_amenities: property.amenities?.slice(0, 4) || [],
-          amenities: property.amenities || [],
-          images: property.images || []
-        }))
+        .map(property => {
+          // Calculate actual occupied units from tenants array
+          // Only count active tenants whose unit number is within valid range
+          const activeTenants = (property.tenants || []).filter(t => {
+            if (t.status !== 'active') return false;
+            const match = t.unit_number.match(/\d+/);
+            if (!match) return false;
+            const unitNum = parseInt(match[0]);
+            return unitNum >= 1 && unitNum <= property.total_units;
+          });
+          
+          const actualOccupiedUnits = activeTenants.length;
+          const actualAvailableUnits = property.total_units - actualOccupiedUnits;
+          
+          return {
+            ...property,
+            occupied_units: actualOccupiedUnits,
+            available_units: actualAvailableUnits,
+            owner_name: `${(property.users as any).first_name} ${
+              (property.users as any).last_name
+            }`,
+            owner_email: (property.users as any).email,
+            owner_phone: (property.users as any).phone,
+            rating: 4.5 + Math.random() * 0.5, // Mock rating for now
+            reviewCount: Math.floor(Math.random() * 30) + 5, // Mock review count
+            featured_amenities: property.amenities?.slice(0, 4) || [],
+            amenities: property.amenities || [],
+            images: property.images || [],
+            thumbnail: property.thumbnail || (property.images && property.images.length > 0 ? property.images[0] : undefined)
+          };
+        })
+        .filter(property => property.available_units > 0) // Only show properties with available units
         .sort((a, b) => {
           // Featured properties first
           if (a.is_featured && !b.is_featured) return -1;

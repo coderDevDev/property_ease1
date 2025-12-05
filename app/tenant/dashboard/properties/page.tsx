@@ -575,6 +575,49 @@ export default function TenantPropertiesPage() {
                   </div>
                 </div>
 
+                {/* Room Availability Details */}
+                {(() => {
+                  // Only show occupied rooms that are within valid range and active
+                  const occupiedRooms = (property.tenants || [])
+                    .filter(t => t.status === 'active')
+                    .map(t => {
+                      const match = t.unit_number.match(/\d+/);
+                      return match ? parseInt(match[0]) : null;
+                    })
+                    .filter(n => n !== null && n >= 1 && n <= property.total_units)
+                    .sort((a, b) => a! - b!);
+                  
+                  const allRooms = Array.from({ length: property.total_units }, (_, i) => i + 1);
+                  const availableRooms = allRooms.filter(r => !occupiedRooms.includes(r));
+
+                  return (
+                    <div className="mb-3 sm:mb-4 space-y-2 text-xs">
+                      {availableRooms.length > 0 && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 font-medium whitespace-nowrap">Available:</span>
+                          <span className="text-gray-700 flex-1">
+                            {availableRooms.length <= 5 
+                              ? `Room ${availableRooms.join(', ')}`
+                              : `Room ${availableRooms.slice(0, 5).join(', ')} +${availableRooms.length - 5} more`
+                            }
+                          </span>
+                        </div>
+                      )}
+                      {occupiedRooms.length > 0 && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-red-600 font-medium whitespace-nowrap">Occupied:</span>
+                          <span className="text-gray-700 flex-1">
+                            {occupiedRooms.length <= 5
+                              ? `Room ${occupiedRooms.join(', ')}`
+                              : `Room ${occupiedRooms.slice(0, 5).join(', ')} +${occupiedRooms.length - 5} more`
+                            }
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Amenities */}
                 <div className="mb-3 sm:mb-4">
                   <div className="flex flex-wrap gap-1">
